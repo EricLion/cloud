@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<state>
+	<wifi>
+		<SSID t = "UnsignedInt" v = "100" rw = "RW"/>
+		<key t = "String" v = "tigercel" rw = "RW"/>
+		<mode t = "String" v = "802.11b" rw = "RW"/>
+		<txPower t = "UnsignedInt" v = "100" rw = "RW"/>
+		<encrptMode t = "String" v = "" rw = "RW"/>
+		<AssociatedDeviceMACAddress t = "String" v = "aa:bb:cc:dd" rw = "RW"/>
+		<AssociatedDeviceIPAddress t = "String" v = "192.168.8.108" rw = "RW"/>
+	</wifi>
+</state>

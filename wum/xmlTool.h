@@ -1,0 +1,15 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<errno.h>
+#include<fcntl.h>
+#include<unistd.h>
+#include<libxml/tree.h>
+#include<libxml/xmlsave.h>
+#include<libxml/parser.h>
+#include<libxml/xmlsave.h>
+#include<libxml/xmlstring.h>
+#include<libxml/xmlmemory.h>
+#include<netinet/in.h>
+#include<sys/socket.h>
+#include<arpa/inet.h>
