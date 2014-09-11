@@ -92,6 +92,7 @@ CWBool CWStartNeighborDeadTimer(int WTPIndex);
 CWBool CWStopNeighborDeadTimer(int WTPIndex);
 CWBool CWRestartNeighborDeadTimer(int WTPIndex);
 CWBool CWRestartNeighborDeadTimerForEcho(int WTPIndex);
+CWBool CWStartNeighborDeadTimerForEcho(int WTPIndex);
 
 CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 
@@ -297,9 +298,10 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 
 			
 			CWSaveConfigurationUpdateResponseMessage(resultCode, WTPIndex, protocolValues);
-			
+			printf("f:%s L:%d",__FILE__,__LINE__);
 			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE) {
 
+			printf("f:%s L:%d",__FILE__,__LINE__);
 				CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
 				
 				gWTPs[WTPIndex].interfaceResult = 1;
@@ -342,11 +344,11 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			if(!(CWParseEchoRequestMessage(msgPtr, controlVal.msgElemsLen)))
 				return CW_FALSE;
 			if (timerSet) {
-				if(!CWRestartNeighborDeadTimer(WTPIndex)) {
+				if(!CWRestartNeighborDeadTimerForEcho(WTPIndex)) {
 					CWCloseThread();
 				}
 			} else {
-				if(!CWStartNeighborDeadTimer(WTPIndex)) {
+				if(!CWStartNeighborDeadTimerForEcho(WTPIndex)) {
 					CWCloseThread();
 				}
 			}
@@ -598,14 +600,14 @@ CWBool CWParseConfigurationUpdateResponseMessage(CWProtocolMessage* msgPtr,
 
 				switch ((*vendValues)->vendorPayloadType) {
 					case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_UCI:
-						payloadSize = CWProtocolRetrieve16(msgPtr);
+						payloadSize = CWProtocolRetrieve32(msgPtr);
 						if (payloadSize != 0) {
 							(*vendValues)->payload = (void *) CWProtocolRetrieveStr(msgPtr, payloadSize);
 						} else 
 							(*vendValues)->payload = NULL;
 						break;
 					case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_WUM:
-						payloadSize = CWProtocolRetrieve16(msgPtr);
+						payloadSize = CWProtocolRetrieve32(msgPtr);
 						
 						if (payloadSize <= 0) {
 							/* Payload can't be zero here,
@@ -617,7 +619,7 @@ CWBool CWParseConfigurationUpdateResponseMessage(CWProtocolMessage* msgPtr,
 					case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG:
 					case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE:
 //						(*vendValues)->vendorPayloadLen = CWProtocolRetrieve16(msgPtr);
-						(*vendValues)->vendorPayloadLen = (short)CWProtocolRetrieve32(msgPtr);
+						(*vendValues)->vendorPayloadLen = CWProtocolRetrieve32(msgPtr);
 						CWLog("[F:%s, L:%d] (*vendValues)->vendorPayloadLen = %d",__FILE__,__LINE__,(*vendValues)->vendorPayloadLen);
 						if ((*vendValues)->vendorPayloadLen <= 0) {
 
@@ -731,6 +733,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 		 ********************************/
 
 		headerSize = 3*sizeof(int);
+		CWLog("[F:%s, L:%d] :headerSize = %d",__FILE__,__LINE__,headerSize);
 		
 		switch (vendValues->vendorPayloadType) {
 		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_UCI:
@@ -764,31 +767,32 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG:
 		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE:
 			   payloadSize = vendValues->vendorPayloadLen;
-			   CWLog("[F:%s, L:%d] payloadSize:%d",__FILE__,__LINE__,vendValues->vendorPayloadLen);
+			   CWLog("[F:%s, L:%d] strlen(vendValues->payload) =%d,payloadSize:%d",__FILE__,__LINE__,strlen(vendValues->payload),payloadSize);
 				CWLog("Msg :CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_XML Saved");
 				break;
 		}
 
-		if ( ( responseBuffer = malloc( headerSize+payloadSize ) ) != NULL ) {
+		if ( ( responseBuffer = malloc( headerSize+payloadSize+1 ) ) != NULL ) {
 
-			memset(responseBuffer, 0, headerSize+payloadSize);
+			//memset(responseBuffer, '0', headerSize+payloadSize);
 			netWTPIndex = htonl(WTPIndex);
-			memcpy(responseBuffer, &netWTPIndex, sizeof(int));
-
+			memcpy(responseBuffer, (char*)&netWTPIndex, sizeof(int));
+			
 			netresultCode = htonl(resultCode);
-			memcpy(responseBuffer+sizeof(int), &netresultCode, sizeof(int));
+			memcpy(responseBuffer+sizeof(int), (char*)&netresultCode, sizeof(int));
 
 			netpayloadSize = htonl(payloadSize);
-			memcpy(responseBuffer+(2*sizeof(int)), &netpayloadSize, sizeof(int));
-//			CWLog("[F:%s, L:%d] netpayloadSize:%d",__FILE__,__LINE__,netpayloadSize);
+			memcpy(responseBuffer+(2*sizeof(int)), (char*)&netpayloadSize, sizeof(int));
+
 
 			if (payloadSize > 0) {
-				memcpy(responseBuffer+headerSize, (char *) vendValues->payload, payloadSize);
+				memcpy(responseBuffer+headerSize, vendValues->payload, payloadSize);
 //				if (vendValues->vendorPayloadType == CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG)
-				((char *)vendValues->payload)[payloadSize] = '\0';
+		//mem out
+		//((char*)(vendValues->payload))[payloadSize] = '\0';
+		//		responseBuffer[payloadSize+headerSize] = '\0';
 			}
 
-			CWLog("[F:%s, L:%d] responseBuffer:%s",__FILE__,__LINE__,responseBuffer);
 			socketIndex = gWTPs[WTPIndex].applicationIndex;	
 
 			/****************************************************
@@ -814,10 +818,12 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			CWThreadMutexUnlock(&appsManager.socketMutex[socketIndex]);
 
 		}
+		
 		CW_FREE_OBJECT(responseBuffer);
 		CW_FREE_OBJECT(vendValues->payload);
 		CW_FREE_OBJECT(vendValues);
 
+			CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	}else if(!CWBindingSaveConfigurationUpdateResponse(resultCode, WTPIndex)) {
 	
 		return CW_FALSE;
@@ -1531,7 +1537,8 @@ CWBool CWStartNeighborDeadTimerForEcho(int WTPIndex){
 
 	/* start NeighborDeadInterval timer */
 	CWACGetEchoRequestTimer(&echoInterval);
-	if(!CWErr(CWTimerRequest(echoInterval,
+	CWLog("CWStartNeighborDeadTimerForEcho echoInterval = %d",echoInterval);
+	if(!CWErr(CWTimerRequest(2*echoInterval,
 				 &(gWTPs[WTPIndex].thread),
 				 &(gWTPs[WTPIndex].currentTimer),
 				 CW_CRITICAL_TIMER_EXPIRED_SIGNAL))) {

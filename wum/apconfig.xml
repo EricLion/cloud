@@ -1,12 +1,12 @@
 <?xml version="1.0" ?>
 <config>
 	<wifi>
-		<SSID1 t = "UnsignedInt" v = "tiger" rw = "RW"/>
+		<SSID1 t = "UnsignedInt" v = "tig" rw = "RW"/>
 		<RadioOff t = "String" v = "1" rw = "RW"/>
 		<WiFiOff t = "String" v = "1" rw = "RW"/>
 		<WirelessMode t = "UnsignedInt" v = "4" rw = "RW"/>
 		<WPAPSK1 t = "String" v = "catdog" rw = "RW"/>
-		<AuthMode t = "String" v = "WPAPSKWPA2PSK" rw = "RW"/>
+		<AuthMode t = "String" v = "WPAPSK" rw = "RW"/>
 		<TxPower t = "String" v = "300" rw = "RW"/>
 	</wifi>
 </config>

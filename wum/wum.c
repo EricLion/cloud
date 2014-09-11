@@ -366,6 +366,7 @@ void do_update_cmd(int acserver, char *wtpIds, char *wtpNames, char *cup_path)
 	}
 	
 	if (WUMReadCupVersion(cup_path, &update_v)) {
+		fprintf(stderr, "[F:%s, L:%d] WUMReadCupVersion Fail !\n",__FILE__,__LINE__);
 		return;
 	}
 	
@@ -379,7 +380,7 @@ void do_update_cmd(int acserver, char *wtpIds, char *wtpNames, char *cup_path)
 	printf("| %-6s | %-30s | %-10s |\n", "WTP Id", "WTp Name", "Result");
 	printf("*--------*--------------------------------*------------*\n");
 	for (i = 0; i < n; i++) {
-		ret = WUMUpdate(acserver, i, cup, update_v);
+		ret = WUMUpdate(acserver, wtps[i], cup, update_v);
 		printf("| %-6d | %-30s | %-10s |\n", wtpList[i].wtpId, wtpList[i].name, (ret == 0) ? "SUCCESS" : "FAILURE");
 	}
 	printf("*--------*--------------------------------*------------*\n");
@@ -477,12 +478,12 @@ void printConfigInfo(struct config_info *c_info, int wtpId, struct WTPInfo *wtpL
 	char Result[8];
 
 	strcpy(Result, "FAILE");
-	fprintf(stderr, "--%s---%d--\n",__FILE__,__LINE__);
+//	fprintf(stderr, "--%s---%d--\n",__FILE__,__LINE__);
 	if(!c_info->resultCode)
 	{
 		strcpy(Result, "SUCCESS");
 	}
-	fprintf(stderr, "--%s---%d--\n",__FILE__,__LINE__);
+//	fprintf(stderr, "--%s---%d--\n",__FILE__,__LINE__);
 	if(c_info->xml)
 	{
 		fprintf(stderr, "--%s---%d--\n",__FILE__,__LINE__);

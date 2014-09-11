@@ -323,46 +323,48 @@ int WUMReadCupVersion(char *cup_pathname, struct version_info *update_v)
 	struct stat s_buf;
 	FILE *cud;
 	
-	snprintf(buf, BUF_SIZE, "tar xzf %s -C /tmp update.cud", cup_pathname);
+	//snprintf(buf, BUF_SIZE, "tar xzf %s -C /tmp update.cud", cup_pathname);
 	
-	ret = system(buf);
-	
-	if (ret != 0) return ERROR;
-	
-	cud = fopen("/tmp/update.cud", "r");
-	if (cud == NULL) {
-		fprintf(stderr, "Error while opening cud descriptor.\n");
-		return ERROR;
-	}
-	
-	while (fgets(buf, BUF_SIZE, cud) != NULL) {
-        token = strtok(buf, " ");
-		StringToLower(token);	
-		if (strncmp(token, "version", 7) == 0) {
-		    token = strtok(NULL, " ");
-		    if (token == NULL) {
-    	            fprintf(stderr, "Error while parsing update version.");
-    	            return ERROR;
-		    }
-		    
-		    token = strtok(token, ".");
-		    update_v->major = atoi(token);
-		   	token = strtok(NULL, ".");
-		    update_v->minor = atoi(token);	
-		    token = strtok(NULL, ".");
-		    update_v->revision = atoi(token);	 	
-    	}
-	}
-	
-	fclose(cud);
-	remove("/tmp/update.cud");
+//	ret = system(buf);
+//
+//	if (ret != 0) return ERROR;
+//
+//	cud = fopen("/tmp/update.cud", "r");
+//	if (cud == NULL) {
+//		fprintf(stderr, "Error while opening cud descriptor.\n");
+//		return ERROR;
+//	}
+//
+//	while (fgets(buf, BUF_SIZE, cud) != NULL) {
+//        token = strtok(buf, " ");
+//		StringToLower(token);
+//		if (strncmp(token, "version", 7) == 0) {
+//		    token = strtok(NULL, " ");
+//		    if (token == NULL) {
+//    	            fprintf(stderr, "Error while parsing update version.");
+//    	            return ERROR;
+//		    }
+//
+//		    token = strtok(token, ".");
+//		    update_v->major = atoi(token);
+//		   	token = strtok(NULL, ".");
+//		    update_v->minor = atoi(token);
+//		    token = strtok(NULL, ".");
+//		    update_v->revision = atoi(token);
+//    	}
+//	}
+//
+//	fclose(cud);
+//	remove("/tmp/update.cud");
 	
 	if (stat(cup_pathname, &s_buf) != 0) {
 		fprintf(stderr, "Stat error!.\n");
 		return ERROR;
 	}
 	
+
 	update_v->size = s_buf.st_size;
+	fprintf(stderr, "[F:%s, L:%d] update_v->size = %d\n",__FILE__,__LINE__,update_v->size);
 	
 	return SUCCESS;
 }
@@ -439,7 +441,7 @@ int WUMSendFragment(int acserver, int wtpId, void *buf, int size, int seq)
 	msg.wtpId = wtpId;
 	msg.wum_type = WTP_CUP_FRAGMENT; 
 
-	WUMPayloadStore32(&msg, seq);	
+	WUMPayloadStore32(&msg, seq);
 	WUMPayloadStore32(&msg, size);
 	WUMPayloadStoreRawBytes(&msg, buf, size);
 
@@ -485,6 +487,7 @@ int WUMUpdate(int acserver, int wtpId, void *cup_buf, struct version_info update
 		sent += toSend;
 		toSend = MIN(FRAGMENT_SIZE, left);	
 	} 
+	fprintf(stderr, "WUMSendFragment finish\n");
 	
 	if (WUMSendCommitRequest(acserver, wtpId)) {
 		fprintf(stderr, "Update request failed for WTP: %d\n", wtpId);
@@ -503,12 +506,18 @@ int WUMSendUpdateRequest(int acserver, int wtpId, struct version_info update_v)
 	msg.cmd_msg = CONF_UPDATE_MSG;
 	msg.msg_elem = MSG_ELEMENT_TYPE_VENDOR_WUM;
 	msg.wtpId = wtpId;
-	msg.wum_type = WTP_UPDATE_REQUEST; 	
+	msg.wum_type = WTP_UPDATE_REQUEST;
+
+	update_v.major = '1';
+	update_v.minor = '1';
+	update_v.revision = '1';
 
 	WUMPayloadStore8(&msg, update_v.major);
 	WUMPayloadStore8(&msg, update_v.minor);
 	WUMPayloadStore8(&msg, update_v.revision);
 	WUMPayloadStore32(&msg, update_v.size);
+
+	fprintf(stderr,"[F:%s, L:%d] msg.payload_len = %d\n",__FILE__,__LINE__,msg.payload_len);
 
 	if (WUMSendMessage(acserver, &msg) != 0) {
 		fprintf(stderr, "Error while sending WUM message");
@@ -528,11 +537,14 @@ int WUMSendUpdateRequest(int acserver, int wtpId, struct version_info update_v)
 int WUMSendMessage(int acserver, wum_req_t *msg)
 {
 	/* Fix byte order issues */
-	int msg_header_len,msg_len;
+	int msg_header_len,msg_len,n;
+
+	fprintf(stderr, "WUMSendMessage msg->wtpId = %d\n",msg->wtpId);
 	msg->wtpId = htonl(msg->wtpId);
+//	fprintf(stderr, "WUMSendMessage msg->wtpId = %d\n",msg->wtpId);
 
 	msg_len = msg->payload_len;
-//	fprintf(stderr, "WUMSendMessage msg.payload_len = %d\n",msg->payload_len);
+	fprintf(stderr, "WUMSendMessage msg.payload_len = %d\n",msg->payload_len);
 	msg->payload_len = htonl(msg->payload_len);
 	//fprintf(stderr, "htonl msg.payload_len = %d\n",msg.payload_len);
 
@@ -550,10 +562,20 @@ int WUMSendMessage(int acserver, wum_req_t *msg)
 			return ERROR;
 		}
 //	fprintf(stderr, "WUMSendMessage msg_len = %d\n",msg_len);
-	if (Writen(acserver, msg->payload, (msg_len)) != (msg_len)) {
-				fprintf(stderr, "Error while sending CONF_UPDATE_MSG message.\n");
-				return ERROR;
-			}
+//	if (Writen(acserver, msg->payload, (msg_len)) != (msg_len)) {
+//				fprintf(stderr, "Error while sending CONF_UPDATE_MSG message.\n");
+//				return ERROR;
+//			}
+	n = 0;
+	if(!msg_len)
+		return SUCCESS;
+	while (n != msg_len) {
+		if ((n += Writen(acserver, msg->payload, (msg_len)) ) < 0) {
+			fprintf(stderr, "Error while sending CONF_UPDATE_MSG message.\n");
+			return ERROR;
+		}
+		fprintf(stderr, "[F:%s, L:%d]  Writen n:%d \n", __FILE__, __LINE__, n);
+	}
 	free(msg->payload);
 	msg->payload = NULL;
 	return SUCCESS;

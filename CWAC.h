@@ -48,7 +48,7 @@
 //�ݲ�����
 #define CW_NO_DTLS
 
-#define CW_MAX_WTP				100
+#define CW_MAX_WTP				1000
 #define CW_CRITICAL_TIMER_EXPIRED_SIGNAL	SIGUSR2
 #define CW_SOFT_TIMER_EXPIRED_SIGNAL		SIGUSR1
 #define AC_LOG_FILE_NAME				"./ac.log.txt"
@@ -220,6 +220,10 @@ CWBool CWACSendAcknowledgedPacket(int WTPIndex, int msgType, int seqNum);
 CWBool CWACResendAcknowledgedPacket(int WTPIndex);
 void CWACStopRetransmission(int WTPIndex);
 void CWACDestroy(void);
+
+/*   Debug in AC.c*/
+void ShowApInfo(int apIndex);
+void ShowRunApIndex();
 
 /* in ACTest.h */
 CWBool ACQosTest(int WTPIndex);

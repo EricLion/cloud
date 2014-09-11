@@ -315,7 +315,7 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 					CWLog("XML payloadLen = 0 ,ERROR");
 					goto quit_manage;
 				}
-				CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
+//				CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 				memset(commandBuffer,0,COMMAND_BUFFER_SIZE);
 
 				CW_CREATE_STRING_ERR(xmlValues->payload, xmlValues->payloadLen, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
@@ -336,7 +336,7 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 			 *    - One message for a specific WTP              *
 			 ****************************************************/
 				//commandBuffer[xmlValues->payloadLen] = 0;
-				CWLog("commandBuffer:%s",commandBuffer);
+//				CWLog("commandBuffer:%s",commandBuffer);
 				memcpy(xmlValues->payload, commandBuffer, xmlValues->payloadLen);
 
 			if ( wtpIndex == ALL_ACTIVE_WTPS ) { /* All wpts case */
@@ -464,23 +464,47 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 						}
 					case MSG_ELEMENT_TYPE_VENDOR_WUM:
 						{
+
 						/* Donato's Case */
 
                                                 CW_CREATE_OBJECT_ERR(vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
                                                 CW_CREATE_OBJECT_ERR(wumValues, CWVendorWumValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+                                                memset(vendorValues,0,sizeof(CWProtocolVendorSpecificValues));
+                                                memset(wumValues,0,sizeof(CWVendorWumValues));
+
                                                 vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_WUM;
 
 						/*
 						 * Read WTP Update Message fields into the wumValues structure
 						 */
                                                
-						if ( (n = Readn(sock, &(wumValues->type), sizeof(unsigned char))) < 0 ) {
-							CWLog("Error while reading from socket.");
-							goto quit_manage;
-						}
+                   if ( (n = Readn(sock, commandBuffer, sizeof(unsigned char)+sizeof(int))) < 0) {
+                         CWLog("Error while reading from socket");
+                         goto quit_manage;
+                              }
+
+                     int payloadLen = 0;
+//                   	CWLog("[F:%s, L:%d] Readn n = %d ",__FILE__,__LINE__,n);
+//                   	CWLog("[F:%s, L:%d] commandBuffer[0] = %d ",__FILE__,__LINE__,commandBuffer[0]);
+//                   	CWLog("[F:%s, L:%d] commandBuffer[1] = %d ",__FILE__,__LINE__,commandBuffer[1]);
+//                   	CWLog("[F:%s, L:%d] commandBuffer[2] = %d ",__FILE__,__LINE__,commandBuffer[2]);
+//                   	CWLog("[F:%s, L:%d] commandBuffer[3] = %d ",__FILE__,__LINE__,commandBuffer[3]);
+//                   	CWLog("[F:%s, L:%d] commandBuffer[4] = %d ",__FILE__,__LINE__,commandBuffer[4]);
+                     memcpy(&wumValues->type, commandBuffer, sizeof(unsigned char)); /* CONF_UPDATE type */
+                     memcpy(&payloadLen, commandBuffer + sizeof(unsigned char), sizeof(int));	/* WTP Index */
+                     payloadLen = ntohl(payloadLen);
+                     CWLog("wumValues->type = %d ", wumValues->type);
+                     CWLog("ntohl payloadLen = %d ", payloadLen);
+                     if(!payloadLen)
+                             {
+                            CWLog("payloadLen = 0");
+//                            goto quit_manage;
+                             }
+
+                     memset(commandBuffer,0,COMMAND_BUFFER_SIZE);
 
 						if (wumValues->type == WTP_UPDATE_REQUEST) {
-							if ( (n = Readn(sock, commandBuffer, 3*sizeof(unsigned char)+sizeof(int))) < 0 ) {
+							if ( (n = Readn(sock, commandBuffer, payloadLen)) < 0 ) {
 								CWLog("Error while reading from socket.");
 								goto quit_manage;
 							}
@@ -490,10 +514,11 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 							memcpy(&(wumValues->_revision_v_), commandBuffer + 2*sizeof(unsigned char), sizeof(unsigned char));
 							memcpy(&(wumValues->_pack_size_), commandBuffer + 3*sizeof(unsigned char), sizeof(unsigned int));
 							wumValues->_pack_size_ = ntohl(wumValues->_pack_size_);
+							CWLog("[F:%s, L:%d] wumValues->_pack_size_ = %d ",__FILE__,__LINE__,wumValues->_pack_size_);
 						} else if (wumValues->type == WTP_CUP_FRAGMENT) {
 							int seqNum;
 							int fragSize;
-							
+							CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
 							/* Read sequence number and fragment size */
 							if ( (n = Readn(sock, commandBuffer, 2*sizeof(int))) < 0 ) {
 								CWLog("Error while reading from socket.");
@@ -522,11 +547,15 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 								CWLog("Can't allocate memory");
 								goto quit_manage;
 							}
-
-							if ( (n = Readn(sock, buf, fragSize)) < 0 ) {
+							n = 0;
+							while (n != fragSize) {
+							if ((n += Readn(sock, buf, fragSize)) < 0) {
 								CWLog("Error while reading from socket.");
 								goto quit_manage;
 							}
+							//CWLog("[F:%s, L:%d]  Readn n:%d", __FILE__,__LINE__, n);
+						}
+
 							
 							wumValues->_cup_ = buf;
 							wumValues->_seq_num_ = seqNum;

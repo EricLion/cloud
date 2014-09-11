@@ -799,8 +799,11 @@ void _CWCloseThread(int i) {
 	CWThreadMutexUnlock(&(gWTPs[i].interfaceMutex));
 	/**** ACInterface ****/
 
-	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex))) 
+	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex)))
+	{
+		CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
 		exit(1);
+	}
 	
 	gInterfaces[gWTPs[i].interfaceIndex].WTPCount--;
 
@@ -874,7 +877,7 @@ void CWCriticalTimerExpiredHandler(int arg) {
  	
 	CWDebugLog("Critical Timer Expired for Thread: %08x", (unsigned int)CWThreadSelf());
 	CWDebugLog("Abort Session");
-	/* CWCloseThread(); */
+//	CWCloseThread();
 
 	if((iPtr = ((int*)CWThreadGetSpecific(&gIndexSpecific))) == NULL) {
 
@@ -916,6 +919,7 @@ void CWSoftTimerExpiredHandler(int arg) {
 		CWThreadSetSignals(SIG_UNBLOCK, 2, 
 				   CW_SOFT_TIMER_EXPIRED_SIGNAL,
 				   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
+//		_CWCloseThread(*iPtr);
 		return;
 	}
 
@@ -926,8 +930,8 @@ void CWSoftTimerExpiredHandler(int arg) {
 	if(gWTPs[*iPtr].retransmissionCount >= gCWMaxRetransmit) 
 	{
 		CWDebugLog("Peer is Dead");
-		/* ?? _CWCloseThread(*iPtr);
-		 * Request close thread
+//		 _CWCloseThread(*iPtr);
+		 /* Request close thread
 		 */
 		gWTPs[*iPtr].isRequestClose = CW_TRUE;
 		CWSignalThreadCondition(&gWTPs[*iPtr].interfaceWait);
@@ -939,6 +943,7 @@ void CWSoftTimerExpiredHandler(int arg) {
 	}
 	
 	/* CWDebugLog("~~~~~~fine ritrasmissione ~~~~~"); */
+//	_CWCloseThread(*iPtr);
 	CWThreadSetSignals(SIG_UNBLOCK, 2, 
 			   CW_SOFT_TIMER_EXPIRED_SIGNAL,
 			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);

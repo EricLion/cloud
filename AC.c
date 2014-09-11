@@ -143,7 +143,7 @@ void CWACInit() {
 	#else
 		CWDebugLog("Don't Use Threads");
 	#endif
-	//Ïß³ÌÖÐÐèÒª´æ´¢ÌØÊâÖµ
+	//ï¿½ß³ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½æ´¢ï¿½ï¿½ï¿½ï¿½Öµ
 	CWErrorHandlingInitLib();
 	
 	if(!CWParseSettingsFile())
@@ -154,7 +154,7 @@ void CWACInit() {
 
 	CWLog("Starting AC");
 
-	//×èÈûÐÅºÅ
+	//ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½
 	CWThreadSetSignals(SIG_BLOCK, 1, SIGALRM);
 	if (timer_init() == 0) {
 		CWLog("Can't init timer module");
@@ -260,6 +260,96 @@ void CWACDestroy() {
 	CWLog("AC Destroyed");
 }
 
+void ShowApInfo(int apIndex)
+{
+	int i;
+	if(gWTPs[apIndex].isNotFree == CW_FALSE)
+	{
+		printf("ap don't exist !\n");
+		return;
+	}
+
+	//MAC
+	printf("MAC = ");
+	for(i = 0;i < MAC_ADDR_LEN;i++)
+	{
+		printf("%x ", gWTPs[apIndex].MAC[i]);
+
+	}
+	printf("\n");
+
+	//IP
+	printf("IP = ");
+	CWUseSockNtop(&gWTPs[apIndex].address, printf(str););
+	printf("\n");
+
+	//state
+	printf("State = ");
+	switch(gWTPs[apIndex].currentState)
+	{
+	case CW_ENTER_SULKING :
+			printf("CW_ENTER_SULKING \n");
+			break;
+	case CW_ENTER_DISCOVERY :
+			printf("CW_ENTER_DISCOVERY \n");
+			break;
+	case CW_ENTER_JOIN :
+			printf("CW_ENTER_JOIN \n");
+			break;
+	case CW_ENTER_CONFIGURE :
+			printf("CW_ENTER_CONFIGURE \n");
+			break;
+	case CW_ENTER_DATA_CHECK :
+			printf("CW_ENTER_DATA_CHECK \n");
+			break;
+	case CW_ENTER_RUN :
+			printf("CW_ENTER_RUN, subState = ");
+			switch(gWTPs[apIndex].subState)
+			{
+			case CW_DTLS_HANDSHAKE_IN_PROGRESS:
+				printf("CW_DTLS_HANDSHAKE_IN_PROGRESS \n");
+				break;
+			case CW_WAITING_REQUEST:
+				printf("CW_WAITING_REQUEST \n");
+				break;
+			case CW_COMPLETED:
+				printf("CW_COMPLETED \n");
+				break;
+			default:
+				printf("Unknown ,subState = %d ! \n", gWTPs[apIndex].subState);
+			}
+			break;
+	case CW_ENTER_RESET :
+			printf("CW_ENTER_RESET \n");
+			break;
+	case CW_QUIT :
+			printf("CW_QUIT \n");
+			break;
+	default:
+		printf("Unknown ,state = %d ! \n", gWTPs[apIndex].currentState);
+	}
+
+
+}
+
+void ShowRunApIndex()
+{
+	int apIndex;
+
+	printf("gActiveWTPs = %d\n",gActiveWTPs);
+	if(gActiveWTPs)
+	{
+		printf("RunApIndexs are : ");
+	}
+
+	for(apIndex = 0;apIndex < CW_MAX_WTP;apIndex++)
+	{
+		if(gWTPs[apIndex].isNotFree == CW_TRUE && gWTPs[apIndex].currentState == CW_ENTER_RUN)
+		{
+			printf("%d , ",apIndex);
+		}
+	}
+}
 
 __inline__ unsigned int CWGetSeqNum() {
 

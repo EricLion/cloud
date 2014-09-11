@@ -125,10 +125,16 @@ CWBool CWAssembleWTPVendorPayloadWUM(CWProtocolMessage *msgPtr) {
                                 CWProtocolStore16(msgPtr, (unsigned short) msgType);
                                 CWProtocolStore8(msgPtr, (unsigned char) wumPtr->type);
 				if (wumPtr->type == WTP_UPDATE_REQUEST) {
+					//add version
+					wumPtr->_major_v_ = 3;
+					wumPtr->_minor_v_ = 3;
+					wumPtr->_revision_v_ = 3;
+					CWLog("[F:%s, L:%d]wumPtr->_major_v_ = %d,wumPtr->_minor_v_ = %d,wumPtr->_revision_v_ = %d,wumPtr->_pack_size_ = %d ",__FILE__,__LINE__,
+							wumPtr->_major_v_,wumPtr->_minor_v_,wumPtr->_revision_v_,wumPtr->_pack_size_);
 					CWProtocolStore8(msgPtr, wumPtr->_major_v_);	
 					CWProtocolStore8(msgPtr, wumPtr->_minor_v_);	
-					CWProtocolStore8(msgPtr, wumPtr->_revision_v_);	
-					CWProtocolStore32(msgPtr, wumPtr->_pack_size_);	
+					CWProtocolStore8(msgPtr, wumPtr->_revision_v_);
+					CWProtocolStore32(msgPtr, wumPtr->_pack_size_);
 				} else if (wumPtr->type == WTP_CUP_FRAGMENT) {
 					CWProtocolStore32(msgPtr, wumPtr->_seq_num_);
 					CWProtocolStore32(msgPtr, wumPtr->_cup_fragment_size_);

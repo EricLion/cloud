@@ -125,14 +125,15 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 		for (j = 0; j < MAC_ADDR_LEN; j++) {
 			if (gWTPs[WTPIndex].MAC[j] == gWTPs[i].MAC[j]) {
 				if (j == (MAC_ADDR_LEN - 1)) {
-					CWLog("WTP MAC:%x:%x:%x:%x:%x:%x repeat online !",
+					CWLog("WTP MAC:%x:%x:%x:%x:%x:%x repeat online, kill the front !",
 							(u_char) gWTPs[i].MAC[0],
 							(u_char) gWTPs[i].MAC[1],
 							(u_char) gWTPs[i].MAC[2],
 							(u_char) gWTPs[i].MAC[3],
 							(u_char) gWTPs[i].MAC[4],
 							(u_char) gWTPs[i].MAC[5]);
-					return CW_FALSE;
+					_CWCloseThread(i);
+					break;
 				}
 				continue;
 			} else
