@@ -183,7 +183,6 @@ int *all_WTPs()
 		ret[i] = wtpList[i].wtpId;
 		fprintf(stderr, "--%s---%d--,ret[i] = %d\n",__FILE__,__LINE__,ret[i]);
 	}
-	fprintf(stderr, "--%s---%d--,ret = %d\n",__FILE__,__LINE__,ret);
 	return ret;
 }
 
@@ -235,8 +234,10 @@ int *get_id_list(char *wtpIds, char *wtpNames, int *n)
 		ret[0] = atoi(token);
 //		fprintf(stderr, "--%s---%d--,ret[0]= %d\n",__FILE__,__LINE__,ret[0]);
 		if (ret[0] == -1) 
+		{
+			*n = nWTPs;
 			return all_WTPs();
-		
+		}
 		for (i = 1; i < *n; i++)
 			ret[i] = atoi( (const char*)strtok(NULL, (const char*)",") );
 		
@@ -250,8 +251,11 @@ int *get_id_list(char *wtpIds, char *wtpNames, int *n)
 				strcpy(token,(const char*)wtpNames);
 				token = (char*)strtok(token, (const char*)",");
 				if (strcmp(token, "all") == 0)
+				{
+					*n = nWTPs;
 					return all_WTPs();
-				
+				}
+
 			} else {
 				token = (char*)strtok(NULL, (const char*)",");
 			}
@@ -263,6 +267,8 @@ int *get_id_list(char *wtpIds, char *wtpNames, int *n)
 			ret[i] = id;
 		}
 	} 
+	free(token);
+	token = NULL;
 	/* remove duplicated and unknown WTP ids */
 	*n = sanitize_wtp_list(ret, *n);
 
@@ -311,8 +317,9 @@ void do_config_cmd(int acserver, char *wtpIds, char *wtpNames)
 	for (i = 0; i < n; i++) {
 		//WUMGetWTPVersion(acserver, wtps[i], &v_info);
 		WUMConfigWTPByXML(acserver, wtps[i], &c_info, WTP_CONFIG_REQUEST);
-//		fprintf(stderr, "--%s---%d--\n",__FILE__,__LINE__);
+		fprintf(stderr, "--%s---%d--,i= %d,n=%d,wtps[i] = %d\n",__FILE__,__LINE__,i,n,wtps[i]);
 		printConfigInfo(&c_info, wtps[i], wtpList);
+		//printConfigInfo(&c_info, wtps[i], wtpList);
 	}
 	printConfigFooter();
 }
@@ -451,7 +458,7 @@ int get_cmd_id(char *cmd)
 void printWTPList(struct WTPInfo *wtpList, int nWTPs)
 {
 	int i;
-	
+
 	printf("*-------*--------------------------------*\n");
 	printf("| %5s | %-30s |\n", "WTPId", "WTPName");
 	printf("*-------*--------------------------------*\n");
@@ -459,7 +466,11 @@ void printWTPList(struct WTPInfo *wtpList, int nWTPs)
 
 	if (wtpList != NULL) {
 		for (i = 0; i < nWTPs; i++) {
-			printf("| %5d | %-30s |\n", wtpList[i].wtpId, wtpList[i].name);
+			if(wtpList[i].name)
+			{
+				printf("| %5d | %-30s |\n", wtpList[i].wtpId, wtpList[i].name);
+			}
+			
 		}
 	}
 
@@ -476,22 +487,35 @@ void printConfigHeader()
 void printConfigInfo(struct config_info *c_info, int wtpId, struct WTPInfo *wtpList)
 {
 	char Result[8];
+	int index = -1,i;
 
 	strcpy(Result, "FAILE");
-//	fprintf(stderr, "--%s---%d--\n",__FILE__,__LINE__);
 	if(!c_info->resultCode)
 	{
 		strcpy(Result, "SUCCESS");
 	}
-//	fprintf(stderr, "--%s---%d--\n",__FILE__,__LINE__);
+	for(i=0;i < nWTPs;i++)
+	{
+		if(wtpList[i].wtpId == wtpId)
+		{
+			index = i;
+			break;
+		}
+	}
+	if(index == nWTPs)
+	{	
+		fprintf(stderr, "--%s---%d--error find wtp !\n",__FILE__,__LINE__);
+		return;
+	}
 	if(c_info->xml)
 	{
-		fprintf(stderr, "--%s---%d--\n",__FILE__,__LINE__);
-		printf("| %5d | %-30s | %5s |  %-15s |\n", wtpList[wtpId].wtpId, wtpList[wtpId].name, Result, c_info->xml);
+		//fprintf(stderr, "--%s---%d--\n",__FILE__,__LINE__);
+		printf("| %5d | %-30s | %5s |  %-15s |\n", wtpList[index].wtpId, wtpList[index].name, Result, c_info->xml);
+		//printf("| %5d | %-30s | %5s |  |\n", wtpList[wtpId].wtpId, wtpList[wtpId].name, Result);
 		free(c_info->xml);
 		return;
 	}
-	printf("| %5d | %-30s | %5s |  %-15s |\n", wtpList[wtpId].wtpId, wtpList[wtpId].name, Result, "None");
+	printf("| %5d | %-30s | %5s |  %-15s |\n", wtpList[index].wtpId, wtpList[index].name, Result, "None");
 	fprintf(stderr, "--%s---%d--\n",__FILE__,__LINE__);
 }
 

@@ -119,6 +119,8 @@ struct WTPInfo *ACServerWTPList(int acserver, int *nWTPs)
 	}
 
 	for (i = 0; i < activeWTPs; i++) {
+
+	//fprintf(stderr, "--%s---%d--,activeWTPS = %d\n",__FILE__,__LINE__,activeWTPs);
 		readWTPInfo(acserver, WTPList, i);
 	}
 
@@ -162,10 +164,13 @@ err:
 void freeWTPList(struct WTPInfo *wtpList, int nWTPs)
 {
 	int i;
+
 	/* We do not free the first name, the default one */
 	for (i = 0; i < nWTPs; i++) {
 		if(wtpList[i].name)
-		free(wtpList[i].name);
+		{
+			free(wtpList[i].name);
+		}
 	}
 	if(wtpList)
 	free(wtpList);
@@ -544,7 +549,7 @@ int WUMSendMessage(int acserver, wum_req_t *msg)
 //	fprintf(stderr, "WUMSendMessage msg->wtpId = %d\n",msg->wtpId);
 
 	msg_len = msg->payload_len;
-	fprintf(stderr, "WUMSendMessage msg.payload_len = %d\n",msg->payload_len);
+	//fprintf(stderr, "WUMSendMessage msg.payload_len = %d\n",msg->payload_len);
 	msg->payload_len = htonl(msg->payload_len);
 	//fprintf(stderr, "htonl msg.payload_len = %d\n",msg.payload_len);
 
@@ -574,7 +579,7 @@ int WUMSendMessage(int acserver, wum_req_t *msg)
 			fprintf(stderr, "Error while sending CONF_UPDATE_MSG message.\n");
 			return ERROR;
 		}
-		fprintf(stderr, "[F:%s, L:%d]  Writen n:%d \n", __FILE__, __LINE__, n);
+		//fprintf(stderr, "[F:%s, L:%d]  Writen n:%d \n", __FILE__, __LINE__, n);
 	}
 	free(msg->payload);
 	msg->payload = NULL;
@@ -599,14 +604,14 @@ int WUMReceiveMessage(int acserver, wum_resp_t *msg)
 		return ERROR;
 	}
 	//msg->resultCode = ntohl(msg->resultCode);
-	fprintf(stderr, "WUMReceiveMessage msg->resultCode = %d\n",msg->resultCode);
+	//fprintf(stderr, "WUMReceiveMessage msg->resultCode = %d\n",msg->resultCode);
 	
 	if (Read32(acserver, &(msg->payload_len)) != 4) {
 		fprintf(stderr, "Error while reading payload length.\n");
 		return ERROR;
 	}
 	//msg->payload_len = ntohl(msg->payload_len);
-	fprintf(stderr, "WUMReceiveMessage msg->payload_len = %d\n",msg->payload_len);
+	//fprintf(stderr, "WUMReceiveMessage msg->payload_len = %d\n",msg->payload_len);
 
 	if (msg->payload_len > 0) {
 		
