@@ -492,7 +492,7 @@ int WUMUpdate(int acserver, int wtpId, void *cup_buf, struct version_info update
 		sent += toSend;
 		toSend = MIN(FRAGMENT_SIZE, left);	
 	} 
-	fprintf(stderr, "WUMSendFragment finish\n");
+	//fprintf(stderr, "WUMSendFragment finish\n");
 	
 	if (WUMSendCommitRequest(acserver, wtpId)) {
 		fprintf(stderr, "Update request failed for WTP: %d\n", wtpId);
@@ -522,7 +522,7 @@ int WUMSendUpdateRequest(int acserver, int wtpId, struct version_info update_v)
 	WUMPayloadStore8(&msg, update_v.revision);
 	WUMPayloadStore32(&msg, update_v.size);
 
-	fprintf(stderr,"[F:%s, L:%d] msg.payload_len = %d\n",__FILE__,__LINE__,msg.payload_len);
+	//fprintf(stderr,"[F:%s, L:%d] msg.payload_len = %d\n",__FILE__,__LINE__,msg.payload_len);
 
 	if (WUMSendMessage(acserver, &msg) != 0) {
 		fprintf(stderr, "Error while sending WUM message");
@@ -544,7 +544,7 @@ int WUMSendMessage(int acserver, wum_req_t *msg)
 	/* Fix byte order issues */
 	int msg_header_len,msg_len,n;
 
-	fprintf(stderr, "WUMSendMessage msg->wtpId = %d\n",msg->wtpId);
+//	fprintf(stderr, "WUMSendMessage msg->wtpId = %d\n",msg->wtpId);
 	msg->wtpId = htonl(msg->wtpId);
 //	fprintf(stderr, "WUMSendMessage msg->wtpId = %d\n",msg->wtpId);
 
@@ -597,7 +597,7 @@ int WUMReceiveMessage(int acserver, wum_resp_t *msg)
 		return ERROR;
 	}
 	//msg->wtpId = ntohl(msg->wtpId);
-	fprintf(stderr, "WUMReceiveMessage msg->wtpId = %d\n",msg->wtpId);
+//	fprintf(stderr, "WUMReceiveMessage msg->wtpId = %d\n",msg->wtpId);
 
 	if (Read32(acserver, &(msg->resultCode)) != 4) {
 		fprintf(stderr, "Error while reading result code.\n");
