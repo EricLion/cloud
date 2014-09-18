@@ -51,7 +51,7 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 {
 	int seqNum;
 	int macId;
-	int i,j;
+	int i,j,k = 0, numActiveWTPs = 0;
 	CWProtocolJoinRequestValues joinRequest;
 	CWList msgElemList = NULL;
 
@@ -110,37 +110,52 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 		return CW_FALSE;
 	}
 		//compare MAC
-	for(i = (WTPIndex-1); i >=0; i--)
-	{
-//		if(!strcmp((char*) gWTPs[WTPIndex].MAC, (char*) gWTPs[i].MAC))
-//		{
-//			CWLog("WTP MAC:%x:%x:%x:%x:%x:%x repeat online !", (u_char)gWTPs[WTPIndex].MAC[0],
-//					(u_char)gWTPs[WTPIndex].MAC[1],
-//					(u_char)gWTPs[WTPIndex].MAC[2],
-//					(u_char)gWTPs[WTPIndex].MAC[3],
-//					(u_char)gWTPs[WTPIndex].MAC[4],
-//					(u_char)gWTPs[WTPIndex].MAC[5]);
-//			return CW_FALSE;
-//		}
-		for (j = 0; j < MAC_ADDR_LEN; j++) {
-			if (gWTPs[WTPIndex].MAC[j] == gWTPs[i].MAC[j]) {
-				if (j == (MAC_ADDR_LEN - 1)) {
-					CWLog("WTP MAC:%x:%x:%x:%x:%x:%x repeat online, kill the front !",
-							(u_char) gWTPs[i].MAC[0],
-							(u_char) gWTPs[i].MAC[1],
-							(u_char) gWTPs[i].MAC[2],
-							(u_char) gWTPs[i].MAC[3],
-							(u_char) gWTPs[i].MAC[4],
-							(u_char) gWTPs[i].MAC[5]);
-					_CWCloseThread(i);
-					break;
-				}
-				continue;
-			} else
-				break;
-		}
+		//add mutex
+	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex))) {
+		CWLog("Error locking the gActiveWTPsMutex mutex");
+		return CW_FALSE;
 	}
+	numActiveWTPs = gActiveWTPs;
+	CWThreadMutexUnlock(&gActiveWTPsMutex);
+	k = numActiveWTPs;
 
+	if(k)
+	{	
+		if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+			CWLog("Error locking the gWTPsMutex mutex");
+			return CW_FALSE;
+		}
+		
+		for(i = 0; i < CW_MAX_WTP && k; i--)
+		{
+			if(gWTPs[i].isNotFree && gWTPs[i].currentState == CW_ENTER_RUN)
+			{
+				k--;
+				for (j = 0; j < MAC_ADDR_LEN; j++) 
+				{
+					if (gWTPs[WTPIndex].MAC[j] == gWTPs[i].MAC[j]) 
+					{
+						if (j == (MAC_ADDR_LEN - 1)) {
+							//fix 0,2 error
+							CWLog("WTP MAC:%x:%x:%x:%x:%x:%x repeat online, kill the now !",
+									(u_char) gWTPs[i].MAC[0],
+									(u_char) gWTPs[i].MAC[1],
+									(u_char) gWTPs[i].MAC[2],
+									(u_char) gWTPs[i].MAC[3],
+									(u_char) gWTPs[i].MAC[4],
+									(u_char) gWTPs[i].MAC[5]);
+							_CWCloseThread(WTPIndex);
+							break;
+						}
+						continue;
+					} else
+						break;
+				}
+			}
+		}
+		CWThreadMutexUnlock(&gWTPsMutex);
+	}
+	
 	CWMsgElemData *auxData;
 	if (ACIpv4List) {
 		CW_CREATE_OBJECT_ERR(auxData, CWMsgElemData, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
