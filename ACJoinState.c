@@ -126,9 +126,10 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 			return CW_FALSE;
 		}
 		
-		for(i = 0; i < CW_MAX_WTP && k; i--)
+		for(i = 0; i < CW_MAX_WTP && k; i++)
 		{
-			if(gWTPs[i].isNotFree && gWTPs[i].currentState == CW_ENTER_RUN)
+	//	CWLog("%s   %d, k = %d,isNotFree = %d,currentState = %d ,CW_ENTER_RUN = %d",__FILE__,__LINE__,k,gWTPs[i].isNotFree,gWTPs[i].currentState,CW_ENTER_RUN);
+			if(gWTPs[i].isNotFree && (gWTPs[i].currentState == CW_ENTER_RUN))
 			{
 				k--;
 				for (j = 0; j < MAC_ADDR_LEN; j++) 
@@ -148,7 +149,8 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 							break;
 						}
 						continue;
-					} else
+					} 
+					else
 						break;
 				}
 			}
