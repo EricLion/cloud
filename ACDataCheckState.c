@@ -26,6 +26,7 @@
  *******************************************************************************************/
 
 #include "CWAC.h"
+#include "BELib.h"
 
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
@@ -34,8 +35,10 @@
 CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 
 	/*CWProtocolMessage *messages = NULL;*/
-	int seqNum;
+	int seqNum, BESize;
 	CWProtocolChangeStateEventRequestValues *changeStateEvent;
+	char *beResp = NULL;
+	BEconnectEvent beConEve;
 	
 	CWLog("\n");
 	CWDebugLog("######### Status Event #########");	
@@ -107,10 +110,48 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 
 #endif
 	
+	//gWTPs[WTPIndex].currentState = CW_ENTER_RUN;
+	//gWTPs[WTPIndex].subState = CW_WAITING_REQUEST;
+	
+	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+		CWLog("Error locking the gWTPsMutex mutex");
+		return CW_FALSE;
+	}
+	
 	gWTPs[WTPIndex].currentState = CW_ENTER_RUN;
 	gWTPs[WTPIndex].subState = CW_WAITING_REQUEST;
-	
+
+	CWThreadMutexUnlock(&gWTPsMutex);
+
+	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex)))
+	{
+		CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
+		return CW_FALSE;
+	}
 	gActiveWTPs++;
+	
+	CWThreadMutexUnlock(&gActiveWTPsMutex);
+#if 1
+	//BE: ap connect	
+	beConEve.type = htons(BE_CONNECT_EVENT);
+	beConEve.length = htons(BE_CONNECT_EVENT_LEN);
+	beConEve.state = BE_CONNECT_EVENT_CONNECT;
+	BESize = BE_CONNECT_EVENT_LEN + BE_TYPELEN_LEN;
+	///*
+	beResp = AssembleBEheader((char*)&beConEve,&BESize,WTPIndex);
+	
+	if(beResp)
+	{
+		SendBERequest(beResp,BESize);
+		CW_FREE_OBJECT(beResp);
+	}
+	else
+	{
+		CWLog("Error AssembleBEheader !");
+		return CW_FALSE;
+	}
+	//*/
+#endif
 	CWLog("[F:%s, L:%d]  gActiveWTPs:%d",__FILE__,__LINE__,gActiveWTPs);
 
 	return CW_TRUE;

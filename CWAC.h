@@ -85,14 +85,19 @@
  * relative application socket.							*
  ********************************************************/
 
-#define MAX_APPS_CONNECTED_TO_AC 4
-
+//#define MAX_APPS_CONNECTED_TO_AC 4
+// BE muilt config
+#define MAX_APPS_CONNECTED_TO_AC 10
 typedef struct {
 	CWSocket appSocket[MAX_APPS_CONNECTED_TO_AC];
 	CWBool isFree[MAX_APPS_CONNECTED_TO_AC];
 	CWThreadMutex socketMutex[MAX_APPS_CONNECTED_TO_AC];
 	int numSocketFree;
 	CWThreadMutex numSocketFreeMutex;
+	//add client
+	CWSocket appClientSocket;
+	struct sockaddr_in appClientAddr;
+	CWThreadMutex appClientSocketMutex;
 } applicationsManager;
 
 applicationsManager appsManager;
@@ -189,6 +194,10 @@ extern int gWirelessField;
 extern int gDTLSPolicy;
 extern CWThreadSpecific gIndexSpecific;
 extern char *gACName;
+//BE
+extern char *gACBEServerAddr;
+extern int gACBEServerPort;
+
 extern int gDiscoveryTimer;
 extern int gEchoRequestTimer;
 extern int gIdleTimeout;

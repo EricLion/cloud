@@ -35,7 +35,7 @@ const char *CW_CONFIG_FILE = "config.ac";
 
 CWBool CWConfigFileInitLib() {
 
-	gConfigValuesCount = 11;
+	gConfigValuesCount = 13;
 
 	CW_CREATE_ARRAY_ERR(gConfigValues,
 			    gConfigValuesCount,
@@ -87,6 +87,14 @@ CWBool CWConfigFileInitLib() {
 	gConfigValues[10].type = CW_INTEGER;
 	gConfigValues[10].code = "</AC_LOG_FILE_SIZE>";
 	gConfigValues[10].value.int_value = DEFAULT_LOG_SIZE;
+
+	gConfigValues[11].type = CW_STRING;
+	gConfigValues[11].code = "</AC_BE_SERVER_ADDR>";
+	gConfigValues[11].value.str_value = NULL;
+
+	gConfigValues[12].type = CW_INTEGER;
+	gConfigValues[12].code = "</AC_BE_SERVER_PORT>";
+	gConfigValues[12].value.int_value = 8888;
 	
 	return CW_TRUE;
 }
@@ -141,6 +149,14 @@ CWBool CWConfigFileDestroyLib() {
 		/* default */
 		gNetworkPreferredFamily = CW_IPv4;
 	}
+
+	if(gConfigValues[11].value.str_value != NULL) {
+		
+		CW_CREATE_STRING_FROM_STRING_ERR(gACBEServerAddr,
+						 (gConfigValues[11].value.str_value),
+						 return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+		//CW_FREE_OBJECT(gACName);
+	}
 	
 	for(i = 0; i < gConfigValuesCount; i++) {
 		if(gConfigValues[i].type == CW_STRING) {
@@ -154,6 +170,13 @@ CWBool CWConfigFileDestroyLib() {
 	gMaxLogFileSize = gConfigValues[10].value.int_value;
 	CWDebugLog("***gEnabledLog (%d) ***",gEnabledLog);
 	CWDebugLog("***gMaxLogFileSize (%d) ***",gMaxLogFileSize);
+	
+	
+	CWDebugLog("***gACName (%s) ***",gACName);
+	
+	gACBEServerPort = gConfigValues[12].value.int_value;
+	CWDebugLog("***gACBEServerAddr (%s) ***",gACBEServerAddr);
+	CWDebugLog("***gACBEServerPort (%d) ***",gACBEServerPort);
 	
 	CW_FREE_OBJECT(gConfigValues);
 	

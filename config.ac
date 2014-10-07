@@ -7,10 +7,10 @@
 </AC_SW_VERSION> 3256984
 
 # Max number of mobile stations supported
-</AC_MAX_STATIONS> 200
+</AC_MAX_STATIONS> 2000
 
 # Max number of WTP supported
-</AC_MAX_WTPS> 15
+</AC_MAX_WTPS> 1500
 
 # Authentication mode for AC. Can be X509_CERTIFICATE or PRESHARED (for
 # preshared keys)
@@ -23,9 +23,9 @@
 
 # Force MTU to 50 bytes, used to debug fragmentation ;-) If you don't need this, simply
 # comment the line by adding a #.
-</AC_FORCE_MTU> 500
+</AC_FORCE_MTU> 500 
 
-</AC_NAME> My AC
+</AC_NAME> Tigercel
 
 # The AC will join the Multicast Groups you add here
 <AC_MCAST_GROUPS>
@@ -36,3 +36,7 @@
 </AC_LOG_FILE_ENABLE> 1
 
 </AC_LOG_FILE_SIZE> 30000000
+#BE
+</AC_BE_SERVER_ADDR> 10.131.160.37
+
+</AC_BE_SERVER_PORT> 6666

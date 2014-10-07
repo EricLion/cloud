@@ -30,6 +30,7 @@
 #include "CWVendorPayloads.h"
 #include "CWFreqPayloads.h"
 #include "WUM.h"
+#include "BELib.h"
 
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
@@ -617,6 +618,14 @@ CWBool CWParseConfigurationUpdateResponseMessage(CWProtocolMessage* msgPtr,
 						(*vendValues)->payload = (void *) CWProtocolRetrieveRawBytes(msgPtr, payloadSize);
 						break;
 					case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG:
+						//(*vendValues)->vendorPayloadLen = CWProtocolRetrieve16(msgPtr);
+						(*vendValues)->vendorPayloadLen = CWProtocolRetrieve32(msgPtr);
+						CWLog("[F:%s, L:%d] (*vendValues)->vendorPayloadLen = %d",__FILE__,__LINE__,(*vendValues)->vendorPayloadLen);
+						if ((*vendValues)->vendorPayloadLen < 0) {
+
+							return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Unrecognized Message Element in Configuration Update Response");
+						}
+						break;
 					case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE:
 //						(*vendValues)->vendorPayloadLen = CWProtocolRetrieve16(msgPtr);
 						(*vendValues)->vendorPayloadLen = CWProtocolRetrieve32(msgPtr);
@@ -720,8 +729,8 @@ CWBool CWParseStationConfigurationResponseMessage(CWProtocolMessage* msgPtr, int
 CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 						int WTPIndex,
 						CWProtocolVendorSpecificValues* vendValues) {
-	char *wumPayloadBytes = NULL;
-	int closeWTPManager = CW_FALSE;
+	char *wumPayloadBytes = NULL, *beResp = NULL;
+	int closeWTPManager = CW_FALSE, result = CW_FALSE,BESize = 0;
 
 	if (vendValues != NULL) {
 		char * responseBuffer; 
@@ -764,14 +773,66 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			if (wumPayloadBytes[0] == WTP_COMMIT_ACK && resultCode == CW_PROTOCOL_SUCCESS)
 				closeWTPManager = CW_TRUE;
 			break;
+			//config
 		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG:
+			   payloadSize = vendValues->vendorPayloadLen;
+			   CWLog("[F:%s, L:%d] strlen(vendValues->payload) =%d,payloadSize:%d",__FILE__,__LINE__,strlen(vendValues->payload),payloadSize);
+			   CWLog("Msg :CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_XML Saved");
+			   
+			   BEconfigEventResponse beConfigEventResp;
+			   beConfigEventResp.type = htons(BE_CONFIG_EVENT_RESPONSE) ;
+			  // 4 sizeof(int)
+			   beConfigEventResp.length = htons(sizeof(resultCode));//4
+			   beConfigEventResp.resltCode = Swap32(resultCode);
+			   
+			   //CW_CREATE_STRING_ERR(&beConfigEventResp.resltCode, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
+			   //memset(beMonitorEventResp.xml, 0, payloadSize);
+			   //memcpy(beMonitorEventResp.xml, vendValues->payload, payloadSize);
+			   
+			   BESize = BE_TYPELEN_LEN+payloadSize;
+			   
+   			   beResp = AssembleBEheader((char*)&beConfigEventResp,&BESize,WTPIndex);
+			   //CW_FREE_OBJECT(beConfigEventResp.xml);
+			   
+			   break;
+			//monnitor
 		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE:
 			   payloadSize = vendValues->vendorPayloadLen;
 			   CWLog("[F:%s, L:%d] strlen(vendValues->payload) =%d,payloadSize:%d",__FILE__,__LINE__,strlen(vendValues->payload),payloadSize);
-				CWLog("Msg :CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_XML Saved");
-				break;
+			   CWLog("Msg :CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_XML Saved");
+			   
+			   BEmonitorEventResponse beMonitorEventResp;
+			   beMonitorEventResp.type =htons( BE_MONITOR_EVENT_RESPONSE) ;
+			   beMonitorEventResp.length = htons(payloadSize);
+			   
+			   CW_CREATE_STRING_ERR(beMonitorEventResp.xml, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
+			   memset(beMonitorEventResp.xml, 0, payloadSize);
+			   memcpy(beMonitorEventResp.xml, vendValues->payload, payloadSize);
+			   BESize = BE_TYPELEN_LEN+payloadSize;
+			   
+   			   beResp = AssembleBEheader((char*)&beMonitorEventResp,&BESize,WTPIndex);
+			   CW_FREE_OBJECT(beMonitorEventResp.xml);
+			   
+			   break;
 		}
-
+//BE : assemble header
+			 if(beResp)
+			   {
+				SendBEResponse(beResp,BESize,WTPIndex);
+				CW_FREE_OBJECT(beResp);
+				result = CW_TRUE;
+			   }
+			   else
+			  {
+				CWLog("Error AssembleBEheader !");
+				result = CW_FALSE;
+			   }
+			//CW_FREE_OBJECT(responseBuffer);
+			CW_FREE_OBJECT(vendValues->payload);
+			CW_FREE_OBJECT(vendValues);
+			return result;
+		}
+#if 0
 		if ( ( responseBuffer = malloc( headerSize+payloadSize+1 ) ) != NULL ) {
 
 			//memset(responseBuffer, '0', headerSize+payloadSize);
@@ -836,7 +897,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
 		CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceWait);
 	}
-
+#endif
 	CWDebugLog("Configuration Update Response Saved");
 	return CW_TRUE;
 }
@@ -1021,7 +1082,7 @@ CWBool CWParseWTPEventRequestMessage(CWProtocolMessage *msgPtr,
 	CWLog("WTP Event Request Parsed");
 	return CW_TRUE;	
 }
-
+//BE:add ap state req
 CWBool CWSaveWTPEventRequestMessage(CWProtocolWTPEventRequestValues *WTPEventRequest,
 				    CWWTPProtocolManager *WTPProtocolManager) {
 

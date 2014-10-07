@@ -29,6 +29,7 @@
 
 #include "CWAC.h"
 #include "CWStevens.h"
+#include "BELib.h"
 
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
@@ -788,7 +789,28 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 }
 
 void _CWCloseThread(int i) {
-
+//BE: ap disconnect
+	char *beResp = NULL;
+	int BESize;
+	
+	BEconnectEvent beConEve;
+	
+	beConEve.type =htons( BE_CONNECT_EVENT);
+	beConEve.length = htons(BE_CONNECT_EVENT_LEN);
+	beConEve.state = BE_CONNECT_EVENT_DISCONNECT;
+	BESize = BE_CONNECT_EVENT_LEN + BE_TYPELEN_LEN;
+	
+	beResp = AssembleBEheader((char*)&beConEve,&BESize,i);
+	if(beResp)
+	{
+		SendBERequest(beResp,BESize);
+		CW_FREE_OBJECT(beResp);
+	}
+	else
+	{
+		CWLog("Error AssembleBEheader !");
+	}
+	
  	CWThreadSetSignals(SIG_BLOCK, 2, 
 			   CW_SOFT_TIMER_EXPIRED_SIGNAL, 
 			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);

@@ -75,6 +75,9 @@ CWAuthSecurity gACDescriptorSecurity;
 int gACHWVersion;
 int gACSWVersion;
 char *gACName = NULL;
+//BE
+char *gACBEServerAddr = NULL;
+int gACBEServerPort;
 
 int gDiscoveryTimer=20;
 int gEchoRequestTimer=CW_ECHO_INTERVAL_DEFAULT;
@@ -256,6 +259,7 @@ void CWACDestroy() {
 	
 	CW_FREE_OBJECT(gACName);
 	CW_FREE_OBJECT(gInterfaces);
+	CW_FREE_OBJECT(gACBEServerAddr);
 	
 	CWLog("AC Destroyed");
 }
