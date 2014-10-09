@@ -793,7 +793,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			   
 			   BESize = BE_TYPELEN_LEN+payloadSize;
 			   
-   			   beResp = AssembleBEheader((char*)&beConfigEventResp,&BESize,WTPIndex);
+   			   beResp = AssembleBEheader((char*)&beConfigEventResp,&BESize,WTPIndex,NULL);
 			   //CW_FREE_OBJECT(beConfigEventResp.xml);
 			   
 			   break;
@@ -807,12 +807,19 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			   beMonitorEventResp.type =htons( BE_MONITOR_EVENT_RESPONSE) ;
 			   beMonitorEventResp.length = htons(payloadSize);
 			   
-			   CW_CREATE_STRING_ERR(beMonitorEventResp.xml, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
-			   memset(beMonitorEventResp.xml, 0, payloadSize);
-			   memcpy(beMonitorEventResp.xml, vendValues->payload, payloadSize);
+			   CW_CREATE_STRING_ERR(beMonitorEventResp.xml, payloadSize+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
+			   memset(beMonitorEventResp.xml, 0, payloadSize+1);
+			   memcpy(beMonitorEventResp.xml, (char*)vendValues->payload, payloadSize);
 			   BESize = BE_TYPELEN_LEN+payloadSize;
 			   
-   			   beResp = AssembleBEheader((char*)&beMonitorEventResp,&BESize,WTPIndex);
+			   CWLog("beMonitorEventResp.xml front char:%x(%c),%x(%c),%x(%c),%x(%c)",
+			   						beMonitorEventResp.xml[0],beMonitorEventResp.xml[0],
+			   						beMonitorEventResp.xml[1],beMonitorEventResp.xml[1],
+			   						beMonitorEventResp.xml[2],beMonitorEventResp.xml[2],
+			   						beMonitorEventResp.xml[3],beMonitorEventResp.xml[3]);
+			   
+   			   beResp = AssembleBEheader((char*)&beMonitorEventResp,&BESize,WTPIndex,beMonitorEventResp.xml);
+
 			   CW_FREE_OBJECT(beMonitorEventResp.xml);
 			   
 			   break;

@@ -810,7 +810,7 @@ void _CWCloseThread(int i) {
 	beConEve.state = BE_CONNECT_EVENT_DISCONNECT;
 	BESize = BE_CONNECT_EVENT_LEN + BE_TYPELEN_LEN;
 	
-	beResp = AssembleBEheader((char*)&beConEve,&BESize,i);
+	beResp = AssembleBEheader((char*)&beConEve,&BESize,i,NULL);
 	if(beResp)
 	{
 		SendBERequest(beResp,BESize);

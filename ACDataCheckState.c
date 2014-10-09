@@ -138,7 +138,7 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	beConEve.state = BE_CONNECT_EVENT_CONNECT;
 	BESize = BE_CONNECT_EVENT_LEN + BE_TYPELEN_LEN;
 	///*
-	beResp = AssembleBEheader((char*)&beConEve,&BESize,WTPIndex);
+	beResp = AssembleBEheader((char*)&beConEve,&BESize,WTPIndex,NULL);
 	
 	if(beResp)
 	{

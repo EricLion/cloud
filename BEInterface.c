@@ -72,7 +72,7 @@ char BESetApValues(char* apMac, int socketIndex, CWVendorXMLValues* xmlValues)
 	return TRUE;
 }
 
-char* AssembleBEheader(char* buf,int *len,int apId)
+char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 {
 	BEHeader beHeader;
 	char *rsp = NULL;
@@ -80,6 +80,11 @@ char* AssembleBEheader(char* buf,int *len,int apId)
 	time_t timestamp;
 	
 	//CWLog("[F:%s, L:%d] :AssembleBEheader  *len = %d,apId = %d",__FILE__,__LINE__,*len, apId);
+	if(*len > BE_MAX_ACKET_LEN)
+	{
+		CWLog("AssembleBEheader Error len > 80000");
+		return;
+	}
 	
 	beHeader.length =*len  + TIME_LEN + MAC_ADDR_LEN;
 	packetLen = BE_TYPELEN_LEN + beHeader.length; 
@@ -122,12 +127,20 @@ char* AssembleBEheader(char* buf,int *len,int apId)
 	memset(rsp, 0, packetLen+1);
 	//×Ö½Ú¶ÔÆë
 	memcpy(rsp,(char*)&beHeader, BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN);
-	memcpy(rsp+BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN,buf, *len);
+	//*xml
+	if(xml == NULL)
+	{
+		memcpy(rsp+BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN,buf, *len);
+	}
+	else
+	{
+		memcpy(rsp+BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN,buf, BE_TYPELEN_LEN);
+		memcpy(rsp+BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN+BE_TYPELEN_LEN,xml, *len - BE_TYPELEN_LEN);
+	}
 	
 	CWLog("[F:%s, L:%d] :buf len = %d",__FILE__,__LINE__,*len);
 	*len = packetLen;
 	
-	//CWLog("[F:%s, L:%d] :rsp = %s",__FILE__,__LINE__,rsp);	
 	CWLog("[F:%s, L:%d] :packetLen = %d",__FILE__,__LINE__,*len);
 	
 	return rsp;
@@ -150,6 +163,12 @@ void SendBEResponse(char* buf,int len,int apId)
 		CWLog("Error locking numSocketFree Mutex");
 		return;
 	}
+
+	if(len > BE_MAX_ACKET_LEN)
+	{
+		CWLog("SendBEResponse Error len > 80000");
+		return;
+	}
 	
 	while(n != len)
 	{
@@ -168,7 +187,7 @@ void SendBEResponse(char* buf,int len,int apId)
 
 void SendBERequest(char* buf,int len)
 {
-	int ret,n;
+	int ret = 0,n = 0;
 //	struct sockaddr_in servaddr;
 /*
 	char *address = gACBEServerAddr;
@@ -204,6 +223,13 @@ void SendBERequest(char* buf,int len)
 	}
 #endif
 	CWLog("[F:%s, L:%d] SendBERequset len:%d",__FILE__,__LINE__,len);
+	if(len > BE_MAX_ACKET_LEN)
+	{
+		CWLog("SendBEResponse Error len > 80000");
+		return;
+	}
+	n = 0;
+	ret = 0;
 	while(n != len)
 	{
 		if ( (n += Writen(appsManager.appClientSocket, buf, len))  < 0 ) {
@@ -213,8 +239,7 @@ void SendBERequest(char* buf,int len)
 	}
 	CWLog("[F:%s, L:%d] Writen n:%d",__FILE__,__LINE__,n);
 	CWThreadMutexUnlock(&appsManager.appClientSocketMutex);
-	n = 0;
-	ret = 0;
+
 /*
 	if (close(sockfd) < 0) {
 		CWLog("SendBERequest close error");
