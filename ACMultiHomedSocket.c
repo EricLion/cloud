@@ -507,7 +507,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 
 		if(FD_ISSET(sockPtr->interfaces[i].sock, &fset)) {
 			int readBytes;
-
+			//CWLog("---------FD_ISSET---------");
 			/*	
 			CWUseSockNtop(&(sockPtr->interfaces[i].addr),
 				CWDebugLog("Ready on %s", str);

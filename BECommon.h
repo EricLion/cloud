@@ -57,8 +57,8 @@ typedef enum {
 #define BE_TYPELEN_LEN   (BE_TYPE_LEN + BE_LENGTH_LEN)
 
 
-#define BE_HEADER_MIN_LEN	(MAC_ADDR_LEN)
-#define BE_HEADER_MAX_LEN	(MAC_ADDR_LEN+2*2+2*MAX_VER_LEN+TIME_LEN)
+#define BE_HEADER_MIN_LEN	(MAC_ADDR_LEN) + (TIME_LEN)
+//#define BE_HEADER_MAX_LEN	(MAC_ADDR_LEN+2*2+2*MAX_VER_LEN+TIME_LEN)
 //struct 4 size
 typedef struct {
 	unsigned short type;

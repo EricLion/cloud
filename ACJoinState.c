@@ -145,6 +145,8 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 									(u_char) gWTPs[i].MAC[3],
 									(u_char) gWTPs[i].MAC[4],
 									(u_char) gWTPs[i].MAC[5]);
+							
+							CWThreadMutexUnlock(&gWTPsMutex);
 							_CWCloseThread(WTPIndex);
 							break;
 						}

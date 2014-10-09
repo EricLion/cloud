@@ -277,6 +277,7 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 	switch(controlVal.messageTypeValue) {
 		case CW_MSG_TYPE_VALUE_CONFIGURE_UPDATE_RESPONSE:
 		{
+			CWLog("F:%s L:%d",__FILE__,__LINE__);
 			CWProtocolResultCode resultCode;
 			/*Update 2009:
 				Store Protocol specific response data*/
@@ -299,10 +300,10 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 
 			
 			CWSaveConfigurationUpdateResponseMessage(resultCode, WTPIndex, protocolValues);
-			printf("f:%s L:%d",__FILE__,__LINE__);
+//			CWLog("F:%s L:%d",__FILE__,__LINE__);
 			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE) {
 
-			printf("f:%s L:%d",__FILE__,__LINE__);
+//			CWLog("F:%s L:%d",__FILE__,__LINE__);
 				CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
 				
 				gWTPs[WTPIndex].interfaceResult = 1;
@@ -782,6 +783,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			   BEconfigEventResponse beConfigEventResp;
 			   beConfigEventResp.type = htons(BE_CONFIG_EVENT_RESPONSE) ;
 			  // 4 sizeof(int)
+			   payloadSize = sizeof(resultCode);
 			   beConfigEventResp.length = htons(sizeof(resultCode));//4
 			   beConfigEventResp.resltCode = Swap32(resultCode);
 			   
@@ -819,7 +821,9 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			 if(beResp)
 			   {
 				SendBEResponse(beResp,BESize,WTPIndex);
+				//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 				CW_FREE_OBJECT(beResp);
+				//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 				result = CW_TRUE;
 			   }
 			   else
@@ -828,8 +832,14 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 				result = CW_FALSE;
 			   }
 			//CW_FREE_OBJECT(responseBuffer);
-			CW_FREE_OBJECT(vendValues->payload);
+			if(vendValues->vendorPayloadLen > 0)
+			{
+				CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+				CW_FREE_OBJECT(vendValues->payload);				
+			}
+			//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 			CW_FREE_OBJECT(vendValues);
+			//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 			return result;
 		}
 #if 0

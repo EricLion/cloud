@@ -27,7 +27,7 @@ typedef struct {
 char BESetApValues(char* apMac, int socketIndex, CWVendorXMLValues* xmlValues)
 {
 	int numActiveWTPs =0,k = 0,i,j;
-	
+	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex))) {
 		CWLog("Error locking the gActiveWTPsMutex mutex");
 		return FALSE;
@@ -57,7 +57,8 @@ char BESetApValues(char* apMac, int socketIndex, CWVendorXMLValues* xmlValues)
 				if (apMac[j] == gWTPs[i].MAC[j]) 
 				{
 					if (j == (MAC_ADDR_LEN - 1))
-					{	
+					{	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+						CWThreadMutexUnlock(&gWTPsMutex);
 						if(!CWXMLSetValues(i, socketIndex, xmlValues))
 							return FALSE;
 						break;
@@ -67,7 +68,7 @@ char BESetApValues(char* apMac, int socketIndex, CWVendorXMLValues* xmlValues)
 		}
 	}
 	CWThreadMutexUnlock(&gWTPsMutex);
-	
+	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	return TRUE;
 }
 
@@ -92,7 +93,7 @@ char* AssembleBEheader(char* buf,int *len,int apId)
 	beHeader.timestamp =Swap32(timestamp);
 	//beHeader.timestamp =(timestamp);
 //	CWLog("[F:%s, L:%d] :sizeof(int) = %d,beHeader.timestamp = %x",__FILE__,__LINE__,sizeof(unsigned int), beHeader.timestamp);	
-	CWLog("[F:%s, L:%d] :beHeader.type = %x",__FILE__,__LINE__,beHeader.type);	
+//	CWLog("[F:%s, L:%d] :beHeader.type = %x",__FILE__,__LINE__,beHeader.type);	
 	beHeader.type = htons(BE_CAPWAP_HEADER);
 //	CWLog("[F:%s, L:%d] :beHeader.type = %x",__FILE__,__LINE__,beHeader.type);	
 	CWLog("[F:%s, L:%d] :beHeader.length = %x",__FILE__,__LINE__,beHeader.length);
@@ -159,7 +160,7 @@ void SendBEResponse(char* buf,int len,int apId)
 		}
 		CWLog("[F:%s, L:%d] Writen n:%d",__FILE__,__LINE__,n);
 	}
-	
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	CWThreadMutexUnlock(&appsManager.socketMutex[socketIndex]);
 
 }
@@ -241,10 +242,14 @@ void SendBERequest(char* buf,int len)
  * output socket) on the correct wtp structure.							*
  ************************************************************************/
 int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues) {
-
+//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
-	//Free Old
+	//Free Old	
 	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+	gWTPs[selection].vendorValues->vendorPayloadLen = 0;
+	
+	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+	
 	if(xmlValues->payloadLen && xmlValues->payload)
 	{
 		CW_CREATE_STRING_ERR(gWTPs[selection].vendorValues->payload, xmlValues->payloadLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
@@ -252,14 +257,17 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 		memcpy((char*)gWTPs[selection].vendorValues->payload, xmlValues->payload,xmlValues->payloadLen);
 		CWLog("gWTPs[%d].vendorValues->payload :%s", selection, gWTPs[selection].vendorValues->payload);
 		CWLog("gWTPs[%d].vendorValues->payload Len:%d", selection, strlen(gWTPs[selection].vendorValues->payload));
+		gWTPs[selection].vendorValues->vendorPayloadLen = strlen(gWTPs[selection].vendorValues->payload);
 	}
 	if(xmlValues->wum_type == WTP_CONFIG_REQUEST)
 	{
+		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 		gWTPs[selection].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG;
 		gWTPs[selection].interfaceCommand = WTP_CONFIG_CMD;
 	}
 	else if(xmlValues->wum_type == WTP_STATE_REQUEST)
 	{
+		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 		gWTPs[selection].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE;
 		gWTPs[selection].interfaceCommand = WTP_STATE_CMD;
 	}
@@ -268,12 +276,16 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 		CWLog("[F:%s, L:%d]  Unknown wum_type:%d",__FILE__,__LINE__,xmlValues->wum_type);
 		return FALSE;
 	}
-	gWTPs[selection].vendorValues->vendorPayloadLen = strlen(gWTPs[selection].vendorValues->payload);
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	gWTPs[selection].applicationIndex = socketIndex;
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+	//block
 	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
-
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	return TRUE;
 }
 
@@ -320,6 +332,11 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 	CWVendorWumValues* wumValues;
 	CWVendorXMLValues* xmlValues;
 	char result,macTemp[MAC_ADDR_LEN];
+	//test
+#if 0
+	int BESize,resultCode = 0,WTPIndex = 0,payloadSize;
+	char *beResp = NULL;
+#endif
 		
 	/********************************************************************************
 	 * Write on application socket that connection setting is happened correctly.	*
@@ -379,13 +396,24 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 					//continue;
 			}
 			beHeader.length = ntohs(beHeader.length);
-			if(beHeader.length < BE_HEADER_MIN_LEN || beHeader.length > BE_HEADER_MAX_LEN)
+			if(beHeader.length < BE_HEADER_MIN_LEN )
 			{
 				CWLog("Error beHeader.length = %d not in range !",beHeader.length);
 				goto quit_manage;
 				//continue;
 			}	
 			CWLog("Receive BEHeader.length = %d",beHeader.length);
+
+			//timestamp
+			if  ((n = Readn(sock, &beHeader.timestamp, TIME_LEN)) < 0 )
+			{
+					CWLog("Error while reading from socket.");
+					goto quit_manage;
+					//continue;
+			}
+			beHeader.timestamp = Swap32(beHeader.timestamp);
+			
+			CWLog("Receive BEHeader.timestamp = %d",beHeader.timestamp);
 
 			//apmac
 			if ((n = Readn(sock, beHeader.apMac, MAC_ADDR_LEN )) < 0 ) 
@@ -412,16 +440,7 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 								beHeader.apMac[4],
 							   	beHeader.apMac[5]);
 
-//timestamp
-			if  ((n = Readn(sock, &beHeader.timestamp, TIME_LEN)) < 0 )
-			{
-					CWLog("Error while reading from socket.");
-					goto quit_manage;
-					//continue;
-			}
-			beHeader.timestamp = Swap32(beHeader.timestamp);
-			
-			CWLog("Receive BEHeader.timestamp = %d",beHeader.timestamp);
+
 			//test
 #if 0
 			//BE: ap connect
@@ -496,21 +515,53 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 				}	
 				CWLog("Receive beLen = %d",beLen);
 
+#if 0
+//test
+				char *temp = NULL;
+				temp = "<?xml version=\"1.0\"?><config><SSID>1</SSID></config>";
+				
+				payloadSize = strlen(temp);
+			       BEmonitorEventResponse beMonitorEventResp;
+				beMonitorEventResp.type =htons( BE_MONITOR_EVENT_RESPONSE) ;
+				beMonitorEventResp.length = htons(payloadSize);
+				
+				CW_CREATE_STRING_ERR(beMonitorEventResp.xml, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
+				memset(beMonitorEventResp.xml, 0, payloadSize);
+				memcpy(beMonitorEventResp.xml, "12345678", payloadSize);
+				BESize = BE_TYPELEN_LEN+payloadSize;
+
+				beResp = AssembleBEheader((char*)&beMonitorEventResp,&BESize,WTPIndex);
+				CW_FREE_OBJECT(beMonitorEventResp.xml);
+
+				if(beResp)
+				{
+					//SendBERequest(beResp,BESize);
+					SendBEResponse(beResp,BESize,wtpIndex);
+					CW_FREE_OBJECT(beResp);
+				}
+				else
+				{
+					CWLog("Error AssembleBEheader !");
+					goto quit_manage;
+				}	
+#endif
+
 				CW_CREATE_OBJECT_ERR(xmlValues, CWVendorXMLValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 				xmlValues->wum_type =WTP_STATE_REQUEST;
 				xmlValues->payloadLen = beLen;
+				CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 
 				result = FALSE;
 				result = BESetApValues(beHeader.apMac, socketIndex, xmlValues);
 				//CW_FREE_OBJECT(xmlValues->payload);
 				CW_FREE_OBJECT(xmlValues);
-				
+				CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 				if(!result)
 				{
 					goto quit_manage;
 					//continue;
 				}
-				
+
 
 			}
 
@@ -539,7 +590,34 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 					//continue;
 				}	
 				CWLog("Receive beLen = %d",beLen);
+//test
+#if 0
+				BEconfigEventResponse beConfigEventResp;
+				beConfigEventResp.type = htons(BE_CONFIG_EVENT_RESPONSE) ;
+				// 4 sizeof(int)
+				beConfigEventResp.length = htons(sizeof(resultCode));//4
+				beConfigEventResp.resltCode = Swap32(resultCode);
 
+				//CW_CREATE_STRING_ERR(&beConfigEventResp.resltCode, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
+				//memset(beMonitorEventResp.xml, 0, payloadSize);
+				//memcpy(beMonitorEventResp.xml, vendValues->payload, payloadSize);
+				payloadSize = 4;
+				BESize = BE_TYPELEN_LEN+payloadSize;
+			
+				beResp = AssembleBEheader((char*)&beConfigEventResp,&BESize,WTPIndex);
+
+				if(beResp)
+				{
+					//SendBERequest(beResp,BESize);
+					SendBEResponse(beResp,BESize,wtpIndex);
+					CW_FREE_OBJECT(beResp);
+				}
+				else
+				{
+					CWLog("Error AssembleBEheader !");
+					goto quit_manage;
+				}	
+#endif	
 				CW_CREATE_OBJECT_ERR(xmlValues, CWVendorXMLValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 				xmlValues->wum_type =WTP_CONFIG_REQUEST;
 				xmlValues->payloadLen = beLen;
@@ -570,6 +648,8 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 					goto quit_manage;
 					//continue;
 				}
+				
+			
 			}
 
 			else
@@ -647,8 +727,8 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 	if ((ret = connect(clientSock, (SA*) &clientAddr, sizeof(struct sockaddr_in)) )< 0) {
 		CWLog("clientSock connect error,ret = %d",ret);
 		//test
-		//close(clientSock);
-		//return NULL;
+		close(clientSock);
+		return NULL;
 	}
 
 	if ( !CWErr(CWCreateThreadMutex(&appsManager.appClientSocketMutex)) ) {
@@ -796,6 +876,8 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
       }
 	
 	CWDestroyThreadMutex(&appsManager.numSocketFreeMutex);
+	CWDestroyThreadMutex(&appsManager.appClientSocketMutex);
+	
 	close(listen_sock);
 }
 

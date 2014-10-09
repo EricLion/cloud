@@ -203,25 +203,31 @@ CWBool CWAssembleWTPVendorPayloadXML(CWProtocolMessage *msgPtr) {
 			case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE:
 				msgType = valuesPtr->vendorPayloadType;
 				//add string end 0
-				CW_CREATE_STRING_ERR(xmlPtr->payload, valuesPtr->vendorPayloadLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
-				memset(xmlPtr->payload,0,valuesPtr->vendorPayloadLen+1);
-				memcpy(xmlPtr->payload, (CWVendorXMLValues *) valuesPtr->payload, valuesPtr->vendorPayloadLen);
-				if (xmlPtr->payload != NULL) {
-					/* create message */
-					xmlLen = valuesPtr->vendorPayloadLen;
-//					CW_CREATE_PROTOCOL_MESSAGE(*msgPtr, sizeof(int)+sizeof(short)+sizeof(short)+xmlLen, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+				xmlLen = valuesPtr->vendorPayloadLen;
+				if(xmlLen > 0)
+				{
+					CWLog("F:%s L:%d",__FILE__,__LINE__);
+					CW_CREATE_STRING_ERR(xmlPtr->payload, valuesPtr->vendorPayloadLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+					memset(xmlPtr->payload,0,valuesPtr->vendorPayloadLen+1);
+					memcpy(xmlPtr->payload, (CWVendorXMLValues *) valuesPtr->payload, valuesPtr->vendorPayloadLen);
+					//CW_CREATE_PROTOCOL_MESSAGE(*msgPtr, sizeof(int)+sizeof(short)+sizeof(short)+xmlLen, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
 					CW_CREATE_PROTOCOL_MESSAGE(*msgPtr, sizeof(int)+sizeof(short)+xmlLen, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
 //					CWProtocolStore32(msgPtr, CW_MSG_ELEMENT_VENDOR_IDENTIFIER);
 					CWProtocolStore16(msgPtr, (unsigned short) msgType);
 //					CWProtocolStore16(msgPtr, (unsigned short) xmlLen);
 					CWProtocolStore32(msgPtr, (unsigned int) xmlLen);
 					CWProtocolStoreStr(msgPtr, xmlPtr->payload);
-				} else {
+					CW_FREE_OBJECT(gWTPs[*iPtr].vendorValues->payload);
+					CW_FREE_OBJECT(xmlPtr->payload);
+				}
+				else 
+				{
 					/* create message */
-					CW_CREATE_PROTOCOL_MESSAGE(*msgPtr,  sizeof(int)+sizeof(short)+sizeof(short), return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
-					CWProtocolStore32(msgPtr, CW_MSG_ELEMENT_VENDOR_IDENTIFIER);
+					CWLog("F:%s L:%d",__FILE__,__LINE__);
+					CW_CREATE_PROTOCOL_MESSAGE(*msgPtr,  sizeof(int)+sizeof(short), return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+				//CWProtocolStore32(msgPtr, CW_MSG_ELEMENT_VENDOR_IDENTIFIER);
 					CWProtocolStore16(msgPtr, (unsigned short) msgType);
-					CWProtocolStore16(msgPtr, (unsigned short) 0);
+					CWProtocolStore32(msgPtr, (unsigned int) xmlLen);
 				}
 			break;
 			default:
@@ -237,13 +243,13 @@ CWBool CWAssembleWTPVendorPayloadXML(CWProtocolMessage *msgPtr) {
 	CWLog("Assembling Protocol Configuration Update Request [VENDOR CASE]: Message Assembled.");
 	//add free
 	CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
-	CW_FREE_OBJECT(gWTPs[*iPtr].vendorValues->payload);
+	
 	CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 	CW_FREE_OBJECT(gWTPs[*iPtr].vendorValues);
 	CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
-	CW_FREE_OBJECT(xmlPtr->payload);
+	
 	CW_FREE_OBJECT(xmlPtr);
-
+	CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 
 	return CWAssembleMsgElem(msgPtr, CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CW_TYPE);
 }

@@ -79,17 +79,21 @@ void CWDestroyThreadCondition(CWThreadCondition *theCondition) {
 
 // Wait for a thread condition (wrapper for pthread_cond_wait)
 CWBool CWWaitThreadCondition(CWThreadCondition *theCondition, CWThreadMutex *theMutex) {
+	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	if(theCondition == NULL || theMutex == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
-	
+	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	switch(pthread_cond_wait(theCondition, theMutex)) {
 		case 0: // success
+		//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 			break;
 		case  ETIMEDOUT:
+			//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 			return CWErrorRaise(CW_ERROR_TIME_EXPIRED, NULL);
 		default:
+			//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 			return CWErrorRaise(CW_ERROR_GENERAL, "Error waiting on thread condition");	
 	}
-	
+	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	return CW_TRUE;
 }
 
