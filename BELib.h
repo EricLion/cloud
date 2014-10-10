@@ -16,7 +16,7 @@
 #define BE_SERVER_ADDRESS "192.168.8.123"
 #define BE_SERVER_PORT	8888
 
-#define BE_MAX_ACKET_LEN 80000
+#define BE_MAX_PACKET_LEN 80000
 
 char BESetApValues(char* apMac, int socketIndex, CWVendorXMLValues* xmlValues);
 char* AssembleBEheader(char* buf,int *len,int apId,char *xml);

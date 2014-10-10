@@ -80,7 +80,7 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	time_t timestamp;
 	
 	//CWLog("[F:%s, L:%d] :AssembleBEheader  *len = %d,apId = %d",__FILE__,__LINE__,*len, apId);
-	if(*len > BE_MAX_ACKET_LEN)
+	if(*len > BE_MAX_PACKET_LEN)
 	{
 		CWLog("AssembleBEheader Error len > 80000");
 		return;
@@ -164,7 +164,7 @@ void SendBEResponse(char* buf,int len,int apId)
 		return;
 	}
 
-	if(len > BE_MAX_ACKET_LEN)
+	if(len > BE_MAX_PACKET_LEN)
 	{
 		CWLog("SendBEResponse Error len > 80000");
 		return;
@@ -187,7 +187,10 @@ void SendBEResponse(char* buf,int len,int apId)
 
 void SendBERequest(char* buf,int len)
 {
-	int ret = 0,n = 0;
+	int ret,n;
+
+	n = 0;
+	ret = 0;
 //	struct sockaddr_in servaddr;
 /*
 	char *address = gACBEServerAddr;
@@ -223,13 +226,12 @@ void SendBERequest(char* buf,int len)
 	}
 #endif
 	CWLog("[F:%s, L:%d] SendBERequset len:%d",__FILE__,__LINE__,len);
-	if(len > BE_MAX_ACKET_LEN)
+	if(len > BE_MAX_PACKET_LEN)
 	{
 		CWLog("SendBEResponse Error len > 80000");
 		return;
 	}
-	n = 0;
-	ret = 0;
+
 	while(n != len)
 	{
 		if ( (n += Writen(appsManager.appClientSocket, buf, len))  < 0 ) {
