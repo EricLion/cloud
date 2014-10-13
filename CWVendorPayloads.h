@@ -88,8 +88,8 @@ CWBool CWAssembleWTPVendorPayloadWUM(CWProtocolMessage *msgPtr);
  *  WTP XML Messages 
  *************************************************************************/
  typedef struct {
-	char wum_type;
-	int payloadLen;
+	unsigned char wum_type;
+	unsigned int payloadLen;
 	char *payload;
 } CWVendorXMLValues;
 

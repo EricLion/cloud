@@ -50,7 +50,7 @@ void CWACManageIncomingPacket(CWSocket sock,
 			      int len,
 			      int incomingInterfaceIndex,
 			      CWNetworkLev4Address *addrPtr);
-void _CWCloseThread(int i);
+//void _CWCloseThread(int i);
 void CWResetWTPProtocolManager(CWWTPProtocolManager *WTPProtocolManager);
 __inline__ CWWTPManager *CWWTPByName(const char *addr);
 __inline__ CWWTPManager *CWWTPByAddress(CWNetworkLev4Address *addressPtr,

@@ -290,6 +290,7 @@ void CWACManageIncomingPacket(CWSocket sock,
 			      CWNetworkLev4Address *addrPtr);
 
 void *CWManageWTP(void *arg);
+void _CWCloseThread(int i);
 void CWCloseThread();
 
 /* in CWSecurity.c */
