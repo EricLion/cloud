@@ -97,6 +97,7 @@ CWBool CWAssembleWTPVendorPayloadWUM(CWProtocolMessage *msgPtr) {
 	}
 
 	valuesPtr =gWTPs[*iPtr].vendorValues;
+	CWLog("*iPtr = %d ",*iPtr);
 	switch (valuesPtr->vendorPayloadType){
 			case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_WUM:
 				/* 
@@ -118,7 +119,7 @@ CWBool CWAssembleWTPVendorPayloadWUM(CWProtocolMessage *msgPtr) {
 					CW_CREATE_PROTOCOL_MESSAGE(*msgPtr, sizeof(short)+sizeof(char)+2*sizeof(int)+wumPtr->_cup_fragment_size_, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
 				break;
 				default:
-					CWLog("Error! unknown WUM message type!!!");
+					CWLog("Error! unknown WUM message type!!!,wumPtr->type =%d",wumPtr->type);
 					return CW_FALSE;
 				}
 
@@ -126,9 +127,9 @@ CWBool CWAssembleWTPVendorPayloadWUM(CWProtocolMessage *msgPtr) {
                                 CWProtocolStore8(msgPtr, (unsigned char) wumPtr->type);
 				if (wumPtr->type == WTP_UPDATE_REQUEST) {
 					//add version
-					wumPtr->_major_v_ = 3;
-					wumPtr->_minor_v_ = 3;
-					wumPtr->_revision_v_ = 3;
+					//wumPtr->_major_v_ = 3;
+					//wumPtr->_minor_v_ = 3;
+					//wumPtr->_revision_v_ = 3;
 					CWLog("[F:%s, L:%d]wumPtr->_major_v_ = %d,wumPtr->_minor_v_ = %d,wumPtr->_revision_v_ = %d,wumPtr->_pack_size_ = %d ",__FILE__,__LINE__,
 							wumPtr->_major_v_,wumPtr->_minor_v_,wumPtr->_revision_v_,wumPtr->_pack_size_);
 					CWProtocolStore8(msgPtr, wumPtr->_major_v_);	
@@ -136,10 +137,14 @@ CWBool CWAssembleWTPVendorPayloadWUM(CWProtocolMessage *msgPtr) {
 					CWProtocolStore8(msgPtr, wumPtr->_revision_v_);
 					CWProtocolStore32(msgPtr, wumPtr->_pack_size_);
 				} else if (wumPtr->type == WTP_CUP_FRAGMENT) {
+				CWLog("[F:%s, L:%d]wumPtr->_seq_num_= %d,wumPtr->_cup_fragment_size_= %d,",__FILE__,__LINE__,wumPtr->_seq_num_,wumPtr->_cup_fragment_size_);
 					CWProtocolStore32(msgPtr, wumPtr->_seq_num_);
 					CWProtocolStore32(msgPtr, wumPtr->_cup_fragment_size_);
+					//CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 					CWProtocolStoreRawBytes(msgPtr, wumPtr->_cup_, wumPtr->_cup_fragment_size_);
+					//CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 					CW_FREE_OBJECT(wumPtr->_cup_);
+					//CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 				}
 			break;
 			default:

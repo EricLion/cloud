@@ -73,7 +73,8 @@ CWBool CWACSendFragments(int WTPIndex) {
          *
          * 20/10/2009 - Donato Capitella
          */
-        CW_FREE_WTP_MSG_ARRAY(WTPIndex);
+         //need Retransmit
+       // CW_FREE_WTP_MSG_ARRAY(WTPIndex);
 
 	CWLog("Message Sent\n");
 	

@@ -2,6 +2,9 @@
 #ifndef BELIB_H
 #define BELIB_H
 
+#include <sys/mman.h>
+#include <unistd.h>
+#include <sys/stat.h>
 #include "CWCommon.h"
 #include "CWVendorPayloads.h"
 #include "BECommon.h"
@@ -18,7 +21,8 @@
 
 #define BE_MAX_PACKET_LEN 80000
 
-char BESetApValues(char* apMac, int socketIndex, CWVendorXMLValues* xmlValues);
+char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValues* vendorValues);
+char BESetApValues(u_char* apMac, int socketIndex, CWVendorXMLValues* Values);
 char* AssembleBEheader(char* buf,int *len,int apId,char *xml);
 void SendBEResponse(char* buf,int len,int apId);
 //int BEServerConnect(char *address, int port);
@@ -37,5 +41,22 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 					(((ll) & 0x000000000000ff00) << 40) |\
 					(((ll) << 56)))
 
+#define FRAGMENT_SIZE 4000
+
+#define MIN(a,b) (a < b) ? (a) : (b)
+
+struct version_info {
+	char major;
+	char minor;
+	char revision;
+	int size;
+};
+
+char CheckUpgradeVersion(u_char* apMac, int socketIndex, char *cup_path);
+char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_info update_v);
+int CWWumSetValues(int selection, int socketIndex, CWProtocolVendorSpecificValues* vendorValues);
+
+#define UPGRADE_FAILED     2
+#define UPGRADE_SUCCESS  3
 
 #endif /* BELIB_H */

@@ -305,10 +305,14 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 
 //			CWLog("F:%s L:%d",__FILE__,__LINE__);
 				CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
-				
-				gWTPs[WTPIndex].interfaceResult = 1;
+				if(gWTPs[WTPIndex].interfaceResult != UPGRADE_FAILED)
+				{
+					gWTPs[WTPIndex].interfaceResult = 1;
+				}
 				gWTPs[WTPIndex].interfaceCommandProgress = CW_FALSE;
+				CWLog("[F:%s L:%d] gWTPs[WTPIndex].interfaceResult =%d",__FILE__,__LINE__,gWTPs[WTPIndex].interfaceResult);
 				CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
+				CWLog("[F:%s L:%d] CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete)",__FILE__,__LINE__);
 
 				CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
 			}
@@ -742,8 +746,8 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 		 *Payload Management		*
 		 ********************************/
 
-		headerSize = 3*sizeof(int);
-		CWLog("[F:%s, L:%d] :headerSize = %d",__FILE__,__LINE__,headerSize);
+		//headerSize = 3*sizeof(int);
+		//CWLog("[F:%s, L:%d] :headerSize = %d",__FILE__,__LINE__,headerSize);
 		
 		switch (vendValues->vendorPayloadType) {
 		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_UCI:
@@ -755,7 +759,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_WUM:
 			wumPayloadBytes = vendValues->payload;
 			payloadSize = 1;
-			
+			CWLog("CWSaveConfigurationUpdateResponseMessage wumPayloadBytes[0]= %d", wumPayloadBytes[0]);
 			/*
 			 * When dealing with WUM responses, the dafault size
 			 * is 1 bytes, which is used for the type.
@@ -773,6 +777,65 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			 */
 			if (wumPayloadBytes[0] == WTP_COMMIT_ACK && resultCode == CW_PROTOCOL_SUCCESS)
 				closeWTPManager = CW_TRUE;
+//upgrade 
+			if (wumPayloadBytes[0] == WTP_UPDATE_RESPONSE )
+			{
+				CWLog("Recive WTP_UPDATE_RESPONSE ");
+				if( resultCode != CW_PROTOCOL_SUCCESS)
+				{
+					CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
+					gWTPs[WTPIndex].interfaceResult = UPGRADE_FAILED;
+					CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+					CWLog("Recive WTP_UPDATE_RESPONSE resultCode = %d,fail !",resultCode);
+				}
+				
+				//CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
+			}
+			if (wumPayloadBytes[0] == WTP_CUP_ACK )
+			{
+				CWLog("Recive WTP_CUP_ACK ");
+				if( resultCode != CW_PROTOCOL_SUCCESS)
+				{
+					CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
+					gWTPs[WTPIndex].interfaceResult = UPGRADE_FAILED;
+					CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+					CWLog("Recive WTP_CUP_ACK resultCode = %d,fail !",resultCode);
+				}
+				//CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
+			}
+			if (wumPayloadBytes[0] == WTP_COMMIT_ACK )
+			{
+				CWLog("Recive WTP_UPDATE_RESPONSE resultCode = %d",resultCode);
+				BEupgradeEventResponse beUpgradeEventResp;
+				beUpgradeEventResp.type = htons(BE_UPGRADE_EVENT_RESPONSE) ;
+				// 4 sizeof(int)
+				payloadSize = sizeof(resultCode);
+				beUpgradeEventResp.length = htons(sizeof(resultCode));//4
+				beUpgradeEventResp.resltCode = Swap32(resultCode);
+
+				//CW_CREATE_STRING_ERR(&beConfigEventResp.resltCode, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
+				//memset(beMonitorEventResp.xml, 0, payloadSize);
+				//memcpy(beMonitorEventResp.xml, vendValues->payload, payloadSize);
+
+				BESize = BE_TYPELEN_LEN+payloadSize;
+
+				beResp = AssembleBEheader((char*)&beUpgradeEventResp,&BESize,WTPIndex,NULL);
+				
+				if(resultCode != CW_PROTOCOL_SUCCESS)
+				{
+					CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
+					gWTPs[WTPIndex].interfaceResult = UPGRADE_FAILED;
+					CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+					CWLog("Recive WTP_UPDATE_RESPONSE resultCode = %d,fail !",resultCode);
+					//CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
+				}
+				else
+				{
+					CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
+					gWTPs[WTPIndex].interfaceResult = UPGRADE_SUCCESS;
+					CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+				}
+			}
 			break;
 			//config
 		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG:
@@ -833,11 +896,11 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 				//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 				result = CW_TRUE;
 			   }
-			   else
-			  {
-				CWLog("Error AssembleBEheader !");
-				result = CW_FALSE;
-			   }
+			   //else
+			  //{
+				//CWLog("Error AssembleBEheader !");
+				//result = CW_FALSE;
+			   //}
 			//CW_FREE_OBJECT(responseBuffer);
 			if(vendValues->vendorPayloadLen > 0)
 			{
@@ -847,7 +910,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 			CW_FREE_OBJECT(vendValues);
 			//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
-			return result;
+			//return result;
 		}
 #if 0
 		if ( ( responseBuffer = malloc( headerSize+payloadSize+1 ) ) != NULL ) {
@@ -906,7 +969,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 	
 		return CW_FALSE;
 	}
-	
+#endif	
 	/*
 	 * On a positive WTP_COMMIT_ACK, we need to close the WTP Manager.
 	 */
@@ -914,7 +977,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
 		CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceWait);
 	}
-#endif
+
 	CWDebugLog("Configuration Update Response Saved");
 	return CW_TRUE;
 }

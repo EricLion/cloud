@@ -4,6 +4,8 @@
 
 #include "CWCommon.h"
 
+typedef unsigned char u_char;
+
 #define TRUE    1 
 #define FALSE   0 
 
@@ -22,6 +24,13 @@
 #define	BE_CONFIG_EVENT_RESPONSE  6
 #define	BE_UPGRADE_EVENT_REQUEST  7
 #define	BE_UPGRADE_EVENT_RESPONSE 8
+
+#define	BE_CONFIG_WEB_EVENT_REQUEST  11
+#define	BE_CONFIG_WEB_EVENT_RESPONSE 12
+#define	BE_WTP_EVENT_REQUEST  21
+#define	BE_WTP_EVENT_RESPONSE 22
+#define	BE_SYSTEM_EVENT_REQUEST  31
+#define	BE_SYSTEM_EVENT_RESPONSE 32
 
 
 //result code
@@ -109,6 +118,7 @@ typedef struct {
 	CWResultCode resltCode;
 }BEconfigEventResponse;
 
+/*
 //update need fragment
 typedef struct {
 	unsigned short type;
@@ -120,12 +130,59 @@ typedef struct {
  	unsigned int  ImageLen;
 	char* image;//fragment
 }BEupgradeEventRequest;
+*/
+
+typedef struct {
+	unsigned short type;
+	unsigned short length;
+	char* filePath;//fragment
+}BEupgradeEventRequest;
 
 typedef struct {
 	unsigned short type;
 	unsigned short length;
 	CWResultCode resltCode;
 }BEupgradeEventResponse;
+
+
+
+typedef struct {
+	unsigned short type;
+	unsigned short length;
+	char* xml;
+}BEwtpEventRequest;
+
+typedef struct {
+	unsigned short type;
+	unsigned short length;
+	CWResultCode resltCode;
+}BEwtpEventResponse;
+
+
+typedef struct {
+	unsigned short type;
+	unsigned short length;
+	unsigned int webEncode;
+	char* webContent;
+}BEconfigWebEventRequest;
+
+typedef struct {
+	unsigned short type;
+	unsigned short length;
+	CWResultCode resltCode;
+}BEconfigWebEventResponse;
+
+typedef struct {
+	unsigned short type;
+	unsigned short length;
+	unsigned char operation;
+}BEsystemEventRequest;
+
+typedef struct {
+	unsigned short type;
+	unsigned short length;
+	CWResultCode resltCode;
+}BEsystemEventResponse;
 
 
 

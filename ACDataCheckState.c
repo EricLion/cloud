@@ -152,6 +152,11 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	}
 	//*/
 #endif
+
+	CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
+	gWTPs[WTPIndex].interfaceResult = UPGRADE_SUCCESS;
+	CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+	
 	CWLog("[F:%s, L:%d]  gActiveWTPs:%d",__FILE__,__LINE__,gActiveWTPs);
 
 	return CW_TRUE;

@@ -24,9 +24,10 @@ typedef struct {
 	int index;
 } CWInterfaceThreadArg;
 
-char BESetApValues(char* apMac, int socketIndex, CWVendorXMLValues* xmlValues)
+
+char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValues* vendorValues)
 {
-	int numActiveWTPs =0,k = 0,i,j;
+	int numActiveWTPs =0,k = 0,i,j,finded = -1,interfaceResult = 0;
 	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex))) {
 		CWLog("Error locking the gActiveWTPsMutex mutex");
@@ -58,9 +59,11 @@ char BESetApValues(char* apMac, int socketIndex, CWVendorXMLValues* xmlValues)
 				{
 					if (j == (MAC_ADDR_LEN - 1))
 					{	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
-						CWThreadMutexUnlock(&gWTPsMutex);
-						if(!CWXMLSetValues(i, socketIndex, xmlValues))
-							return FALSE;
+						finded = i;
+						CWLog("[F:%s, L:%d] finded = %d",__FILE__,__LINE__,finded);
+						//CWThreadMutexUnlock(&gWTPsMutex);
+						//if(!CWXMLSetValues(i, socketIndex, xmlValues))
+							//return FALSE;
 						break;
 					}
 				}
@@ -68,7 +71,77 @@ char BESetApValues(char* apMac, int socketIndex, CWVendorXMLValues* xmlValues)
 		}
 	}
 	CWThreadMutexUnlock(&gWTPsMutex);
+	if(finded >=0)
+	{
+		CWThreadMutexLock(&gWTPs[finded].interfaceMutex);
+		interfaceResult = gWTPs[finded].interfaceResult;
+		CWThreadMutexUnlock(&gWTPs[finded].interfaceMutex);
+
+		if(interfaceResult == UPGRADE_FAILED)
+		{
+			CWLog("[F:%s, L:%d] interfaceResult= UPGRADE_FAILED",__FILE__,__LINE__);
+			return FALSE;
+		}
+		if(!CWWumSetValues(finded, socketIndex, vendorValues))
+			return FALSE;
+	}
 	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
+	return TRUE;
+}
+
+
+char BESetApValues(u_char* apMac, int socketIndex, CWVendorXMLValues* xmlValues)
+{
+	int numActiveWTPs =0,k = 0,i,j,finded = -1;
+	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
+	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex))) {
+		CWLog("Error locking the gActiveWTPsMutex mutex");
+		return FALSE;
+	}
+	numActiveWTPs = gActiveWTPs;
+	CWThreadMutexUnlock(&gActiveWTPsMutex);
+	
+	k = numActiveWTPs;
+	if(!k)
+	{
+		CWLog("numActiveWTPs = 0,no connect ap !");
+		return FALSE;
+	}
+	
+	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+		CWLog("Error locking the gWTPsMutex mutex");
+		return FALSE;
+	}
+	
+	for(i=0; i<CW_MAX_WTP && k ; i++) 
+	{
+		if(gWTPs[i].isNotFree && gWTPs[i].currentState == CW_ENTER_RUN)  
+		{
+			k--;
+			for (j = 0; j < MAC_ADDR_LEN; j++) 
+			{
+				if (apMac[j] == gWTPs[i].MAC[j]) 
+				{
+					if (j == (MAC_ADDR_LEN - 1))
+					{	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+						finded = i;
+						CWLog("[F:%s, L:%d] finded = %d",__FILE__,__LINE__,finded);
+						//CWThreadMutexUnlock(&gWTPsMutex);
+						//if(!CWXMLSetValues(i, socketIndex, xmlValues))
+							//return FALSE;
+						break;
+					}
+				}
+			}
+		}
+	}
+	CWThreadMutexUnlock(&gWTPsMutex);
+
+	if(finded >=0)
+	{
+		if(!CWXMLSetValues(finded, socketIndex, xmlValues))
+			return FALSE;
+	}
 	return TRUE;
 }
 
@@ -83,7 +156,7 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	if(*len > BE_MAX_PACKET_LEN)
 	{
 		CWLog("AssembleBEheader Error len > 80000");
-		return;
+		return CW_FALSE;
 	}
 	
 	beHeader.length =*len  + TIME_LEN + MAC_ADDR_LEN;
@@ -215,7 +288,7 @@ void SendBERequest(char* buf,int len)
 
 	if(!CWErr(CWThreadMutexLock(&appsManager.appClientSocketMutex))) {
 				CWLog("Error locking numSocketFree Mutex");
-				return NULL;
+				return;
 			}
 
 #if 0
@@ -264,12 +337,164 @@ void SendBERequest(char* buf,int len)
 }
 
 
+char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_info update_v)
+{
+	int ret = FALSE;
+	int i, left, toSend, sent;
+	CWVendorWumValues *wumValues = NULL;
+	CWProtocolVendorSpecificValues *vendorValues = NULL;
+
+	CW_CREATE_OBJECT_ERR(wumValues, CWVendorWumValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+	CW_CREATE_OBJECT_ERR(vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+
+	memset(wumValues,0,sizeof(CWVendorWumValues));
+	memset(vendorValues,0,sizeof(CWProtocolVendorSpecificValues));
+	
+	CW_CREATE_OBJECT_ERR(vendorValues->payload, CWVendorWumValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+	memset(vendorValues->payload,0,sizeof(CWVendorWumValues));
+
+	 vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_WUM;
+
+	//WTP_UPDATE_REQ
+	CWLog("[F:%s, L:%d] WTP_UPDATE_REQ begin. ..... ",__FILE__,__LINE__);
+	wumValues->type = WTP_UPDATE_REQUEST;
+	wumValues->_major_v_ = update_v.major;
+	wumValues->_minor_v_ = update_v.minor;
+	wumValues->_revision_v_ = update_v.revision;
+	wumValues->_pack_size_ = update_v.size;
+	//wumValues._pack_size_ = ntohl(wumValues._pack_size_);
+	
+	
+	//CWLog("[F:%s, L:%d] wumValues->_pack_size_ = %d ",__FILE__,__LINE__,wumValues->_pack_size_);
+	
+	//memcpy((char*)(vendorValues.payload),(char*)&wumValues,sizeof(CWVendorWumValues));
+	vendorValues->payload = wumValues;
+	ret = BESetWumValues(apMac, socketIndex, vendorValues);
+	if(!ret)
+	{
+		CWLog("[F:%s, L:%d] BESetWumValues fail ! ",__FILE__,__LINE__);
+		return ret;
+	}
+	 //WTP_CUP_FRAGMENT
+	CWLog("[F:%s, L:%d] WTP_CUP_FRAGMENT begin. ..... ",__FILE__,__LINE__);
+	wumValues->type = WTP_CUP_FRAGMENT;
+	int seqNum;
+	int fragSize;
+	
+	sent = 0;
+	left = update_v.size;
+	toSend = MIN(FRAGMENT_SIZE, left);
+	for (i = 0; left > 0; i++) {
+	//if (WUMSendFragment(acserver, wtpId, cup_buf + sent, toSend, i)) {
+	//	fprintf(stderr, "Error while sending fragment #%d\n", i);
+	//	return ERROR;
+	//}
+		//seqNum = ntohl(i);
+		//fragSize = ntohl(toSend);
+		seqNum = i;
+		fragSize = toSend;
+
+		CW_CREATE_OBJECT_SIZE_ERR(wumValues->_cup_, fragSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+		//CW_CREATE_OBJECT_SIZE_ERR(vendorValues.payload, sizeof(CWVendorWumValues), {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+		memset(wumValues->_cup_,0,fragSize);
+		//memset(vendorValues.payload,0,sizeof(CWVendorWumValues));
+		
+		//wumValues->_cup_ = cup + sent;
+		memcpy(wumValues->_cup_, cup + sent, fragSize);
+		wumValues->_seq_num_ = seqNum;
+		wumValues->_cup_fragment_size_ = fragSize;
+		
+		
+		//memcpy((char*)(vendorValues.payload),(char*)&wumValues,sizeof(CWVendorWumValues));
+		vendorValues->payload = wumValues;
+
+		CWLog("[F:%s, L:%d] -------%d  fragment send----------",__FILE__,__LINE__,seqNum);
+		usleep(100);
+		ret = BESetWumValues(apMac, socketIndex,vendorValues);
+		if(!ret)
+		{
+			CWLog("[F:%s, L:%d] BESetWumValues fail ! ",__FILE__,__LINE__);
+			return ret;
+		}
+		CWLog("[F:%s, L:%d] -------%d  fragment recv----------",__FILE__,__LINE__,seqNum);
+		left -= toSend;
+		sent += toSend;
+		toSend = MIN(FRAGMENT_SIZE, left);	
+	} 
+
+	//WTP_COMMIT_UPDATE
+	CWLog("[F:%s, L:%d] WTP_COMMIT_UPDATE begin. ..... ",__FILE__,__LINE__);
+	wumValues->type = WTP_COMMIT_UPDATE; 
+
+	//memset(vendorValues.payload,0,sizeof(CWVendorWumValues));
+	vendorValues->payload = wumValues;
+	//memcpy((char*)(vendorValues.payload),(char*)&wumValues,sizeof(CWVendorWumValues));
+	ret = BESetWumValues(apMac, socketIndex, vendorValues);
+	if(!ret)
+	{
+		CWLog("[F:%s, L:%d] BESetWumValues fail ! ",__FILE__,__LINE__);
+		return ret;
+	}
+	
+	return ret;
+}
+
+//only xx.tar can be anylisis
+char CheckUpgradeVersion(u_char* apMac, int socketIndex, char *cup_path)
+{
+	int ret=FALSE;
+	struct version_info update_v;
+	struct stat s_buf;
+	void *cup;
+
+	if (cup_path == NULL) {
+		CWLog( "In order to execute an update, an update package must be specified! (-f pathname)\n");
+		return ret;
+	}
+
+	int fd = open(cup_path, O_RDONLY);
+	if (fd < 0) {
+		CWLog("open error");
+		return ret;
+	}
+	
+	if (stat(cup_path, &s_buf) != 0) {
+		CWLog( "Stat error!.\n");
+		return ret;
+	}
+	//test
+	update_v.major = 1;
+	update_v.minor = 1;
+	update_v.revision = 1;
+		
+	update_v.size = s_buf.st_size;
+	CWLog("[F:%s, L:%d] update_v->size = %d\n",__FILE__,__LINE__,update_v.size);
+		
+	cup = mmap(NULL, update_v.size, PROT_READ, MAP_SHARED , fd, 0);
+	if (cup == NULL) {
+		CWLog("mmap error");
+		return ret;
+	}
+	
+ 	ret = UpgradeVersion(apMac, socketIndex,cup, update_v);
+	
+	munmap(cup, update_v.size);
+	close(fd);
+	return ret;
+}
+
+
+
 /************************************************************************
  * CWOFDMSetValues provide to set the command values (type, parameters,	*
  * output socket) on the correct wtp structure.							*
  ************************************************************************/
 int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues) {
 //CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
+	if(selection <0 ||selection >= CW_MAX_WTP)
+	{
+		CWLog("[F:%s, L:%d]selection <0 ||selection >= CW_MAX_WTP ",__FILE__,__LINE__);
+	}
 	CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
 	//Free Old	
 	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
@@ -318,18 +543,37 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 
 
 int CWWumSetValues(int selection, int socketIndex, CWProtocolVendorSpecificValues* vendorValues) {
+	if(selection <0 ||selection >= CW_MAX_WTP)
+	{
+		CWLog("[F:%s, L:%d]selection <0 ||selection >= CW_MAX_WTP ",__FILE__,__LINE__);
+	}
 	
 	CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
 	
 	gWTPs[selection].vendorValues = vendorValues;
+	gWTPs[selection].vendorValues->payload = vendorValues->payload;
+	
+	//CWLog("[F:%s, L:%d] gWTPs[%d].vendorValues.payload ->wumValues",__FILE__,__LINE__,selection);
+	//CWVendorWumValues *wumValues = NULL;
+	//wumValues = (CWVendorWumValues *)(gWTPs[selection].vendorValues->payload);
+	//CWLog("wumValues.type = %d,wumValues._major_v_ =%d",__FILE__,__LINE__,wumValues->type,wumValues->_major_v_ );
+	//CWLog("wumValues._minor_v_ = %d,wumValues._revision_v_ =%d",__FILE__,__LINE__,wumValues->_minor_v_,wumValues->_revision_v_ );
+	//CWLog("wumValues._pack_size_ = %d,",__FILE__,__LINE__,wumValues->_pack_size_);
+
+	//CWLog("wumValues._cup_fragment_size_ = %d,",__FILE__,__LINE__,wumValues->_cup_fragment_size_);
+	//CWLog("wumValues._seq_num_ = %d,",__FILE__,__LINE__,wumValues->_seq_num_);
+
 	gWTPs[selection].interfaceCommand = WTP_UPDATE_CMD;
 	gWTPs[selection].applicationIndex = socketIndex;
+	CWLog("[F:%s, L:%d] CWWumSetValues begin ...",__FILE__,__LINE__);	
 	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+	CWLog("[F:%s, L:%d] CWWaitThreadCondition",__FILE__,__LINE__);	
 	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
-	
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+	CWLog("[F:%s, L:%d] CWWumSetValues end ...",__FILE__,__LINE__);	
 	
-	return 0;
+	return TRUE;
 }	
 
 
@@ -344,21 +588,22 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 	
 	int socketIndex = ((CWInterfaceThreadArg*)arg)->index;
 	CWSocket sock = appsManager.appSocket[socketIndex];
-	int n, connected= htonl(CONNECTION_OK), gActiveWTPsTemp;
+	int n; 
+	//int connected= htonl(CONNECTION_OK), gActiveWTPsTemp;
 	
 	char commandBuffer[COMMAND_BUFFER_SIZE];
-	char wtpListBuffer[WTP_LIST_BUFFER_SIZE];
+	//char wtpListBuffer[WTP_LIST_BUFFER_SIZE];
 	
-	int payload_size;
-	int i, j,k, nameLength, numActiveWTPs=0, wtpIndex;
-   	int iTosend, nLtoSend;
-	unsigned char msg_elem;
+	//int payload_size;
+	//int i, j,k, nameLength, numActiveWTPs=0, wtpIndex;
+   	//int iTosend, nLtoSend;
+	//unsigned char msg_elem;
 	unsigned short beType,beLen;
 	BEHeader beHeader;
-	CWProtocolVendorSpecificValues* vendorValues;
-	CWVendorWumValues* wumValues;
+	//CWProtocolVendorSpecificValues* vendorValues;
+	//CWVendorWumValues* wumValues;
 	CWVendorXMLValues* xmlValues;
-	char result,macTemp[MAC_ADDR_LEN];
+	char result;
 	//test
 #if 0
 	int BESize,resultCode = 0,WTPIndex = 0,payloadSize;
@@ -618,32 +863,23 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 				}	
 				CWLog("Receive beLen = %d",beLen);
 //test
-#if 0
-				BEconfigEventResponse beConfigEventResp;
-				beConfigEventResp.type = htons(BE_CONFIG_EVENT_RESPONSE) ;
-				// 4 sizeof(int)
-				beConfigEventResp.length = htons(sizeof(resultCode));//4
-				beConfigEventResp.resltCode = Swap32(resultCode);
+#if 0	
+				char *filePath = NULL;
 
-				//CW_CREATE_STRING_ERR(&beConfigEventResp.resltCode, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
-				//memset(beMonitorEventResp.xml, 0, payloadSize);
-				//memcpy(beMonitorEventResp.xml, vendValues->payload, payloadSize);
-				payloadSize = 4;
-				BESize = BE_TYPELEN_LEN+payloadSize;
-			
-				beResp = AssembleBEheader((char*)&beConfigEventResp,&BESize,WTPIndex);
+				CW_CREATE_STRING_ERR(filePath, 64, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+				memset(filePath,0,64);
+				memcpy(filePath,"/capwap_server/version/yanlong_uImage.tar",strlen("/capwap_server/version/yanlong_uImage.tar"));
+				CWLog("[F:%s, L:%d] filePath= %s ",__FILE__,__LINE__,filePath);
 
-				if(beResp)
+				result = CheckUpgradeVersion(beHeader.apMac, socketIndex,filePath);	
+				CW_FREE_OBJECT(filePath);
+				
+				if(!result)
 				{
-					//SendBERequest(beResp,BESize);
-					SendBEResponse(beResp,BESize,wtpIndex);
-					CW_FREE_OBJECT(beResp);
-				}
-				else
-				{
-					CWLog("Error AssembleBEheader !");
 					goto quit_manage;
-				}	
+					//continue;
+				}
+				goto quit_manage;
 #endif	
 				CW_CREATE_OBJECT_ERR(xmlValues, CWVendorXMLValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 				xmlValues->wum_type =WTP_CONFIG_REQUEST;
@@ -677,6 +913,103 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 				}
 				
 			
+			}
+
+			if( beType == BE_UPGRADE_EVENT_REQUEST)
+			{
+				CWLog("Receive BE_UPGRADE_EVENT_REQUEST !");
+				//len
+				if ( (n = Readn(sock, &beLen, BE_LENGTH_SIZE) )< 0 ) {
+						CWLog("Error while reading from socket.");
+						goto quit_manage;
+						//continue;
+				}
+				beLen = ntohs(beLen);
+				if(!beLen)
+				{
+					CWLog("Error beLen = %d not in range !",beLen);
+					goto quit_manage;
+					//continue;
+				}	
+				CWLog("Receive beLen = %d",beLen);
+
+				char *filePath = NULL;
+
+				CW_CREATE_STRING_ERR(filePath, beLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+				if ( (n = Readn(sock, filePath, beLen) )< 0 ) {
+						CWLog("Error while reading from socket.");
+						goto quit_manage;
+						//continue;
+				}
+
+				CWLog("[F:%s, L:%d] filePath= %s ",__FILE__,__LINE__,filePath);
+
+				result = CheckUpgradeVersion(beHeader.apMac, socketIndex,filePath);
+				CW_FREE_OBJECT(filePath);
+				if(!result)
+				{
+					goto quit_manage;
+					//continue;
+				}
+                         // break;
+			}
+
+			if( beType == BE_CONFIG_WEB_EVENT_REQUEST)
+			{
+				CWLog("Receive BE_CONFIG_WEB_EVENT_REQUEST !");
+				//len
+				if ( (n = Readn(sock, &beLen, BE_LENGTH_SIZE) )< 0 ) {
+						CWLog("Error while reading from socket.");
+						goto quit_manage;
+						//continue;
+				}
+				beLen = ntohs(beLen);
+				if(!beLen)
+				{
+					CWLog("Error beLen = %d not in range !",beLen);
+					goto quit_manage;
+					//continue;
+				}	
+				CWLog("Receive beLen = %d",beLen);
+
+			}
+			if( beType == BE_WTP_EVENT_RESPONSE)
+			{
+				CWLog("Receive BE_WTP_EVENT_RESPONSE !");
+				//len
+				if ( (n = Readn(sock, &beLen, BE_LENGTH_SIZE) )< 0 ) {
+						CWLog("Error while reading from socket.");
+						goto quit_manage;
+						//continue;
+				}
+				beLen = ntohs(beLen);
+				if(!beLen)
+				{
+					CWLog("Error beLen = %d not in range !",beLen);
+					goto quit_manage;
+					//continue;
+				}	
+				CWLog("Receive beLen = %d",beLen);
+
+			}
+			if( beType == BE_SYSTEM_EVENT_REQUEST)
+			{
+				CWLog("Receive BE_SYSTEM_EVENT_REQUEST !");
+				//len
+				if ( (n = Readn(sock, &beLen, BE_LENGTH_SIZE) )< 0 ) {
+						CWLog("Error while reading from socket.");
+						goto quit_manage;
+						//continue;
+				}
+				beLen = ntohs(beLen);
+				if(!beLen)
+				{
+					CWLog("Error beLen = %d not in range !",beLen);
+					goto quit_manage;
+					//continue;
+				}	
+				CWLog("Receive beLen = %d",beLen);
+
 			}
 
 			else

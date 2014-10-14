@@ -701,6 +701,7 @@ CWLog("F:%s L:%d",__FILE__,__LINE__);
 				  }
 			case WTP_UPDATE_CMD:
 				{
+						CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 					 int seqNum = CWGetSeqNum();
 
                                          if (CWAssembleConfigurationUpdateRequest(&(gWTPs[i].messages),
@@ -738,7 +739,7 @@ CWLog("F:%s L:%d",__FILE__,__LINE__);
 
 			case WTP_STATE_CMD:
 							{
-								CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
+								CWLog("[F:%s, L:%d]WTP_STATE_CMD",__FILE__,__LINE__);
 								 int seqNum = CWGetSeqNum();
 
 			                                         if (CWAssembleConfigurationUpdateRequest(&(gWTPs[i].messages),
@@ -800,6 +801,7 @@ CWLog("F:%s L:%d",__FILE__,__LINE__);
 
 void _CWCloseThread(int i) {
 //BE: ap disconnect
+	CWLog("_CWCloseThread apid =%d",i);
 	char *beResp = NULL;
 	int BESize;
 	
@@ -946,7 +948,8 @@ void CWSoftTimerExpiredHandler(int arg) {
 				   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
 		return;
 	}
-	
+
+	CWLog("Handling Soft timer,apid =%d,gWTPs[%d].isRetransmitting=%d ",*iPtr,*iPtr,gWTPs[*iPtr].isRetransmitting);
 	if((!gWTPs[*iPtr].isRetransmitting) || (gWTPs[*iPtr].messages == NULL)) {
 
 		CWDebugLog("Soft timer expired but we are not retransmitting");
@@ -973,6 +976,7 @@ void CWSoftTimerExpiredHandler(int arg) {
 	}
 
 	if(!CWErr(CWACResendAcknowledgedPacket(*iPtr))) {
+		CWLog("Handling Soft timer Retransmitting ,message sent  ");
 		_CWCloseThread(*iPtr);
 	}
 	
