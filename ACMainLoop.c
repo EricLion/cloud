@@ -806,17 +806,8 @@ void _CWCloseThread(int i) {
 	int BESize;
 	
 	BEconnectEvent beConEve;
+
 	
- 	CWThreadSetSignals(SIG_BLOCK, 2, 
-			   CW_SOFT_TIMER_EXPIRED_SIGNAL, 
-			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
-
-	/**** ACInterface ****/
-	gWTPs[i].qosValues=NULL;
-	memset(gWTPs[i].MAC, 0, MAC_ADDR_LEN);
-	CWThreadMutexUnlock(&(gWTPs[i].interfaceMutex));
-	/**** ACInterface ****/
-
 	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex)))
 	{
 		CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
@@ -847,6 +838,17 @@ void _CWCloseThread(int i) {
 	
 
 	CWThreadMutexUnlock(&gActiveWTPsMutex);
+	
+ 	CWThreadSetSignals(SIG_BLOCK, 2, 
+			   CW_SOFT_TIMER_EXPIRED_SIGNAL, 
+			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
+
+	/**** ACInterface ****/
+	gWTPs[i].qosValues=NULL;
+	memset(gWTPs[i].MAC, 0, MAC_ADDR_LEN);
+	CWThreadMutexUnlock(&(gWTPs[i].interfaceMutex));
+	/**** ACInterface ****/
+
 	
 	gInterfaces[gWTPs[i].interfaceIndex].WTPCount--;
 
