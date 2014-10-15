@@ -807,22 +807,6 @@ void _CWCloseThread(int i) {
 	
 	BEconnectEvent beConEve;
 	
-	beConEve.type =htons( BE_CONNECT_EVENT);
-	beConEve.length = htons(BE_CONNECT_EVENT_LEN);
-	beConEve.state = BE_CONNECT_EVENT_DISCONNECT;
-	BESize = BE_CONNECT_EVENT_LEN + BE_TYPELEN_LEN;
-	
-	beResp = AssembleBEheader((char*)&beConEve,&BESize,i,NULL);
-	if(beResp)
-	{
-		SendBERequest(beResp,BESize);
-		CW_FREE_OBJECT(beResp);
-	}
-	else
-	{
-		CWLog("Error AssembleBEheader !");
-	}
-	
  	CWThreadSetSignals(SIG_BLOCK, 2, 
 			   CW_SOFT_TIMER_EXPIRED_SIGNAL, 
 			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
@@ -841,7 +825,25 @@ void _CWCloseThread(int i) {
 
 		//num can't < 0
 	if(gActiveWTPs && gWTPs[i].currentState == CW_ENTER_RUN)
+	{
 		gActiveWTPs--;
+
+		beConEve.type =htons( BE_CONNECT_EVENT);
+		beConEve.length = htons(BE_CONNECT_EVENT_LEN);
+		beConEve.state = BE_CONNECT_EVENT_DISCONNECT;
+		BESize = BE_CONNECT_EVENT_LEN + BE_TYPELEN_LEN;
+		
+		beResp = AssembleBEheader((char*)&beConEve,&BESize,i,NULL);
+		if(beResp)
+		{
+			SendBERequest(beResp,BESize);
+			CW_FREE_OBJECT(beResp);
+		}
+		else
+		{
+			CWLog("Error AssembleBEheader !");
+		}
+	}
 	
 
 	CWThreadMutexUnlock(&gActiveWTPsMutex);
