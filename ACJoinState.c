@@ -96,14 +96,18 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 			(u_char)(gWTPs[WTPIndex].WTPProtocolManager.WTPBoardData.vendorInfos[macId].valuePtr[4]),
 			(u_char)(gWTPs[WTPIndex].WTPProtocolManager.WTPBoardData.vendorInfos[macId].valuePtr[5]));
 
-//	memcpy(
-//			(u_char*) gWTPs[WTPIndex].MAC,
-//			(u_char*) gWTPs[WTPIndex].WTPProtocolManager.WTPBoardData.vendorInfos[macId].valuePtr,
-//			MAC_ADDR_LEN);
+	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+			CWLog("Error locking the gWTPsMutex mutex");
+			return CW_FALSE;
+		}
+	
 	for(i=0;i<6;i++)
 	{
 		gWTPs[WTPIndex].MAC[i] = (u_char)gWTPs[WTPIndex].WTPProtocolManager.WTPBoardData.vendorInfos[macId].valuePtr[i];
 	}
+
+	CWThreadMutexUnlock(&gWTPsMutex);
+	
 	if(!gWTPs[WTPIndex].MAC)
 	{
 		CWLog("WTP MAC is None!");
@@ -146,7 +150,7 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 									(u_char) gWTPs[i].MAC[4],
 									(u_char) gWTPs[i].MAC[5]);
 							
-							CWThreadMutexUnlock(&gWTPsMutex);
+							//CWThreadMutexUnlock(&gWTPsMutex);
 							_CWCloseThread(WTPIndex);
 							break;
 						}

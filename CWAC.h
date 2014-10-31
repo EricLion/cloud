@@ -87,7 +87,7 @@
 
 //#define MAX_APPS_CONNECTED_TO_AC 4
 // BE muilt config
-#define MAX_APPS_CONNECTED_TO_AC 10
+#define MAX_APPS_CONNECTED_TO_AC 1000
 typedef struct {
 	CWSocket appSocket[MAX_APPS_CONNECTED_TO_AC];
 	CWBool isFree[MAX_APPS_CONNECTED_TO_AC];
@@ -259,6 +259,10 @@ CWBool CWAssembleStationConfigurationRequest(CWProtocolMessage **messagesPtr,
 					     unsigned char* StationMacAddr); 
 
 CWBool CWAssembleClearConfigurationRequest(CWProtocolMessage **messagesPtr,
+					   int *fragmentsNumPtr, int PMTU,
+					   int seqNum);
+
+CWBool CWAssembleResetRequest(CWProtocolMessage **messagesPtr,
 					   int *fragmentsNumPtr, int PMTU,
 					   int seqNum);
 

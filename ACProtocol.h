@@ -49,6 +49,9 @@
 	WTPRebootStatisticsInfo *WTPRebootStatistics;
 
 	void* bindingValuesPtr;
+
+	//xml
+	CWProtocolVendorSpecificValues *WTPVendorPayload;
  } CWWTPProtocolManager;
 
 typedef struct {
@@ -112,6 +115,9 @@ typedef struct{
 	int WTPRadioStatisticsCount;
 	WTPRadioStatisticsValues *WTPRadioStatistics;
 	WTPRebootStatisticsInfo *WTPRebootStatistics;
+
+	//xml
+	CWProtocolVendorSpecificValues *WTPVendorPayload;
 } CWProtocolWTPEventRequestValues;
 
 typedef struct {
@@ -162,7 +168,7 @@ CWBool CWParseWTPRebootStatistics(CWProtocolMessage *msgPtr, int len, WTPRebootS
 CWBool CWParseMsgElemDecryptErrorReport(CWProtocolMessage *msgPtr, int len, CWDecryptErrorReportValues *valPtr);
 CWBool CWParseMsgElemDuplicateIPv6Address(CWProtocolMessage *msgPtr, int len, WTPDuplicateIPv6 *valPtr);
 
-
+CWBool CWParseWTPVendorPayload(CWProtocolMessage *msgPtr, int len, CWProtocolVendorSpecificValues *valPtr);			//50
 //CWBool CWParseWTPRadioInfo(CWProtocolMessage *msgPtr, int len, CWRadiosInformation *valPtr, int radioIndex);	
 
 //---------------------------------------------------------/

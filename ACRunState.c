@@ -52,6 +52,9 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 CWBool CWParseClearConfigurationResponseMessage(CWProtocolMessage* msgPtr,
 						int len,
 						CWProtocolResultCode* resultCode);
+CWBool CWParseResetResponseMessage(CWProtocolMessage* msgPtr,
+						int len,
+						CWProtocolResultCode* resultCode);
 
 CWBool CWParseStationConfigurationResponseMessage(CWProtocolMessage* msgPtr,
 						  int len,
@@ -105,6 +108,11 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 	char string[10];
 	char socketctl_path_name[50];
 	char socketserv_path_name[50];
+
+	int BESize = 0;
+	char * beResp = NULL;
+	BEsystemEventResponse beSysEventResp;
+	BEwtpEventRequest        beWtpEventReq;
 	msgPtr->offset = 0;
 	
 	// cancel NeighborDeadTimer timer
@@ -387,6 +395,7 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 
 			break;
 		}	
+		//Reset later, DB need update,so Monitor Request
 		case CW_MSG_TYPE_VALUE_CLEAR_CONFIGURATION_RESPONSE:
 		{
 			CWProtocolResultCode resultCode;
@@ -403,6 +412,28 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 				}
 			}
 			
+			//BE 
+		
+				
+				beSysEventResp.type =htons( BE_SYSTEM_EVENT_RESPONSE) ;
+				beSysEventResp.length = htons(sizeof(SystemCode));
+				beSysEventResp.resultCode = Swap32(resultCode);
+					
+				BESize = BE_TYPELEN_LEN+sizeof(SystemCode);
+
+				beResp = AssembleBEheader((char*)&beSysEventResp,&BESize,WTPIndex,NULL);
+
+				if(beResp)
+				{
+					//SendBERequest(beResp,BESize);
+					SendBEResponse(beResp,BESize,WTPIndex);
+					CW_FREE_OBJECT(beResp);
+				}
+				else
+				{
+					CWLog("Error AssembleBEheader !");
+				}	
+				
 			
 			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE)
 			{
@@ -414,6 +445,61 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 
 				CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
 			}
+
+
+			break;
+		}
+		//Reboot 
+		case CW_MSG_TYPE_VALUE_RESET_RESPONSE:
+		{
+			CWProtocolResultCode resultCode;
+			if(!(CWParseResetResponseMessage(msgPtr, controlVal.msgElemsLen, &resultCode)))
+				return CW_FALSE;
+			CWACStopRetransmission(WTPIndex);
+			if (timerSet) {
+				if(!CWRestartNeighborDeadTimer(WTPIndex)) {
+					CWCloseThread();
+				}
+			} else {
+				if(!CWStartNeighborDeadTimer(WTPIndex)) {
+					CWCloseThread();
+				}
+			}
+
+			//BE 
+			
+				beSysEventResp.type =htons( BE_SYSTEM_EVENT_RESPONSE) ;
+				beSysEventResp.length = htons(sizeof(SystemCode));
+				beSysEventResp.resultCode = Swap32(resultCode);
+					
+				BESize = BE_TYPELEN_LEN+sizeof(SystemCode);
+
+				beResp = AssembleBEheader((char*)&beSysEventResp,&BESize,WTPIndex,NULL);
+
+				if(beResp)
+				{
+					//SendBERequest(beResp,BESize);
+					SendBEResponse(beResp,BESize,WTPIndex);
+					CW_FREE_OBJECT(beResp);
+				}
+				else
+				{
+					CWLog("Error AssembleBEheader !");
+				}	
+			
+			
+			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE)
+			{
+				CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
+				
+				gWTPs[WTPIndex].interfaceResult = 1;
+				gWTPs[WTPIndex].interfaceCommandProgress = CW_FALSE;
+				CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
+
+				CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+			}
+
+			
 
 			break;
 		}		
@@ -452,6 +538,7 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 					CWCloseThread();
 				}
 			}
+
 			if(!(CWSaveWTPEventRequestMessage(&valuesPtr, &(gWTPs[WTPIndex].WTPProtocolManager))))
 				return CW_FALSE;
 			
@@ -462,6 +549,27 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
  				return CW_FALSE;
 
 			toSend = CW_TRUE;	
+			//BE 
+			
+			beWtpEventReq.type =htons( BE_WTP_EVENT_REQUEST) ;
+			beWtpEventReq.length = htons(gWTPs[WTPIndex].WTPProtocolManager.WTPVendorPayload->vendorPayloadLen);
+			beWtpEventReq.xml = (char*)gWTPs[WTPIndex].WTPProtocolManager.WTPVendorPayload->payload;
+				
+			BESize = BE_TYPELEN_LEN+gWTPs[WTPIndex].WTPProtocolManager.WTPVendorPayload->vendorPayloadLen;
+
+			beResp = AssembleBEheader((char*)&beWtpEventReq,&BESize,WTPIndex,(char*)gWTPs[WTPIndex].WTPProtocolManager.WTPVendorPayload->payload);
+
+			if(beResp)
+			{
+				//SendBERequest(beResp,BESize);
+				SendBERequest(beResp,BESize);
+				CW_FREE_OBJECT(beResp);
+			}
+			else
+			{
+				CWLog("Error AssembleBEheader !");
+			}	
+			
 			break;
 		}
 		default: 
@@ -695,6 +803,41 @@ CWBool CWParseClearConfigurationResponseMessage(CWProtocolMessage* msgPtr, int l
 
 	return CW_TRUE;	
 }	
+
+CWBool CWParseResetResponseMessage(CWProtocolMessage * msgPtr,int len,CWProtocolResultCode * resultCode)
+{
+	int offsetTillMessages;
+
+	if(msgPtr == NULL || resultCode==NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
+	if((msgPtr->msg) == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
+	
+	offsetTillMessages = msgPtr->offset;
+	
+	CWLog("Parsing Reset Response...");
+
+	// parse message elements
+	while((msgPtr->offset - offsetTillMessages) < len) {
+		unsigned short int elemType=0;
+		unsigned short int elemLen=0;
+		
+		CWParseFormatMsgElem(msgPtr, &elemType, &elemLen);
+		
+		switch(elemType) {
+			case CW_MSG_ELEMENT_RESULT_CODE_CW_TYPE:
+				*resultCode=CWProtocolRetrieve32(msgPtr);
+				break;	
+			default:
+				return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Unrecognized Message Element in Configuration Update Response");
+				break;	
+		}
+	}
+	
+	if((msgPtr->offset - offsetTillMessages) != len) return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Garbage at the End of the Message");
+
+	CWLog("Reset Response Parsed");
+
+	return CW_TRUE;	
+}	
 		
 CWBool CWParseStationConfigurationResponseMessage(CWProtocolMessage* msgPtr, int len, CWProtocolResultCode* resultCode)
 {
@@ -811,9 +954,9 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 				// 4 sizeof(int)
 				payloadSize = sizeof(resultCode);
 				beUpgradeEventResp.length = htons(sizeof(resultCode));//4
-				beUpgradeEventResp.resltCode = Swap32(resultCode);
+				beUpgradeEventResp.resultCode = Swap32(resultCode);
 
-				//CW_CREATE_STRING_ERR(&beConfigEventResp.resltCode, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
+				//CW_CREATE_STRING_ERR(&beConfigEventResp.resultCode, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
 				//memset(beMonitorEventResp.xml, 0, payloadSize);
 				//memcpy(beMonitorEventResp.xml, vendValues->payload, payloadSize);
 
@@ -848,9 +991,9 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			  // 4 sizeof(int)
 			   payloadSize = sizeof(resultCode);
 			   beConfigEventResp.length = htons(sizeof(resultCode));//4
-			   beConfigEventResp.resltCode = Swap32(resultCode);
+			   beConfigEventResp.resultCode = Swap32(resultCode);
 			   
-			   //CW_CREATE_STRING_ERR(&beConfigEventResp.resltCode, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
+			   //CW_CREATE_STRING_ERR(&beConfigEventResp.resultCode, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
 			   //memset(beMonitorEventResp.xml, 0, payloadSize);
 			   //memcpy(beMonitorEventResp.xml, vendValues->payload, payloadSize);
 			   
@@ -868,18 +1011,33 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			   
 			   BEmonitorEventResponse beMonitorEventResp;
 			   beMonitorEventResp.type =htons( BE_MONITOR_EVENT_RESPONSE) ;
-			   beMonitorEventResp.length = htons(payloadSize);
+			   beMonitorEventResp.length = htons(payloadSize+sizeof(resultCode));
+			   beMonitorEventResp.resultCode = Swap32(resultCode);
 			   
 			   CW_CREATE_STRING_ERR(beMonitorEventResp.xml, payloadSize+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
 			   memset(beMonitorEventResp.xml, 0, payloadSize+1);
 			   memcpy(beMonitorEventResp.xml, (char*)vendValues->payload, payloadSize);
-			   BESize = BE_TYPELEN_LEN+payloadSize;
+			   
+			   BESize = BE_TYPELEN_LEN+payloadSize+sizeof(resultCode);
 			   
 			   CWLog("beMonitorEventResp.xml front char:%x(%c),%x(%c),%x(%c),%x(%c)",
 			   						beMonitorEventResp.xml[0],beMonitorEventResp.xml[0],
 			   						beMonitorEventResp.xml[1],beMonitorEventResp.xml[1],
 			   						beMonitorEventResp.xml[2],beMonitorEventResp.xml[2],
 			   						beMonitorEventResp.xml[3],beMonitorEventResp.xml[3]);
+
+			   CWLog("beMonitorEventResp.xml last char:%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c",
+			   						beMonitorEventResp.xml[payloadSize-20],beMonitorEventResp.xml[payloadSize-19],
+			   						beMonitorEventResp.xml[payloadSize-18],beMonitorEventResp.xml[payloadSize-17],
+			   						beMonitorEventResp.xml[payloadSize-16],beMonitorEventResp.xml[payloadSize-15],
+			   						beMonitorEventResp.xml[payloadSize-14],beMonitorEventResp.xml[payloadSize-13],
+			   						beMonitorEventResp.xml[payloadSize-12],beMonitorEventResp.xml[payloadSize-11],
+			   						beMonitorEventResp.xml[payloadSize-10],beMonitorEventResp.xml[payloadSize-9],
+			   						beMonitorEventResp.xml[payloadSize-8],beMonitorEventResp.xml[payloadSize-7],
+			   						beMonitorEventResp.xml[payloadSize-6],beMonitorEventResp.xml[payloadSize-5],
+			   						beMonitorEventResp.xml[payloadSize-4],beMonitorEventResp.xml[payloadSize-3],
+			   						beMonitorEventResp.xml[payloadSize-2],beMonitorEventResp.xml[payloadSize-1]
+			   						);
 			   
    			   beResp = AssembleBEheader((char*)&beMonitorEventResp,&BESize,WTPIndex,beMonitorEventResp.xml);
 
@@ -1053,7 +1211,8 @@ CWBool CWParseWTPEventRequestMessage(CWProtocolMessage *msgPtr,
 	valuesPtr->WTPRadioStatisticsCount = 0;
 	valuesPtr->WTPRadioStatistics = NULL;
 	valuesPtr->WTPRebootStatistics = NULL;
-
+	valuesPtr->WTPVendorPayload = NULL;
+	
 	/* parse message elements */
 	while((msgPtr->offset - offsetTillMessages) < len) {
 
@@ -1113,6 +1272,14 @@ CWBool CWParseWTPEventRequestMessage(CWProtocolMessage *msgPtr,
 				if (!(CWParseWTPRebootStatistics(msgPtr, elemLen, valuesPtr->WTPRebootStatistics)))
 					return CW_FALSE;	
 				break;
+			case CW_MSG_ELEMENT_WTP_VENDORPAYLOD_CW_TYPE:
+				CW_CREATE_OBJECT_ERR(valuesPtr->WTPVendorPayload,
+						     CWProtocolVendorSpecificValues,
+						     return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+
+				if (!(CWParseWTPVendorPayload(msgPtr, elemLen, valuesPtr->WTPVendorPayload)))
+					return CW_FALSE;	
+				break;
 			default:
 				return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Unrecognized Message Element in WTP Event Request");
 				break;	
@@ -1169,9 +1336,29 @@ CWBool CWSaveWTPEventRequestMessage(CWProtocolWTPEventRequestValues *WTPEventReq
 	if(WTPEventRequest == NULL || WTPProtocolManager == NULL)
 		return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
 
+	if(WTPEventRequest->WTPVendorPayload) {	
+
+		CW_CREATE_OBJECT_ERR(WTPProtocolManager->WTPVendorPayload,
+			CWProtocolVendorSpecificValues,
+			return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+		WTPProtocolManager->WTPVendorPayload->vendorPayloadLen= WTPEventRequest->WTPVendorPayload->vendorPayloadLen;
+
+		CW_CREATE_OBJECT_SIZE_ERR(WTPProtocolManager->WTPVendorPayload->payload,
+						     WTPProtocolManager->WTPVendorPayload->vendorPayloadLen+1,
+						     return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+		memset(WTPProtocolManager->WTPVendorPayload->payload,0,WTPProtocolManager->WTPVendorPayload->vendorPayloadLen+1);
+		memcpy(WTPProtocolManager->WTPVendorPayload->payload, WTPEventRequest->WTPVendorPayload->payload,WTPProtocolManager->WTPVendorPayload->vendorPayloadLen);
+		CWLog("WTPProtocolManager->WTPVendorPayload->payload = %s",WTPProtocolManager->WTPVendorPayload->payload);
+		
+		CW_FREE_OBJECT(WTPEventRequest->WTPVendorPayload->payload);
+		
+	}
+
 	if(WTPEventRequest->WTPRebootStatistics) {	
 
-		CW_FREE_OBJECT(WTPProtocolManager->WTPRebootStatistics);
+		CW_CREATE_OBJECT_ERR(WTPProtocolManager->WTPRebootStatistics,
+						     WTPRebootStatisticsInfo,
+						     return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
 		WTPProtocolManager->WTPRebootStatistics = WTPEventRequest->WTPRebootStatistics;
 	}
 
@@ -1240,6 +1427,9 @@ CWBool CWSaveWTPEventRequestMessage(CWProtocolWTPEventRequestValues *WTPEventReq
 	CW_FREE_OBJECTS_ARRAY((WTPEventRequest->WTPRadioStatistics), (WTPEventRequest->WTPRadioStatisticsCount));
 	Da controllare!!!!!!!
 	*/
+	
+	CW_FREE_OBJECT(WTPEventRequest->WTPVendorPayload);
+	CW_FREE_OBJECT(WTPEventRequest->WTPRebootStatistics);
 	CW_FREE_OBJECT(WTPEventRequest->WTPOperationalStatistics);
 	CW_FREE_OBJECT(WTPEventRequest->WTPRadioStatistics);
 	/*CW_FREE_OBJECT(WTPEventRequest);*/
@@ -1612,6 +1802,35 @@ CWBool CWAssembleClearConfigurationRequest(CWProtocolMessage **messagesPtr, int 
 	
 	return CW_TRUE;
 }
+
+CWBool CWAssembleResetRequest(CWProtocolMessage **messagesPtr, int *fragmentsNumPtr, int PMTU, int seqNum) 
+{
+	CWProtocolMessage *msgElemsBinding = NULL;
+	int msgElemBindingCount=0;
+	CWProtocolMessage *msgElems = NULL;
+	int msgElemCount=0;
+	
+	if(messagesPtr == NULL || fragmentsNumPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
+	
+	CWLog("Assembling Reset Request...");
+	
+	
+	if(!(CWAssembleMessage(messagesPtr, fragmentsNumPtr, PMTU, 
+		seqNum,CW_MSG_TYPE_VALUE_RESET_REQUEST,
+		msgElems, msgElemCount, msgElemsBinding, msgElemBindingCount, 
+#ifdef CW_NO_DTLS
+				CW_PACKET_PLAIN
+#else				
+				CW_PACKET_CRYPT
+#endif
+	))) 
+		return CW_FALSE;
+
+	CWLog("Reset Request Assembled");
+	
+	return CW_TRUE;
+}
+
 
 
 CWBool CWAssembleStationConfigurationRequest(CWProtocolMessage **messagesPtr, int *fragmentsNumPtr, int PMTU, int seqNum,unsigned char* StationMacAddr) 

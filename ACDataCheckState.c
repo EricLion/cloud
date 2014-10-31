@@ -129,7 +129,8 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 		return CW_FALSE;
 	}
 	gActiveWTPs++;
-	
+
+	CWLog("[F:%s, L:%d]  gActiveWTPs:%d",__FILE__,__LINE__,gActiveWTPs);
 	CWThreadMutexUnlock(&gActiveWTPsMutex);
 #if 1
 	//BE: ap connect	
@@ -157,7 +158,7 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	gWTPs[WTPIndex].interfaceResult = UPGRADE_SUCCESS;
 	CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
 	
-	CWLog("[F:%s, L:%d]  gActiveWTPs:%d",__FILE__,__LINE__,gActiveWTPs);
+	
 
 	return CW_TRUE;
 }

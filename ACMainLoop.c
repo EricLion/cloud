@@ -170,13 +170,15 @@ void CWACManageIncomingPacket(CWSocket sock,
 			exit(1);
 			
 		tmp = gActiveWTPs;
-		CWThreadMutexUnlock(&gActiveWTPsMutex);
+		//CWThreadMutexUnlock(&gActiveWTPsMutex);
 
 		if(gActiveWTPs >= gMaxWTPs) {
 
 			CWLog("Too many WTPs");
+			CWThreadMutexUnlock(&gActiveWTPsMutex);
 			return;
 		}
+		CWThreadMutexUnlock(&gActiveWTPsMutex);
 		CWLog("\n");	
 		
 		if(CWErr(CWParseDiscoveryRequestMessage(buf, readBytes, &seqNum, &values))) {
@@ -485,7 +487,13 @@ CWLog("F:%s L:%d",__FILE__,__LINE__);
 			if (bCrypt) {
 				CWDebugLog("Receive a security packet");
 				CWLog("Don't parse security packet,drop it");
-			  
+#ifdef CW_NO_DTLS
+				//core fix
+				//CWThreadSetSignals(SIG_UNBLOCK, 1, CW_SOFT_TIMER_EXPIRED_SIGNAL);
+				//continue;
+				 CWLog("F:%s L:%d",__FILE__,__LINE__);
+#else
+				//CWSecurityReceive core ????
 			  if(!CWErr(CWSecurityReceive(gWTPs[i].session,
 										  gWTPs[i].buf,
 										  CW_BUFFER_SIZE - 1,
@@ -496,6 +504,8 @@ CWLog("F:%s L:%d",__FILE__,__LINE__);
 				CWThreadSetSignals(SIG_UNBLOCK, 1, CW_SOFT_TIMER_EXPIRED_SIGNAL);
 				continue;
 			  }
+#endif
+			  CWLog("F:%s L:%d",__FILE__,__LINE__);
 			}
 			else {
 			  CWThreadMutexLock(&gWTPs[i].interfaceMutex);
@@ -505,7 +515,7 @@ CWLog("F:%s L:%d",__FILE__,__LINE__);
 			  memcpy(gWTPs[i].buf, pBuffer, readBytes);
 			  CW_FREE_OBJECT(pBuffer);
 			}
-			//CWLog("F:%s L:%d",__FILE__,__LINE__);
+			CWLog("F:%s L:%d",__FILE__,__LINE__);
 			if(!CWProtocolParseFragment(gWTPs[i].buf,
 						    readBytes,
 						    &(gWTPs[i].fragmentsList),
@@ -644,6 +654,7 @@ CWLog("F:%s L:%d",__FILE__,__LINE__);
 				}
 				break;
 			  }
+			//System Reset
 			case CLEAR_CONFIG_MSG_CMD:
 			  {
 				int seqNum = CWGetSeqNum();
@@ -654,6 +665,23 @@ CWLog("F:%s L:%d",__FILE__,__LINE__);
 														gWTPs[i].pathMTU, seqNum)) {
 				  
 				  if(CWACSendAcknowledgedPacket(i, CW_MSG_TYPE_VALUE_CLEAR_CONFIGURATION_RESPONSE, seqNum)) 
+								bResult = CW_TRUE;
+				  else
+					CWACStopRetransmission(i);
+				}
+				break;
+			  }
+			//System Reboot
+			case SYSTEM_REBOOT_MSG_CMD:
+			  {
+				int seqNum = CWGetSeqNum();
+				
+						/* Clear Configuration Request */
+				if (CWAssembleResetRequest(&(gWTPs[i].messages),
+														&(gWTPs[i].messagesCount),
+														gWTPs[i].pathMTU, seqNum)) {
+				  
+				  if(CWACSendAcknowledgedPacket(i, CW_MSG_TYPE_VALUE_RESET_RESPONSE, seqNum)) 
 								bResult = CW_TRUE;
 				  else
 					CWACStopRetransmission(i);
@@ -818,7 +846,8 @@ void _CWCloseThread(int i) {
 	if(gActiveWTPs && gWTPs[i].currentState == CW_ENTER_RUN)
 	{
 		gActiveWTPs--;
-
+		CWLog("_CWCloseThread gActiveWTPs = %d",gActiveWTPs);
+		
 		beConEve.type =htons( BE_CONNECT_EVENT);
 		beConEve.length = htons(BE_CONNECT_EVENT_LEN);
 		beConEve.state = BE_CONNECT_EVENT_DISCONNECT;
@@ -844,9 +873,11 @@ void _CWCloseThread(int i) {
 			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
 
 	/**** ACInterface ****/
+	CWThreadMutexLock(&gWTPsMutex);
+	
 	gWTPs[i].qosValues=NULL;
 	memset(gWTPs[i].MAC, 0, MAC_ADDR_LEN);
-	CWThreadMutexUnlock(&(gWTPs[i].interfaceMutex));
+	
 	/**** ACInterface ****/
 
 	
@@ -854,7 +885,7 @@ void _CWCloseThread(int i) {
 
 	CWUseSockNtop( ((struct sockaddr*)&(gInterfaces[gWTPs[i].interfaceIndex].addr)),
 			CWLog("Remove WTP on Interface %s (%d)", str, gWTPs[i].interfaceIndex););
-
+	
 	
 	CWDebugLog("Close Thread: %08x", (unsigned int)CWThreadSelf());
 	
@@ -865,6 +896,9 @@ void _CWCloseThread(int i) {
 	
 	/* this will do nothing if the timer isn't active */
 	CWTimerCancel(&(gWTPs[i].currentTimer));
+
+	CWThreadMutexUnlock(&gWTPsMutex);
+	
 	CWACStopRetransmission(i);
 
 	if (gWTPs[i].interfaceCommandProgress == CW_TRUE) {
@@ -878,6 +912,8 @@ void _CWCloseThread(int i) {
 		CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
 	}
 	
+	CWThreadMutexLock(&gWTPsMutex);
+	
 	gWTPs[i].session = NULL;
 	gWTPs[i].subState = CW_DTLS_HANDSHAKE_IN_PROGRESS;
 	CWDeleteList(&(gWTPs[i].fragmentsList), CWProtocolDestroyFragment);
@@ -887,7 +923,7 @@ void _CWCloseThread(int i) {
 	CWCleanSafeList(gWTPs[i].packetReceiveList, free);
 	CWDestroySafeList(gWTPs[i].packetReceiveList);
 	
-	CWThreadMutexLock(&gWTPsMutex);
+	
 	gWTPs[i].isNotFree = CW_FALSE;
 	CWThreadMutexUnlock(&gWTPsMutex);
 	
@@ -1013,6 +1049,7 @@ void CWResetWTPProtocolManager(CWWTPProtocolManager *WTPProtocolManager) {
 	(WTPProtocolManager->WTPBoardData).vendorInfosCount = 0;
 	CW_FREE_OBJECT((WTPProtocolManager->WTPBoardData).vendorInfos);
 	CW_FREE_OBJECT(WTPProtocolManager->WTPRebootStatistics);
+	CW_FREE_OBJECT(WTPProtocolManager->WTPVendorPayload);
 
 	//CWWTPResetRebootStatistics(&(WTPProtocolManager->WTPRebootStatistics));
 

@@ -33,7 +33,7 @@ typedef unsigned char u_char;
 #define	BE_SYSTEM_EVENT_RESPONSE 32
 
 
-//result code
+//result code,4BYTE
 typedef enum {
 	CW_SUCCESS				= 0, //	Success
 	CW_FAILURE_AC_LIST			= 1, // AC List message MUST be present
@@ -56,9 +56,18 @@ typedef enum {
 	CW_FAILURE_INVALID_STATE		= 18, // Message unexpected: invalid in current state
 	CW_FAILURE_UNRECOGNIZED_REQ		= 19, // Message unexpected: unrecognized request
 	CW_FAILURE_MISSING_MSG_ELEM		= 20, // Failure: missing mandatory message element
-	CW_FAILURE_UNRECOGNIZED_MSG_ELEM	= 21  // Failure: unrecognized message element
+	CW_FAILURE_UNRECOGNIZED_MSG_ELEM	= 21,  // Failure: unrecognized message element
+	CW_FAILURE_WTP_NOT_CONNECTED	= 22 ,// Failure:WTP not online
+	CW_FAILURE_WTP_IMAGE_PATH_ERROR	= 23 //Image Data Error:WTP image path error
 } CWResultCode;
 
+
+//system code,1 BYTE
+typedef enum {
+	SYSTEM_RESET			= 1, //	∏¥Œª
+	SYSTEM_REBOOT			= 2, // ÷ÿ∆Ù
+
+} SystemCode;
 
 //without type, length
 #define BE_TYPE_LEN        2
@@ -88,6 +97,8 @@ typedef struct {
 #define BE_CONNECT_EVENT_LEN 1
 #define BE_CONNECT_EVENT_CONNECT 1
 #define BE_CONNECT_EVENT_DISCONNECT 2
+
+//ap req
 typedef struct {
 	unsigned short type;
 	unsigned short length;
@@ -103,6 +114,7 @@ typedef struct {
 typedef struct {
 	unsigned short type;
 	unsigned short length;
+	CWResultCode resultCode;
 	char*  xml;
 }BEmonitorEventResponse;
 
@@ -115,7 +127,7 @@ typedef struct {
 typedef struct {
 	unsigned short type;
 	unsigned short length;
-	CWResultCode resltCode;
+	CWResultCode resultCode;
 }BEconfigEventResponse;
 
 /*
@@ -141,11 +153,11 @@ typedef struct {
 typedef struct {
 	unsigned short type;
 	unsigned short length;
-	CWResultCode resltCode;
+	CWResultCode resultCode;
 }BEupgradeEventResponse;
 
 
-
+//ap req
 typedef struct {
 	unsigned short type;
 	unsigned short length;
@@ -155,7 +167,7 @@ typedef struct {
 typedef struct {
 	unsigned short type;
 	unsigned short length;
-	CWResultCode resltCode;
+	CWResultCode resultCode;
 }BEwtpEventResponse;
 
 
@@ -169,19 +181,20 @@ typedef struct {
 typedef struct {
 	unsigned short type;
 	unsigned short length;
-	CWResultCode resltCode;
+	CWResultCode resultCode;
 }BEconfigWebEventResponse;
 
 typedef struct {
 	unsigned short type;
 	unsigned short length;
 	unsigned char operation;
+	//1:Reset 2:Reboot
 }BEsystemEventRequest;
 
 typedef struct {
 	unsigned short type;
 	unsigned short length;
-	CWResultCode resltCode;
+	CWResultCode resultCode;
 }BEsystemEventResponse;
 
 

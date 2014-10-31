@@ -698,6 +698,34 @@ CWBool CWParseWTPName(CWProtocolMessage *msgPtr, int len, char **valPtr) {
 	CWParseMessageElementEnd();
 }
 
+
+CWBool CWParseWTPVendorPayload (CWProtocolMessage *msgPtr, int len, CWProtocolVendorSpecificValues *valPtr)
+{
+	CWParseMessageElementStart();
+
+	valPtr->vendorPayloadLen=CWProtocolRetrieve16(msgPtr);
+	CWLog("CWParseWTPVendorPayload valPtr->vendorPayloadLen=%d",valPtr->vendorPayloadLen);
+	valPtr->payload = NULL;
+	CW_CREATE_OBJECT_SIZE_ERR(valPtr->payload,
+						     valPtr->vendorPayloadLen+1,
+						     return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+
+	memset(valPtr->payload,0,valPtr->vendorPayloadLen+1);
+	
+	//valPtr->payload=(void *) CWProtocolRetrieveRawBytes(msgPtr, valPtr->vendorPayloadLen);
+	memcpy(valPtr->payload,(void *) CWProtocolRetrieveRawBytes(msgPtr, valPtr->vendorPayloadLen),valPtr->vendorPayloadLen);
+
+	CWLog("CWParseWTPVendorPayload valPtr->payload =%s",valPtr->payload);
+	
+//	CWDebugLog("");
+//	CWDebugLog("WTPRebootStat(1): %d - %d - %d", valPtr->rebootCount, valPtr->ACInitiatedCount, valPtr->linkFailurerCount);
+//	CWDebugLog("WTPRebootStat(2): %d - %d - %d", valPtr->SWFailureCount, valPtr->HWFailuireCount, valPtr->otherFailureCount);
+//	CWDebugLog("WTPRebootStat(3): %d - %d", valPtr->unknownFailureCount, valPtr->lastFailureType);
+	
+	
+	CWParseMessageElementEnd();
+}
+
 CWBool CWParseWTPRebootStatistics (CWProtocolMessage *msgPtr, int len, WTPRebootStatisticsInfo *valPtr)
 {
 	CWParseMessageElementStart();

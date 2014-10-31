@@ -47,4 +47,6 @@
 #define WTP_CONFIG_CMD 6
 #define WTP_STATE_CMD 7
 
+#define SYSTEM_REBOOT_MSG_CMD	8
+
 #endif

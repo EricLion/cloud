@@ -21,14 +21,19 @@
 
 #define BE_MAX_PACKET_LEN 80000
 
+int FindApIndex(u_char* apMac);
 char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValues* vendorValues);
 char BESetApValues(u_char* apMac, int socketIndex, CWVendorXMLValues* Values);
+char BESetSysValues(u_char* apMac, int socketIndex, SystemCode sysCode);
+
 char* AssembleBEheader(char* buf,int *len,int apId,char *xml);
+void SendBEResponseDirectly(int type,u_char *apMac,int socketIndex,CWResultCode resultCode);
 void SendBEResponse(char* buf,int len,int apId);
 //int BEServerConnect(char *address, int port);
 void SendBERequest(char* buf,int len);
 
 int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues) ;
+int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode );
 
 #define Swap16(s) ((((s) & 0xff) << 8) | (((s) >> 8) & 0xff))
 #define Swap32(l) (((l) >> 24) |  (((l)&0x00ff0000) >> 8)  |  (((l) & 0x0000ff00) << 8)  | ((l) << 24))
@@ -52,7 +57,7 @@ struct version_info {
 	int size;
 };
 
-char CheckUpgradeVersion(u_char* apMac, int socketIndex, char *cup_path);
+CWResultCode CheckUpgradeVersion(u_char* apMac, int socketIndex, char *cup_path);
 char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_info update_v);
 int CWWumSetValues(int selection, int socketIndex, CWProtocolVendorSpecificValues* vendorValues);
 
