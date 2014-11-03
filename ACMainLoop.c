@@ -835,7 +835,7 @@ void _CWCloseThread(int i) {
 	
 	BEconnectEvent beConEve;
 
-	
+	CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
 	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex)))
 	{
 		CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
@@ -845,6 +845,7 @@ void _CWCloseThread(int i) {
 		//num can't < 0
 	if(gActiveWTPs && gWTPs[i].currentState == CW_ENTER_RUN)
 	{
+		CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
 		gActiveWTPs--;
 		CWLog("_CWCloseThread gActiveWTPs = %d",gActiveWTPs);
 		
@@ -865,7 +866,7 @@ void _CWCloseThread(int i) {
 		}
 	}
 	
-
+	CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
 	CWThreadMutexUnlock(&gActiveWTPsMutex);
 	
  	CWThreadSetSignals(SIG_BLOCK, 2, 
@@ -873,14 +874,20 @@ void _CWCloseThread(int i) {
 			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
 
 	/**** ACInterface ****/
-	CWThreadMutexLock(&gWTPsMutex);
-	
+	if(!CWErr(CWThreadMutexLock(&gWTPsMutex)))
+	{
+		CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
+		exit(1);
+	}
+	//CWThreadMutexLock(&gWTPsMutex);
+	CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
 	gWTPs[i].qosValues=NULL;
 	memset(gWTPs[i].MAC, 0, MAC_ADDR_LEN);
-	
+
+	CWThreadMutexUnlock(&gWTPsMutex);
 	/**** ACInterface ****/
 
-	
+	CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
 	gInterfaces[gWTPs[i].interfaceIndex].WTPCount--;
 
 	CWUseSockNtop( ((struct sockaddr*)&(gInterfaces[gWTPs[i].interfaceIndex].addr)),
@@ -897,7 +904,7 @@ void _CWCloseThread(int i) {
 	/* this will do nothing if the timer isn't active */
 	CWTimerCancel(&(gWTPs[i].currentTimer));
 
-	CWThreadMutexUnlock(&gWTPsMutex);
+	CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
 	
 	CWACStopRetransmission(i);
 
@@ -911,9 +918,14 @@ void _CWCloseThread(int i) {
 
 		CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
 	}
-	
-	CWThreadMutexLock(&gWTPsMutex);
-	
+
+	CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
+	if(!CWErr(CWThreadMutexLock(&gWTPsMutex)))
+	{
+		CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
+		exit(1);
+	}
+	CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
 	gWTPs[i].session = NULL;
 	gWTPs[i].subState = CW_DTLS_HANDSHAKE_IN_PROGRESS;
 	CWDeleteList(&(gWTPs[i].fragmentsList), CWProtocolDestroyFragment);

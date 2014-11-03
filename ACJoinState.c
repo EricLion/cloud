@@ -51,7 +51,7 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 {
 	int seqNum;
 	int macId;
-	int i,j,k = 0, numActiveWTPs = 0;
+	int i,j,k = 0, numActiveWTPs = 0,finded = 0;
 	CWProtocolJoinRequestValues joinRequest;
 	CWList msgElemList = NULL;
 
@@ -142,16 +142,19 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 					{
 						if (j == (MAC_ADDR_LEN - 1)) {
 							//fix 0,2 error
-							CWLog("WTP MAC:%x:%x:%x:%x:%x:%x repeat online, kill the now !",
+							CWLog("MAC:%x:%x:%x:%x:%x:%x ,repeat online, online apId = %d, new apId = %d, killed !",
 									(u_char) gWTPs[i].MAC[0],
 									(u_char) gWTPs[i].MAC[1],
 									(u_char) gWTPs[i].MAC[2],
 									(u_char) gWTPs[i].MAC[3],
 									(u_char) gWTPs[i].MAC[4],
-									(u_char) gWTPs[i].MAC[5]);
+									(u_char) gWTPs[i].MAC[5],
+									i,
+									WTPIndex);
 							
 							//CWThreadMutexUnlock(&gWTPsMutex);
-							_CWCloseThread(WTPIndex);
+							finded = 1;
+							//_CWCloseThread(WTPIndex);
 							break;
 						}
 						continue;
@@ -160,9 +163,19 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 						break;
 				}
 			}
+			if(finded ==1)
+			{
+				break;
+			}
 		}
 		CWThreadMutexUnlock(&gWTPsMutex);
 	}
+
+	if(finded ==1)
+	{
+		_CWCloseThread(WTPIndex);
+	}
+	
 	
 	CWMsgElemData *auxData;
 	if (ACIpv4List) {
