@@ -306,7 +306,7 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 				}
 			}
 
-			
+			CWLog("F:%s L:%d",__FILE__,__LINE__);
 			CWSaveConfigurationUpdateResponseMessage(resultCode, WTPIndex, protocolValues);
 //			CWLog("F:%s L:%d",__FILE__,__LINE__);
 			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE) {
@@ -734,7 +734,7 @@ CWBool CWParseConfigurationUpdateResponseMessage(CWProtocolMessage* msgPtr,
 						//(*vendValues)->vendorPayloadLen = CWProtocolRetrieve16(msgPtr);
 						(*vendValues)->vendorPayloadLen = CWProtocolRetrieve32(msgPtr);
 						CWLog("[F:%s, L:%d] (*vendValues)->vendorPayloadLen = %d",__FILE__,__LINE__,(*vendValues)->vendorPayloadLen);
-						if ((*vendValues)->vendorPayloadLen < 0) {
+						if ((*vendValues)->vendorPayloadLen !=0) {
 
 							return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Unrecognized Message Element in Configuration Update Response");
 						}
@@ -879,6 +879,8 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 						CWProtocolVendorSpecificValues* vendValues) {
 	char *wumPayloadBytes = NULL, *beResp = NULL;
 	int closeWTPManager = CW_FALSE, result = CW_FALSE,BESize = 0;
+	BEconfigEventResponse beConfigEventResp;
+	BEmonitorEventResponse beMonitorEventResp;
 
 	if (vendValues != NULL) {
 		char * responseBuffer; 
@@ -982,11 +984,11 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			break;
 			//config
 		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG:
-			   payloadSize = vendValues->vendorPayloadLen;
-			   CWLog("[F:%s, L:%d] strlen(vendValues->payload) =%d,payloadSize:%d",__FILE__,__LINE__,strlen(vendValues->payload),payloadSize);
-			   CWLog("Msg :CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_XML Saved");
+			  // payloadSize = vendValues->vendorPayloadLen;
+			   //CWLog("[F:%s, L:%d] strlen(vendValues->payload) =%d,payloadSize:%d",__FILE__,__LINE__,strlen(vendValues->payload),payloadSize);
+			   //CWLog("Msg :CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_XML Saved");
 			   
-			   BEconfigEventResponse beConfigEventResp;
+
 			   beConfigEventResp.type = htons(BE_CONFIG_EVENT_RESPONSE) ;
 			  // 4 sizeof(int)
 			   payloadSize = sizeof(resultCode);
@@ -1009,7 +1011,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			   CWLog("[F:%s, L:%d] strlen(vendValues->payload) =%d,payloadSize:%d",__FILE__,__LINE__,strlen(vendValues->payload),payloadSize);
 			   CWLog("Msg :CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_XML Saved");
 			   
-			   BEmonitorEventResponse beMonitorEventResp;
+			  
 			   beMonitorEventResp.type =htons( BE_MONITOR_EVENT_RESPONSE) ;
 			   beMonitorEventResp.length = htons(payloadSize+sizeof(resultCode));
 			   beMonitorEventResp.resultCode = Swap32(resultCode);
