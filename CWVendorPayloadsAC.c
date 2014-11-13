@@ -259,3 +259,69 @@ CWBool CWAssembleWTPVendorPayloadXML(CWProtocolMessage *msgPtr) {
 	return CWAssembleMsgElem(msgPtr, CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CW_TYPE);
 }
 
+
+CWBool CWAssembleWTPVendorPayloadPortal(CWProtocolMessage *msgPtr) {
+	int* iPtr;
+	unsigned short  msgType;
+	//unsigned short  msgLen = 0;
+
+	CWLog("Assembling Protocol Configuration Update Request [VENDOR CASE Portal]...");
+
+	if(msgPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
+
+	if((iPtr = ((int*)CWThreadGetSpecific(&gIndexSpecific))) == NULL) {
+		CWLog("CWThreadGetSpecific NULL");
+	  	return CW_FALSE;
+	}
+	CWLog("CWAssembleWTPVendorPayloadPortal *iPtr = %d",*iPtr);
+
+	if(gWTPs[*iPtr].vendorPortalValues == NULL)
+	{
+		CWLog("CWAssembleWTPVendorPayloadPortal valuesPtr == NULL !");
+		return CW_FALSE;
+	}
+	else
+	{
+		if(gWTPs[*iPtr].vendorPortalValues->EncodeName == NULL || gWTPs[*iPtr].vendorPortalValues->EncodeContent == NULL)
+		{
+			CWLog("EncodeName or EncodeContent == NULL!");
+			return CW_FALSE;
+		}
+		CWLog("CWAssembleWTPVendorPayloadPortal valuesPtr != NULL");
+		msgType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_PORTAL;
+		if(gWTPs[*iPtr].vendorPortalValues->EncodeNameLen == 0 || gWTPs[*iPtr].vendorPortalValues->EncodeContentLen == 0)
+		{
+			CWLog("EncodeNameLen or EncodeContentLen == 0!");
+			return CW_FALSE;
+		}	
+		//msgLen = 2*sizeof(short) + gWTPs[*iPtr].vendorPortalValues->EncodeNameLen + gWTPs[*iPtr].vendorPortalValues->EncodeContentLen;
+		
+		CWLog("F:%s L:%d",__FILE__,__LINE__);
+		
+		CWProtocolStore16(msgPtr, msgType);
+		//No msgLen
+		//CWProtocolStore16(msgPtr, msgLen);
+		//CWProtocolStoreStr(msgPtr, xmlPtr->payload);
+		CWProtocolStore16(msgPtr, gWTPs[*iPtr].vendorPortalValues->EncodeNameLen);
+		CWProtocolStoreRawBytes(msgPtr,  gWTPs[*iPtr].vendorPortalValues->EncodeName,gWTPs[*iPtr].vendorPortalValues->EncodeNameLen);
+		CWProtocolStore16(msgPtr, gWTPs[*iPtr].vendorPortalValues->EncodeContentLen);
+		CWProtocolStoreRawBytes(msgPtr,  gWTPs[*iPtr].vendorPortalValues->EncodeContent,gWTPs[*iPtr].vendorPortalValues->EncodeContentLen);
+
+		CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
+		CW_FREE_OBJECT(gWTPs[*iPtr].vendorPortalValues->EncodeName);
+		CW_FREE_OBJECT(gWTPs[*iPtr].vendorPortalValues->EncodeContent);
+		CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
+			
+	}
+	
+	CWLog("Assembling Protocol Configuration Update Request [VENDOR CASE Portal]: Message Assembled.");
+	
+	//need total & No
+	//CW_FREE_OBJECT(gWTPs[*iPtr].vendorPortalValues);
+
+	CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
+
+	return CWAssembleMsgElem(msgPtr, CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CW_TYPE);
+}
+
+

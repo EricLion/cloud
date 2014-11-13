@@ -749,6 +749,15 @@ CWBool CWParseConfigurationUpdateResponseMessage(CWProtocolMessage* msgPtr,
 						}
 						(*vendValues)->payload = (void *) CWProtocolRetrieveRawBytes(msgPtr, (*vendValues)->vendorPayloadLen);
 					   break;
+				     case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_PORTAL:
+						//(*vendValues)->vendorPayloadLen = CWProtocolRetrieve16(msgPtr);
+						(*vendValues)->vendorPayloadLen = CWProtocolRetrieve32(msgPtr);
+						CWLog("[F:%s, L:%d] (*vendValues)->vendorPayloadLen = %d",__FILE__,__LINE__,(*vendValues)->vendorPayloadLen);
+						if ((*vendValues)->vendorPayloadLen !=0) {
+
+							return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Unrecognized Message Element in Configuration Update Response");
+						}
+						break;
 					default:
 						return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Unrecognized Message Element in Configuration Update Response");
 					break;	
@@ -881,6 +890,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 	int closeWTPManager = CW_FALSE, result = CW_FALSE,BESize = 0;
 	BEconfigEventResponse beConfigEventResp;
 	BEmonitorEventResponse beMonitorEventResp;
+	BEPortalEventResponse  bePortalEventResp;
 
 	if (vendValues != NULL) {
 		char * responseBuffer; 
@@ -1044,6 +1054,30 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
    			   beResp = AssembleBEheader((char*)&beMonitorEventResp,&BESize,WTPIndex,beMonitorEventResp.xml);
 
 			   CW_FREE_OBJECT(beMonitorEventResp.xml);
+			   
+			    break;
+				
+			   //portal
+		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_PORTAL:
+			 
+			   bePortalEventResp.type = htons(BE_PORTAL_EVENT_RESPONSE) ;
+			  // 4 sizeof(int) +2
+			   payloadSize = sizeof(resultCode)+2*sizeof(char);
+			   bePortalEventResp.length = htons(payloadSize);//4
+			   bePortalEventResp.FileNo = htons(gWTPs[WTPIndex].vendorPortalValues->FileNo);
+			   bePortalEventResp.TotalFileNum= htons(gWTPs[WTPIndex].vendorPortalValues->TotalFileNum);
+			   bePortalEventResp.resultCode = Swap32(resultCode);
+			   
+			   //CW_CREATE_STRING_ERR(&beConfigEventResp.resultCode, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
+			   //memset(beMonitorEventResp.xml, 0, payloadSize);
+			   //memcpy(beMonitorEventResp.xml, vendValues->payload, payloadSize);
+			   
+			   BESize = BE_TYPELEN_LEN+payloadSize;
+			   
+   			   beResp = AssembleBEheader((char*)&beConfigEventResp,&BESize,WTPIndex,NULL);
+			   CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+			   CW_FREE_OBJECT(gWTPs[WTPIndex].vendorPortalValues);
+			   CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 			   
 			   break;
 		}
@@ -1749,6 +1783,14 @@ CWBool CWAssembleConfigurationUpdateRequest(CWProtocolMessage **messagesPtr,
 	 {
                 CWLog("Assembling XML Conf Update Request");
                 if(!CWProtocolAssembleConfigurationUpdateRequest(&msgElems, &msgElemCount, CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE)) {
+                  return CW_FALSE;
+                }
+                break;
+         }
+	case CONFIG_UPDATE_REQ_VENDOR_PORTAL_ELEMENT_TYPE:
+	 {
+                CWLog("Assembling PORTAL Conf Update Request");
+                if(!CWProtocolAssembleConfigurationUpdateRequest(&msgElems, &msgElemCount, CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_PORTAL)) {
                   return CW_FALSE;
                 }
                 break;

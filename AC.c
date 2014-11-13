@@ -44,7 +44,7 @@ CWThreadMutex gWTPsMutex;
 
 int gEnabledLog = 1;
 
-int gMaxLogFileSize;
+int gMaxLogFileSize = 80000;
 char gLogFileName[]=AC_LOG_FILE_NAME;
 
 /* number of active WTPs */

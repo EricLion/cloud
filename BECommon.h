@@ -25,8 +25,8 @@ typedef unsigned char u_char;
 #define	BE_UPGRADE_EVENT_REQUEST  7
 #define	BE_UPGRADE_EVENT_RESPONSE 8
 
-#define	BE_CONFIG_WEB_EVENT_REQUEST  11
-#define	BE_CONFIG_WEB_EVENT_RESPONSE 12
+#define	BE_PORTAL_EVENT_REQUEST  11
+#define	BE_PORTAL_EVENT_RESPONSE 12
 #define	BE_WTP_EVENT_REQUEST  21
 #define	BE_WTP_EVENT_RESPONSE 22
 #define	BE_SYSTEM_EVENT_REQUEST  31
@@ -170,19 +170,25 @@ typedef struct {
 	CWResultCode resultCode;
 }BEwtpEventResponse;
 
+//4bit
+typedef struct {
+	unsigned short type;
+	unsigned short length;
+	unsigned short TotalFileNum;
+	unsigned short FileNo;
+	unsigned short EncodeNameLen;
+	unsigned short EncodeContentLen;
+	char* EncodeName;
+	char* EncodeContent;
+}BEPortalEventRequest;
 
 typedef struct {
 	unsigned short type;
 	unsigned short length;
-	unsigned int webEncode;
-	char* webContent;
-}BEconfigWebEventRequest;
-
-typedef struct {
-	unsigned short type;
-	unsigned short length;
+	unsigned short TotalFileNum;
+	unsigned short FileNo;
 	CWResultCode resultCode;
-}BEconfigWebEventResponse;
+}BEPortalEventResponse;
 
 typedef struct {
 	unsigned short type;

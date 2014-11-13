@@ -73,6 +73,7 @@
 #define CONFIG_UPDATE_REQ_VENDOR_WUM_ELEMENT_TYPE 3
 #define CONFIG_UPDATE_REQ_VENDOR_CONFIG_ELEMENT_TYPE 10
 #define CONFIG_UPDATE_REQ_VENDOR_STATE_ELEMENT_TYPE 11
+#define CONFIG_UPDATE_REQ_VENDOR_PORTAL_ELEMENT_TYPE 12
 
 /********************************************************
  * 2009 Updates:                                        *
@@ -153,6 +154,8 @@ typedef struct {
 	
 	OFDMControlValues* ofdmValues;  
 	CWProtocolVendorSpecificValues* vendorValues;
+	CWProtocolVendorPortalValues* vendorPortalValues;
+	
 	int applicationIndex;
 	
 	/**** ACInterface ****/

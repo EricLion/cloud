@@ -28,6 +28,12 @@ typedef struct {
 int FindApIndex(u_char* apMac)
 {
 	int numActiveWTPs =0,k = 0,i,j,finded = -1;
+
+	if(apMac == NULL)
+	{
+		CWLog("FindApIndex apMac == NULL");
+		return FALSE;
+	}
 	
 	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex))) {
@@ -82,6 +88,17 @@ char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValu
 {
 	int finded = -1,interfaceResult = 0;
 	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
+	if(apMac == NULL)
+	{
+		CWLog("BESetWumValues apMac == NULL");
+		return FALSE;
+	}
+
+	if(vendorValues == NULL)
+	{
+		CWLog("BESetWumValues portalValues == NULL");
+		return FALSE;
+	}
 	finded = FindApIndex(apMac);
 
 	//no this ap online
@@ -115,6 +132,19 @@ char BESetApValues(u_char* apMac, int socketIndex, CWVendorXMLValues* xmlValues)
 {
 	int finded = -1;
 	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
+
+	if(apMac == NULL)
+	{
+		CWLog("BESetApValues apMac == NULL");
+		return FALSE;
+	}
+
+	if(xmlValues == NULL)
+	{
+		CWLog("BESetApValues portalValues == NULL");
+		return FALSE;
+	}
+	
 	finded = FindApIndex(apMac);
 
 //no this ap online
@@ -133,10 +163,52 @@ char BESetApValues(u_char* apMac, int socketIndex, CWVendorXMLValues* xmlValues)
 	return TRUE;
 }
 
-char BESetSysValues(u_char* apMac, int socketIndex, SystemCode sysCode)
+
+char BESetPortalValues(u_char* apMac, int socketIndex, CWVendorPortalValues* portalValues)
 {
 	int finded = -1;
 	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
+
+	if(apMac == NULL)
+	{
+		CWLog("BESetPortalValues apMac == NULL");
+		return FALSE;
+	}
+
+	if(portalValues == NULL)
+	{
+		CWLog("BESetPortalValues portalValues == NULL");
+		return FALSE;
+	}
+	
+	finded = FindApIndex(apMac);
+
+//no this ap online
+	if(finded <0)
+	{
+		CWLog("[F:%s, L:%d] can't find this ap:%x:%x:%x:%x:%x:%x",__FILE__,__LINE__,apMac[0],
+			apMac[1],apMac[2],apMac[3],apMac[4],apMac[5]);
+		//
+			return FALSE;
+	}
+	if(finded >=0)
+	{
+		if(!CWPortalSetValues(finded, socketIndex, portalValues))
+			return FALSE;
+	}
+	return TRUE;
+}
+
+char BESetSysValues(u_char* apMac, int socketIndex, SystemCode sysCode)
+{
+	int finded = -1;
+
+	if(apMac == NULL)
+	{
+		CWLog("BESetSysValues apMac == NULL");
+		return FALSE;
+	}
+	
 	finded = FindApIndex(apMac);
 
 //no this ap online
@@ -165,13 +237,20 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	time_t timestamp;
 	unsigned short type = 0;
 
+	
+	if(buf == NULL || len == NULL  )
+	{
+		CWLog("AssembleBEheader buf == NULL || len == NULL ");
+		return NULL;
+	}
+	
 	memcpy((char*)&type, buf, BE_TYPE_LEN);
 	
 	CWLog("[F:%s, L:%d] :AssembleBEheader type = %d",__FILE__,__LINE__,type);
 	if(*len > BE_MAX_PACKET_LEN)
 	{
 		CWLog("AssembleBEheader Error len > 80000");
-		return CW_FALSE;
+		return NULL;
 	}
 	
 	beHeader.length =*len  + TIME_LEN + MAC_ADDR_LEN;
@@ -198,7 +277,7 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 
 	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
 		CWLog("Error locking the gWTPsMutex mutex");
-		return CW_FALSE;
+		return NULL;
 	}
 	
 	if(gWTPs[apId].isNotFree && (gWTPs[apId].currentState == CW_ENTER_RUN))
@@ -251,6 +330,12 @@ void SendBEResponseDirectly(int type,u_char *apMac,int socketIndex,CWResultCode 
 	char *rsp = NULL;
 	int i,packetLen = 0;
 	time_t timestamp;
+
+	if(apMac == NULL)
+	{
+		CWLog("SendBEResponseDirectly apMac == NULL");
+		return;
+	}
 	
 	type =htons( type) ;
 	length = htons(sizeof(CWResultCode));
@@ -309,7 +394,12 @@ void SendBEResponse(char* buf,int len,int apId)
 {
 	int n,socketIndex;
 	n = 0;
-
+	
+	if(buf == NULL)
+	{
+		CWLog("SendBEResponse buf == NULL");
+		return;
+	}
 	CWLog("[F:%s, L:%d] SendBEResponse len:%d",__FILE__,__LINE__,len);
 	if(len > BE_MAX_PACKET_LEN)
 	{
@@ -351,6 +441,12 @@ void SendBERequest(char* buf,int len)
 
 	n = 0;
 	ret = 0;
+
+	if(buf == NULL)
+	{
+		CWLog("SendBERequest buf == NULL");
+		return;
+	}
 //	struct sockaddr_in servaddr;
 /*
 	char *address = gACBEServerAddr;
@@ -433,6 +529,12 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 	int i, left, toSend, sent;
 	CWVendorWumValues *wumValues = NULL;
 	CWProtocolVendorSpecificValues *vendorValues = NULL;
+
+	if(apMac == NULL || cup == NULL)
+	{
+		CWLog("[F:%s, L:%d]UpgradeVersion apMac == NULL || cup == NULL",__FILE__,__LINE__);
+		return ret;
+	}
 
 	CW_CREATE_OBJECT_ERR(wumValues, CWVendorWumValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 	CW_CREATE_OBJECT_ERR(vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
@@ -545,6 +647,12 @@ CWResultCode CheckUpgradeVersion(u_char* apMac, int socketIndex, char *cup_path)
 		return rc;
 	}
 
+	if(apMac == NULL)
+	{
+		CWLog("[F:%s, L:%d]CheckUpgradeVersion apMac == NULL ",__FILE__,__LINE__);
+		return rc;
+	}
+	
 	int fd = open(cup_path, O_RDONLY);
 	if (fd < 0) {
 		CWLog("open error");
@@ -589,7 +697,12 @@ CWResultCode CheckUpgradeVersion(u_char* apMac, int socketIndex, char *cup_path)
  * output socket) on the correct wtp structure.							*
  ************************************************************************/
 int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues) {
-//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
+
+	if(xmlValues == NULL)
+	{
+		CWLog("[F:%s, L:%d]CWXMLSetValues xmlValues == NULL ",__FILE__,__LINE__);
+		return FALSE;
+	}
 	if(selection <0 ||selection >= CW_MAX_WTP)
 	{
 		CWLog("[F:%s, L:%d]selection <0 ||selection >= CW_MAX_WTP ",__FILE__,__LINE__);
@@ -642,6 +755,102 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 }
 
 
+int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* portalValues) {
+
+	gWTPs[selection].vendorPortalValues = NULL;
+	if(portalValues == NULL)
+	{
+		CWLog("[F:%s, L:%d]CWPortalSetValues portalValues == NULL ",__FILE__,__LINE__);
+		return FALSE;
+	}
+	if(!portalValues->EncodeNameLen || !portalValues->EncodeContentLen)
+	{
+		CWLog("[F:%s, L:%d]portalValues>EncodeNameLen = 0 ||portalValues->EncodeContentLen =0,Error! ",__FILE__,__LINE__);
+		return FALSE;
+	}
+	if(portalValues->EncodeName == NULL)
+	{
+		CWLog("[F:%s, L:%d]CWPortalSetValues portalValues->EncodeName == NULL ",__FILE__,__LINE__);
+		return FALSE;
+	}
+	if(portalValues->EncodeContent == NULL)
+	{
+		CWLog("[F:%s, L:%d]CWPortalSetValues portalValues->EncodeContent == NULL ",__FILE__,__LINE__);
+		return FALSE;
+	}
+
+	if(selection <0 ||selection >= CW_MAX_WTP )
+	{
+		CWLog("[F:%s, L:%d]selection <0 ||selection >= CW_MAX_WTP ",__FILE__,__LINE__);
+		return FALSE;
+	}
+	CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
+	//portal to vendor	
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorPortalValues, CWProtocolVendorPortalValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+	gWTPs[selection].vendorPortalValues->TotalFileNum= portalValues->TotalFileNum;
+	gWTPs[selection].vendorPortalValues->FileNo= portalValues->FileNo;
+	gWTPs[selection].vendorPortalValues->EncodeNameLen= portalValues->EncodeNameLen;
+	gWTPs[selection].vendorPortalValues->EncodeContentLen= portalValues->EncodeContentLen;
+
+	if(gWTPs[selection].vendorPortalValues->EncodeNameLen)
+	{
+
+		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeName, gWTPs[selection].vendorPortalValues->EncodeNameLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+		memset(gWTPs[selection].vendorPortalValues->EncodeName,0,gWTPs[selection].vendorPortalValues->EncodeNameLen+1);
+		memcpy(gWTPs[selection].vendorPortalValues->EncodeName,  portalValues->EncodeName,portalValues->EncodeNameLen);
+		CWLog("gWTPs[%d].vendorPortalValues->EncodeName, :%s", selection, gWTPs[selection].vendorPortalValues->EncodeName);
+		CWLog("gWTPs[%d].vendorPortalValues->EncodeName Len:%d", selection, strlen(gWTPs[selection].vendorPortalValues->EncodeName));
+		//gWTPs[selection].vendorValues->vendorPayloadLen = strlen(gWTPs[selection].vendorValues->payload);
+	}
+
+	if(gWTPs[selection].vendorPortalValues->EncodeContentLen)
+	{
+		
+		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeContent, gWTPs[selection].vendorPortalValues->EncodeContentLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+		memset(gWTPs[selection].vendorPortalValues->EncodeContent,0,gWTPs[selection].vendorPortalValues->EncodeContentLen+1);
+		memcpy(gWTPs[selection].vendorPortalValues->EncodeContent,  portalValues->EncodeName,portalValues->EncodeContentLen);
+		//CWLog("gWTPs[%d].vendorPortalValues->EncodeContent, :%s", selection, gWTPs[selection].vendorPortalValues->EncodeContent);
+		CWLog("gWTPs[%d].vendorPortalValues->EncodeContent Len:%d", selection, strlen(gWTPs[selection].vendorPortalValues->EncodeContent));
+		//gWTPs[selection].vendorValues->vendorPayloadLen = strlen(gWTPs[selection].vendorValues->payload);
+	}
+
+	gWTPs[selection].interfaceCommand = PORTAL_MSG_CMD;
+	/*
+	if(xmlValues->wum_type == WTP_CONFIG_REQUEST)
+	{
+		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+		gWTPs[selection].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG;
+		gWTPs[selection].interfaceCommand = WTP_CONFIG_CMD;
+	}
+	else if(xmlValues->wum_type == WTP_STATE_REQUEST)
+	{
+		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+		gWTPs[selection].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE;
+		gWTPs[selection].interfaceCommand = WTP_STATE_CMD;
+	}
+	else
+	{
+		CWLog("[F:%s, L:%d]  Unknown wum_type:%d",__FILE__,__LINE__,xmlValues->wum_type);
+		return FALSE;
+	}
+	*/
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+	gWTPs[selection].applicationIndex = socketIndex;
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+	//block
+	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
+	return TRUE;
+}
+
+
+
 int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 	
 	if(selection <0 ||selection >= CW_MAX_WTP)
@@ -677,6 +886,13 @@ int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 }
 
 int CWWumSetValues(int selection, int socketIndex, CWProtocolVendorSpecificValues* vendorValues) {
+
+	if(vendorValues == NULL)
+	{
+		CWLog("CWWumSetValues portalValues == NULL");
+		return FALSE;
+	}
+	
 	if(selection <0 ||selection >= CW_MAX_WTP)
 	{
 		CWLog("[F:%s, L:%d]selection <0 ||selection >= CW_MAX_WTP ",__FILE__,__LINE__);
@@ -1112,7 +1328,7 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 			}
 
 			//Ray
-			if( beType == BE_CONFIG_WEB_EVENT_REQUEST)
+			if( beType == BE_PORTAL_EVENT_REQUEST)
 			{
 				CWLog("Receive BE_CONFIG_WEB_EVENT_REQUEST !");
 				//len
@@ -1132,7 +1348,92 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 				{
 					CWLog("[F:%s, L:%d] can't find this ap",__FILE__,__LINE__);
 					rc = CW_FAILURE_WTP_NOT_CONNECTED;
-					SendBEResponseDirectly(BE_CONFIG_WEB_EVENT_RESPONSE,beHeader.apMac,socketIndex,rc);
+					SendBEResponseDirectly(BE_PORTAL_EVENT_RESPONSE,beHeader.apMac,socketIndex,rc);
+				}
+				
+				CWVendorPortalValues bePortalEventRequest;
+
+				if ( (n = Readn(sock, &(bePortalEventRequest.TotalFileNum), sizeof(short)) )< 0 ) {
+						CWLog("Error while reading from socket.");
+						goto quit_manage;
+				}
+				
+				bePortalEventRequest.TotalFileNum = ntohs(bePortalEventRequest.TotalFileNum);
+				if(!(bePortalEventRequest.TotalFileNum))
+				{
+					CWLog("Error TotalFileNum = %d not in range !",(bePortalEventRequest.TotalFileNum));
+					goto quit_manage;
+				}	
+				CWLog("Receive TotalFileNum = %d",(bePortalEventRequest.TotalFileNum));
+
+				if ( (n = Readn(sock, &(bePortalEventRequest.FileNo), sizeof(short)) )< 0 ) {
+						CWLog("Error while reading from socket.");
+						goto quit_manage;
+				}
+				
+				bePortalEventRequest.FileNo = ntohs(bePortalEventRequest.FileNo);
+				
+				if(!(bePortalEventRequest.FileNo) ||(bePortalEventRequest.FileNo) >  (bePortalEventRequest.TotalFileNum))
+				{
+					CWLog("Error FileNo = %d not in range !",(bePortalEventRequest.FileNo));
+					goto quit_manage;
+				}	
+				CWLog("Receive FileNo = %d",(bePortalEventRequest.FileNo));
+				
+				//fileName
+				if ( (n = Readn(sock, &(bePortalEventRequest.EncodeNameLen), sizeof(short)) )< 0 ) {
+						CWLog("Error while reading from socket.");
+						goto quit_manage;
+				}
+				
+				if(!(bePortalEventRequest.EncodeNameLen) )
+				{
+					CWLog("Error EncodeNameLen = %d not in range !",(bePortalEventRequest.EncodeNameLen));
+					goto quit_manage;
+				}	
+				CWLog("Receive EncodeNameLen = %d",(bePortalEventRequest.EncodeNameLen));
+	
+				CW_CREATE_STRING_ERR((bePortalEventRequest.EncodeName), (bePortalEventRequest.EncodeNameLen)+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+				memset((bePortalEventRequest.EncodeName),0,(bePortalEventRequest.EncodeNameLen)+1);
+				
+				if ( (n = Readn(sock, (bePortalEventRequest.EncodeName), (bePortalEventRequest.EncodeNameLen)) )< 0 ) {
+						CWLog("Error while reading from socket.");
+						goto quit_manage;
+				}
+				
+				CWLog("Receive EncodeName = %s",(bePortalEventRequest.EncodeName));
+
+
+				//fileContent
+				if ( (n = Readn(sock, &(bePortalEventRequest.EncodeContentLen), sizeof(short)) )< 0 ) {
+						CWLog("Error while reading from socket.");
+						goto quit_manage;
+				}
+				
+				if(!(bePortalEventRequest.EncodeContentLen) )
+				{
+					CWLog("Error EncodeContentLen = %d not in range !",(bePortalEventRequest.EncodeContentLen));
+					goto quit_manage;
+				}	
+				CWLog("Receive EncodeContentLen = %d",(bePortalEventRequest.EncodeContentLen));
+	
+				CW_CREATE_STRING_ERR((bePortalEventRequest.EncodeContent), (bePortalEventRequest.EncodeContentLen)+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+				memset((bePortalEventRequest.EncodeContent),0,(bePortalEventRequest.EncodeContentLen)+1);
+				
+				if ( (n = Readn(sock, (bePortalEventRequest.EncodeContent), (bePortalEventRequest.EncodeContentLen)) )< 0 ) {
+						CWLog("Error while reading from socket.");
+						goto quit_manage;
+				}
+				
+				CWLog("Receive EncodeContent = %s",(bePortalEventRequest.EncodeContent));
+
+				result = FALSE;
+				result = BESetPortalValues(beHeader.apMac, socketIndex, &bePortalEventRequest);
+				CW_FREE_OBJECT(bePortalEventRequest.EncodeName);
+				CW_FREE_OBJECT(bePortalEventRequest.EncodeContent);	
+				if(!result)
+				{
+					SendBEResponseDirectly(BE_PORTAL_EVENT_RESPONSE,beHeader.apMac,socketIndex,rc);
 				}
 				
 				goto quit_manage;

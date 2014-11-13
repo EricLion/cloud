@@ -60,6 +60,10 @@ void CWLogInitFile(char *fileName) {
 CWBool checkResetFile()
 {
 	long fileSize=0;
+	time_t now;
+	char* timestr = NULL;
+	char* fname = NULL;
+	char* cmd = NULL;
 
 	if((fileSize=ftell(gLogFile))==-1)
 	{
@@ -69,6 +73,26 @@ CWBool checkResetFile()
 	if (fileSize>=gMaxLogFileSize)
 	{
 		fclose(gLogFile);
+		
+		now = time(NULL);
+		
+		cmd = calloc(64,1);
+		fname = calloc(32,1);
+		timestr = calloc(16,1);
+		
+		sprintf(timestr,"%ld",now);
+		sprintf(fname,"%s",gLogFileName);
+
+		strcat(fname,timestr);
+	
+		sprintf(cmd,"cp -rf %s %s",gLogFileName,fname);
+		//CWLog("Log max size,backup to %s", fname);
+		system(cmd);
+
+		CW_FREE_OBJECT(timestr);
+		CW_FREE_OBJECT(fname);
+		CW_FREE_OBJECT(cmd);
+		
 		if((gLogFile = fopen(gLogFileName, "w")) == NULL) 
 		{
 			CWLog("Can't open log file: %s", strerror(errno));

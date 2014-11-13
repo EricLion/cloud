@@ -48,5 +48,6 @@
 #define WTP_STATE_CMD 7
 
 #define SYSTEM_REBOOT_MSG_CMD	8
+#define PORTAL_MSG_CMD	9
 
 #endif

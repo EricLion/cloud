@@ -782,7 +782,24 @@ CWLog("F:%s L:%d",__FILE__,__LINE__);
 			                                        }
 			                                  break;
 
+							}
+			//portal download
+			case PORTAL_MSG_CMD:
+							{
+								CWLog("[F:%s, L:%d]PORTAL_MSG_CMD",__FILE__,__LINE__);
+								 int seqNum = CWGetSeqNum();
 
+			                                         if (CWAssembleConfigurationUpdateRequest(&(gWTPs[i].messages),
+			                                                                                                                 &(gWTPs[i].messagesCount),
+			                                                                                                                 gWTPs[i].pathMTU,
+			                                                                                                                 seqNum, CONFIG_UPDATE_REQ_VENDOR_PORTAL_ELEMENT_TYPE)) {
+
+			                                          if(CWACSendAcknowledgedPacket(i, CW_MSG_TYPE_VALUE_CONFIGURE_UPDATE_RESPONSE, seqNum))
+			                                                bResult = CW_TRUE;
+			                                          else
+			                                                CWACStopRetransmission(i);
+			                                        }
+			                                  break;
 
 							}
 			}

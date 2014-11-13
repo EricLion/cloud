@@ -70,6 +70,24 @@ CWBool CWProtocolAssembleConfigurationUpdateRequest(CWProtocolMessage **msgElems
 					CW_FREE_OBJECT(*msgElems);
 					return CW_FALSE; // error will be handled by the caller
 				}
+				break;
+		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_PORTAL:
+
+				// Assemble Message Elements
+				if (!(CWAssembleWTPVendorPayloadPortal(&(*msgElems[++k]))))
+				{
+					CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
+					if(gWTPs[*iPtr].vendorPortalValues != NULL)
+					{
+						CW_FREE_OBJECT(gWTPs[*iPtr].vendorPortalValues->EncodeName);
+						CW_FREE_OBJECT(gWTPs[*iPtr].vendorPortalValues->EncodeContent);
+						CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
+					}
+					int i;
+					for(i = 0; i <= k; i++) {CW_FREE_PROTOCOL_MESSAGE(*msgElems[i]);}
+					CW_FREE_OBJECT(*msgElems);
+					return CW_FALSE; // error will be handled by the caller
+				}
 		break;
 		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_UCI:
 

@@ -34,6 +34,7 @@
  * *********************************************************************/
 #define		CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG		10
 #define		CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE		11
+#define		CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_PORTAL		12
 #define		CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_UCI		1
 #define 	CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_WUM		2
 
@@ -96,5 +97,18 @@ CWBool CWAssembleWTPVendorPayloadWUM(CWProtocolMessage *msgPtr);
 CWBool CWParseXMLPayload(CWProtocolMessage *msg, CWVendorXMLValues **payloadPtr);
 CWBool CWWTPSaveXMLValues(CWVendorXMLValues *xmlPayload, CWProtocolResultCode *resultCode);
 CWBool CWAssembleWTPVendorPayloadXML(CWProtocolMessage *msgPtr);
+/*************************************************************************
+ *  WTP Portal Messages 
+ *************************************************************************/
+ typedef struct {
+	unsigned short  TotalFileNum;
+	unsigned short  FileNo;
+	unsigned short EncodeNameLen;
+	unsigned short EncodeContentLen;
+	char* EncodeName;
+	char* EncodeContent;
+} CWVendorPortalValues;
+
+CWBool CWAssembleWTPVendorPayloadPortal(CWProtocolMessage *msgPtr);
 
 #endif
