@@ -1330,7 +1330,7 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 			//Ray
 			if( beType == BE_PORTAL_EVENT_REQUEST)
 			{
-				CWLog("Receive BE_CONFIG_WEB_EVENT_REQUEST !");
+				CWLog("Receive BE_PORTAL_EVENT_REQUEST !");
 				//len
 				if ( (n = Readn(sock, &beLen, BE_LENGTH_SIZE) )< 0 ) {
 						CWLog("Error while reading from socket.");
