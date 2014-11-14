@@ -1062,7 +1062,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			 
 			   bePortalEventResp.type = htons(BE_PORTAL_EVENT_RESPONSE) ;
 			  // 4 sizeof(int) +2
-			   payloadSize = sizeof(resultCode)+2*sizeof(char);
+			   payloadSize = sizeof(resultCode)+2*sizeof(short);
 			   bePortalEventResp.length = htons(payloadSize);//4
 			   bePortalEventResp.FileNo = htons(gWTPs[WTPIndex].vendorPortalValues->FileNo);
 			   bePortalEventResp.TotalFileNum= htons(gWTPs[WTPIndex].vendorPortalValues->TotalFileNum);
@@ -1074,7 +1074,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			   
 			   BESize = BE_TYPELEN_LEN+payloadSize;
 			   
-   			   beResp = AssembleBEheader((char*)&beConfigEventResp,&BESize,WTPIndex,NULL);
+   			   beResp = AssembleBEheader((char*)&bePortalEventResp,&BESize,WTPIndex,NULL);
 			   CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 			   CW_FREE_OBJECT(gWTPs[WTPIndex].vendorPortalValues);
 			   CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);

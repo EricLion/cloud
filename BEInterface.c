@@ -786,13 +786,16 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 	}
 	CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
 	//portal to vendor	
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorPortalValues, CWProtocolVendorPortalValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	gWTPs[selection].vendorPortalValues->TotalFileNum= portalValues->TotalFileNum;
 	gWTPs[selection].vendorPortalValues->FileNo= portalValues->FileNo;
 	gWTPs[selection].vendorPortalValues->EncodeNameLen= portalValues->EncodeNameLen;
 	gWTPs[selection].vendorPortalValues->EncodeContentLen= portalValues->EncodeContentLen;
+
+	CWLog("[F:%s, L:%d]gWTPs[selection].vendorPortalValues->TotalFileNum = %d ",__FILE__,__LINE__,gWTPs[selection].vendorPortalValues->TotalFileNum);
+	CWLog("[F:%s, L:%d]gWTPs[selection].vendorPortalValues->FileNo = %d ",__FILE__,__LINE__,gWTPs[selection].vendorPortalValues->FileNo);
+	
 
 	if(gWTPs[selection].vendorPortalValues->EncodeNameLen)
 	{
@@ -801,7 +804,7 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		memset(gWTPs[selection].vendorPortalValues->EncodeName,0,gWTPs[selection].vendorPortalValues->EncodeNameLen+1);
 		memcpy(gWTPs[selection].vendorPortalValues->EncodeName,  portalValues->EncodeName,portalValues->EncodeNameLen);
 		CWLog("gWTPs[%d].vendorPortalValues->EncodeName, :%s", selection, gWTPs[selection].vendorPortalValues->EncodeName);
-		CWLog("gWTPs[%d].vendorPortalValues->EncodeName Len:%d", selection, strlen(gWTPs[selection].vendorPortalValues->EncodeName));
+		CWLog("gWTPs[%d].vendorPortalValues->EncodeName Len:%d", selection, gWTPs[selection].vendorPortalValues->EncodeNameLen);
 		//gWTPs[selection].vendorValues->vendorPayloadLen = strlen(gWTPs[selection].vendorValues->payload);
 	}
 
@@ -812,7 +815,7 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		memset(gWTPs[selection].vendorPortalValues->EncodeContent,0,gWTPs[selection].vendorPortalValues->EncodeContentLen+1);
 		memcpy(gWTPs[selection].vendorPortalValues->EncodeContent,  portalValues->EncodeName,portalValues->EncodeContentLen);
 		//CWLog("gWTPs[%d].vendorPortalValues->EncodeContent, :%s", selection, gWTPs[selection].vendorPortalValues->EncodeContent);
-		CWLog("gWTPs[%d].vendorPortalValues->EncodeContent Len:%d", selection, strlen(gWTPs[selection].vendorPortalValues->EncodeContent));
+		CWLog("gWTPs[%d].vendorPortalValues->EncodeContent Len:%d", selection, gWTPs[selection].vendorPortalValues->EncodeContentLen);
 		//gWTPs[selection].vendorValues->vendorPayloadLen = strlen(gWTPs[selection].vendorValues->payload);
 	}
 
@@ -1385,6 +1388,8 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 						CWLog("Error while reading from socket.");
 						goto quit_manage;
 				}
+
+				bePortalEventRequest.EncodeNameLen = ntohs(bePortalEventRequest.EncodeNameLen);
 				
 				if(!(bePortalEventRequest.EncodeNameLen) )
 				{
@@ -1409,6 +1414,7 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 						CWLog("Error while reading from socket.");
 						goto quit_manage;
 				}
+				bePortalEventRequest.EncodeContentLen = ntohs(bePortalEventRequest.EncodeContentLen);
 				
 				if(!(bePortalEventRequest.EncodeContentLen) )
 				{
@@ -1425,7 +1431,7 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 						goto quit_manage;
 				}
 				
-				CWLog("Receive EncodeContent = %s",(bePortalEventRequest.EncodeContent));
+				//CWLog("Receive EncodeContent = %s",(bePortalEventRequest.EncodeContent));
 
 				result = FALSE;
 				result = BESetPortalValues(beHeader.apMac, socketIndex, &bePortalEventRequest);
