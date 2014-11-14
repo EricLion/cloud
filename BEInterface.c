@@ -813,7 +813,7 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		
 		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeContent, gWTPs[selection].vendorPortalValues->EncodeContentLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 		memset(gWTPs[selection].vendorPortalValues->EncodeContent,0,gWTPs[selection].vendorPortalValues->EncodeContentLen+1);
-		memcpy(gWTPs[selection].vendorPortalValues->EncodeContent,  portalValues->EncodeName,portalValues->EncodeContentLen);
+		memcpy(gWTPs[selection].vendorPortalValues->EncodeContent,  portalValues->EncodeContent,portalValues->EncodeContentLen);
 		//CWLog("gWTPs[%d].vendorPortalValues->EncodeContent, :%s", selection, gWTPs[selection].vendorPortalValues->EncodeContent);
 		CWLog("gWTPs[%d].vendorPortalValues->EncodeContent Len:%d", selection, gWTPs[selection].vendorPortalValues->EncodeContentLen);
 		//gWTPs[selection].vendorValues->vendorPayloadLen = strlen(gWTPs[selection].vendorValues->payload);
