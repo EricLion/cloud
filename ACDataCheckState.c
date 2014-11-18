@@ -135,7 +135,7 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 #if 1
 	//BE: ap connect	
 	beConEve.type = htons(BE_CONNECT_EVENT);
-	beConEve.length = htons(BE_CONNECT_EVENT_LEN);
+	beConEve.length = Swap32(BE_CONNECT_EVENT_LEN);
 	beConEve.state = BE_CONNECT_EVENT_CONNECT;
 	BESize = BE_CONNECT_EVENT_LEN + BE_TYPELEN_LEN;
 	///*

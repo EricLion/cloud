@@ -104,7 +104,7 @@ CWBool CWAssembleWTPVendorPayloadXML(CWProtocolMessage *msgPtr);
 	unsigned short  TotalFileNum;
 	unsigned short  FileNo;
 	unsigned short EncodeNameLen;
-	unsigned short EncodeContentLen;
+	unsigned int EncodeContentLen;
 	char* EncodeName;
 	char* EncodeContent;
 } CWVendorPortalValues;

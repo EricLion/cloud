@@ -242,7 +242,7 @@
 
 
 // CAPWAP Protocol Variables
-#define		CW_MAX_RETRANSMIT_DEFAULT		10
+#define		CW_MAX_RETRANSMIT_DEFAULT		15
 #define 	CW_WAIT_JOIN_DEFAULT			60
 #define		CW_REPORT_INTERVAL_DEFAULT		120
 #define		CW_STATISTIC_TIMER_DEFAULT		120
@@ -260,9 +260,9 @@
 #endif
 
 #ifdef CW_DEBUGGING
-	#define 	CW_RETRANSMIT_INTERVAL_DEFAULT		10
+	#define 	CW_RETRANSMIT_INTERVAL_DEFAULT		4
 #else
-	#define 	CW_RETRANSMIT_INTERVAL_DEFAULT		10
+	#define 	CW_RETRANSMIT_INTERVAL_DEFAULT		4
 #endif
 
 #ifdef CW_DEBUGGING
@@ -631,7 +631,7 @@ typedef struct {
 	unsigned short  TotalFileNum;
 	unsigned short  FileNo;
 	unsigned short EncodeNameLen;
-	unsigned short EncodeContentLen;
+	unsigned int    EncodeContentLen;
 	char* EncodeName;
 	char* EncodeContent;
 } CWProtocolVendorPortalValues;

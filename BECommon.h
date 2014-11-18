@@ -71,16 +71,18 @@ typedef enum {
 
 //without type, length
 #define BE_TYPE_LEN        2
-#define BE_LENGTH_LEN    2
+#define BE_LENGTH_LEN    4
 #define BE_TYPELEN_LEN   (BE_TYPE_LEN + BE_LENGTH_LEN)
+#define BE_CODE_LEN (sizeof(CWResultCode))
 
 
 #define BE_HEADER_MIN_LEN	(MAC_ADDR_LEN) + (TIME_LEN)
 //#define BE_HEADER_MAX_LEN	(MAC_ADDR_LEN+2*2+2*MAX_VER_LEN+TIME_LEN)
 //struct 4 size
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int length;
 	unsigned int timestamp; 
 	unsigned char apMac[MAC_ADDR_LEN];
 	
@@ -91,6 +93,7 @@ typedef struct {
 	//char  swVer[MAX_VER_LEN];
 	//char  timestamp[TIME_LEN];
 }BEHeader;
+#pragma pack()
 
 #define BE_CONNECT	1
 #define BE_DISCONNECT 2
@@ -99,36 +102,45 @@ typedef struct {
 #define BE_CONNECT_EVENT_DISCONNECT 2
 
 //ap req
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int length;
 	char  state;
 }BEconnectEvent;
+#pragma pack()
 //alarm ?
-
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int length;
 }BEmonitorEventRequest;
+#pragma pack()
 
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int  length;
 	CWResultCode resultCode;
 	char*  xml;
 }BEmonitorEventResponse;
+#pragma pack()
 
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int  length;
 	char* xml;
 }BEconfigEventRequest;
+#pragma pack()
 
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int length;
 	CWResultCode resultCode;
 }BEconfigEventResponse;
+#pragma pack()
 
 /*
 //update need fragment
@@ -144,65 +156,80 @@ typedef struct {
 }BEupgradeEventRequest;
 */
 
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int length;
 	char* filePath;//fragment
 }BEupgradeEventRequest;
+#pragma pack()
 
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int length;
 	CWResultCode resultCode;
 }BEupgradeEventResponse;
+#pragma pack()
 
 
 //ap req
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int length;
 	char* xml;
 }BEwtpEventRequest;
+#pragma pack()
 
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int length;
 	CWResultCode resultCode;
 }BEwtpEventResponse;
+#pragma pack()
 
 //4bit
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int length;
 	unsigned short TotalFileNum;
 	unsigned short FileNo;
 	unsigned short EncodeNameLen;
-	unsigned short EncodeContentLen;
+	unsigned int    EncodeContentLen;
 	char* EncodeName;
 	char* EncodeContent;
 }BEPortalEventRequest;
+#pragma pack()
 
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int length;
 	unsigned short TotalFileNum;
 	unsigned short FileNo;
 	CWResultCode resultCode;
 }BEPortalEventResponse;
+#pragma pack()
 
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int length;
 	unsigned char operation;
 	//1:Reset 2:Reboot
 }BEsystemEventRequest;
+#pragma pack()
 
+#pragma pack(1)
 typedef struct {
 	unsigned short type;
-	unsigned short length;
+	unsigned int length;
 	CWResultCode resultCode;
 }BEsystemEventResponse;
-
+#pragma pack()
 
 
 

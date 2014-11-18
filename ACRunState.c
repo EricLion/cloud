@@ -416,10 +416,10 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 		
 				
 				beSysEventResp.type =htons( BE_SYSTEM_EVENT_RESPONSE) ;
-				beSysEventResp.length = htons(sizeof(SystemCode));
+				beSysEventResp.length = Swap32(sizeof(SystemCode));
 				beSysEventResp.resultCode = Swap32(resultCode);
 					
-				BESize = BE_TYPELEN_LEN+sizeof(SystemCode);
+				BESize = BE_TYPELEN_LEN+BE_CODE_LEN;
 
 				beResp = AssembleBEheader((char*)&beSysEventResp,&BESize,WTPIndex,NULL);
 
@@ -469,10 +469,10 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			//BE 
 			
 				beSysEventResp.type =htons( BE_SYSTEM_EVENT_RESPONSE) ;
-				beSysEventResp.length = htons(sizeof(SystemCode));
+				beSysEventResp.length = Swap32(sizeof(SystemCode));
 				beSysEventResp.resultCode = Swap32(resultCode);
 					
-				BESize = BE_TYPELEN_LEN+sizeof(SystemCode);
+				BESize = BE_TYPELEN_LEN+BE_CODE_LEN;
 
 				beResp = AssembleBEheader((char*)&beSysEventResp,&BESize,WTPIndex,NULL);
 
@@ -552,7 +552,7 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			//BE 
 			
 			beWtpEventReq.type =htons( BE_WTP_EVENT_REQUEST) ;
-			beWtpEventReq.length = htons(gWTPs[WTPIndex].WTPProtocolManager.WTPVendorPayload->vendorPayloadLen);
+			beWtpEventReq.length = Swap32(gWTPs[WTPIndex].WTPProtocolManager.WTPVendorPayload->vendorPayloadLen);
 			beWtpEventReq.xml = (char*)gWTPs[WTPIndex].WTPProtocolManager.WTPVendorPayload->payload;
 				
 			BESize = BE_TYPELEN_LEN+gWTPs[WTPIndex].WTPProtocolManager.WTPVendorPayload->vendorPayloadLen;
@@ -965,14 +965,14 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 				beUpgradeEventResp.type = htons(BE_UPGRADE_EVENT_RESPONSE) ;
 				// 4 sizeof(int)
 				payloadSize = sizeof(resultCode);
-				beUpgradeEventResp.length = htons(sizeof(resultCode));//4
+				beUpgradeEventResp.length = Swap32(sizeof(resultCode));//4
 				beUpgradeEventResp.resultCode = Swap32(resultCode);
 
 				//CW_CREATE_STRING_ERR(&beConfigEventResp.resultCode, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
 				//memset(beMonitorEventResp.xml, 0, payloadSize);
 				//memcpy(beMonitorEventResp.xml, vendValues->payload, payloadSize);
 
-				BESize = BE_TYPELEN_LEN+payloadSize;
+				BESize = BE_TYPELEN_LEN+BE_CODE_LEN;
 
 				beResp = AssembleBEheader((char*)&beUpgradeEventResp,&BESize,WTPIndex,NULL);
 				
@@ -1002,14 +1002,14 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			   beConfigEventResp.type = htons(BE_CONFIG_EVENT_RESPONSE) ;
 			  // 4 sizeof(int)
 			   payloadSize = sizeof(resultCode);
-			   beConfigEventResp.length = htons(sizeof(resultCode));//4
+			   beConfigEventResp.length = Swap32(sizeof(resultCode));//4
 			   beConfigEventResp.resultCode = Swap32(resultCode);
 			   
 			   //CW_CREATE_STRING_ERR(&beConfigEventResp.resultCode, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
 			   //memset(beMonitorEventResp.xml, 0, payloadSize);
 			   //memcpy(beMonitorEventResp.xml, vendValues->payload, payloadSize);
 			   
-			   BESize = BE_TYPELEN_LEN+payloadSize;
+			   BESize = BE_TYPELEN_LEN+BE_CODE_LEN;
 			   
    			   beResp = AssembleBEheader((char*)&beConfigEventResp,&BESize,WTPIndex,NULL);
 			   //CW_FREE_OBJECT(beConfigEventResp.xml);
@@ -1023,14 +1023,14 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			   
 			  
 			   beMonitorEventResp.type =htons( BE_MONITOR_EVENT_RESPONSE) ;
-			   beMonitorEventResp.length = htons(payloadSize+sizeof(resultCode));
+			   beMonitorEventResp.length = Swap32(payloadSize+sizeof(resultCode));
 			   beMonitorEventResp.resultCode = Swap32(resultCode);
 			   
 			   CW_CREATE_STRING_ERR(beMonitorEventResp.xml, payloadSize+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
 			   memset(beMonitorEventResp.xml, 0, payloadSize+1);
 			   memcpy(beMonitorEventResp.xml, (char*)vendValues->payload, payloadSize);
 			   
-			   BESize = BE_TYPELEN_LEN+payloadSize+sizeof(resultCode);
+			   BESize = BE_TYPELEN_LEN+payloadSize+BE_CODE_LEN;
 			   
 			   CWLog("beMonitorEventResp.xml front char:%x(%c),%x(%c),%x(%c),%x(%c)",
 			   						beMonitorEventResp.xml[0],beMonitorEventResp.xml[0],
@@ -1062,8 +1062,8 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			 
 			   bePortalEventResp.type = htons(BE_PORTAL_EVENT_RESPONSE) ;
 			  // 4 sizeof(int) +2
-			   payloadSize = sizeof(resultCode)+2*sizeof(short);
-			   bePortalEventResp.length = htons(payloadSize);//4
+			   payloadSize = BE_CODE_LEN+2*sizeof(short);
+			   bePortalEventResp.length = Swap32(payloadSize);//4
 			   bePortalEventResp.FileNo = htons(gWTPs[WTPIndex].vendorPortalValues->FileNo);
 			   bePortalEventResp.TotalFileNum= htons(gWTPs[WTPIndex].vendorPortalValues->TotalFileNum);
 			   bePortalEventResp.resultCode = Swap32(resultCode);

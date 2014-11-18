@@ -10,8 +10,6 @@
 #define COMMAND_BUFFER_SIZE 5120
 #define WTP_LIST_BUFFER_SIZE 1024
 
-#define BE_TYPE_SIZE	sizeof(unsigned short)
-#define BE_LENGTH_SIZE	sizeof(unsigned short)
 int is_valid_wtp_index(int index);
 int Readn(int sock, void *buf, size_t n);
 
@@ -232,10 +230,11 @@ char BESetSysValues(u_char* apMac, int socketIndex, SystemCode sysCode)
 char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 {
 	BEHeader beHeader;
-	char *rsp = NULL;
+	char *rsp = NULL,*rspStart = NULL;
 	int i,packetLen = 0;
 	time_t timestamp;
 	unsigned short type = 0;
+	unsigned int length = 0;
 
 	
 	if(buf == NULL || len == NULL  )
@@ -245,6 +244,8 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	}
 	
 	memcpy((char*)&type, buf, BE_TYPE_LEN);
+	memcpy((char*)&length,buf+BE_TYPE_LEN,BE_LENGTH_LEN);
+	
 	
 	CWLog("[F:%s, L:%d] :AssembleBEheader type = %d",__FILE__,__LINE__,type);
 	if(*len > BE_MAX_PACKET_LEN)
@@ -256,24 +257,14 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	beHeader.length =*len  + TIME_LEN + MAC_ADDR_LEN;
 	packetLen = BE_TYPELEN_LEN + beHeader.length; 
 	
-
-	//sprintf(cmd,"date \"+%s\"");
 	
 	time(&timestamp);
 	CWLog("[F:%s, L:%d] :beHeader.timestamp = %d",__FILE__,__LINE__,timestamp);
-	
 	beHeader.timestamp =Swap32(timestamp);
-	//beHeader.timestamp =(timestamp);
-//	CWLog("[F:%s, L:%d] :sizeof(int) = %d,beHeader.timestamp = %x",__FILE__,__LINE__,sizeof(unsigned int), beHeader.timestamp);	
-//	CWLog("[F:%s, L:%d] :beHeader.type = %x",__FILE__,__LINE__,beHeader.type);	
 	beHeader.type = htons(BE_CAPWAP_HEADER);
-//	CWLog("[F:%s, L:%d] :beHeader.type = %x",__FILE__,__LINE__,beHeader.type);	
 	CWLog("[F:%s, L:%d] :beHeader.length = %x",__FILE__,__LINE__,beHeader.length);
-	beHeader.length =htons(beHeader.length);
-//	CWLog("[F:%s, L:%d] :beHeader.length = %x",__FILE__,__LINE__,beHeader.length);
-	//beHeader.timestamp =time;
-	//beHeader.type = BE_CAPWAP_HEADER;
-	//beHeader.length =*len + MAC_ADDR_LEN;
+	beHeader.length =Swap32(beHeader.length);
+
 
 	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
 		CWLog("Error locking the gWTPsMutex mutex");
@@ -293,24 +284,46 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	CW_CREATE_STRING_ERR(rsp, packetLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
 	memset(rsp, 0, packetLen+1);
 	//字节对齐
-	memcpy(rsp,(char*)&beHeader, BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN);
+	//memcpy(rsp,(char*)&beHeader, BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN);
+	rspStart = rsp;
+
+	memcpy(rsp,(char*)&(beHeader.type), BE_TYPE_LEN);
+	rsp = rsp + BE_TYPE_LEN;
+	memcpy(rsp,(char*)&(beHeader.length), BE_LENGTH_LEN);
+	rsp = rsp + BE_LENGTH_LEN;
+	memcpy(rsp,(char*)&(beHeader.timestamp), TIME_LEN);
+	rsp = rsp + TIME_LEN;
+	memcpy(rsp,(char*)&(beHeader.apMac), MAC_ADDR_LEN);
+	rsp = rsp + MAC_ADDR_LEN;	
 
 	//*xml
 	if(xml == NULL)
-	{
-		memcpy(rsp+BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN,buf, *len);
+	{	
+		memcpy(rsp,(char*)&(type), BE_TYPE_LEN);
+		rsp = rsp + BE_TYPE_LEN;
+		memcpy(rsp,(char*)&(length), BE_LENGTH_LEN);
+		rsp = rsp + BE_LENGTH_LEN;
+		memcpy(rsp,buf+BE_TYPELEN_LEN, *len-BE_TYPELEN_LEN);
 	}
 	if( xml && type ==( htons( BE_MONITOR_EVENT_RESPONSE) ))
 	{
 		CWLog("[F:%s, L:%d] :AssembleBEheader  htons( BE_MONITOR_EVENT_RESPONSE)= %d",__FILE__,__LINE__, htons( BE_MONITOR_EVENT_RESPONSE));
-		memcpy(rsp+BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN,buf, BE_TYPELEN_LEN+sizeof(CWResultCode));
-		memcpy(rsp+BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN+BE_TYPELEN_LEN+sizeof(CWResultCode),xml, *len - BE_TYPELEN_LEN -sizeof(int) );
+		memcpy(rsp,(char*)&(type), BE_TYPE_LEN);
+		rsp = rsp + BE_TYPE_LEN;
+		memcpy(rsp,(char*)&(length), BE_LENGTH_LEN);
+		rsp = rsp + BE_LENGTH_LEN;
+		memcpy(rsp,buf+BE_TYPELEN_LEN, BE_CODE_LEN);
+		rsp = rsp + sizeof(CWResultCode);
+		memcpy(rsp,xml, *len - BE_TYPELEN_LEN -BE_CODE_LEN );
 	}
 	if( xml && type == (htons( BE_WTP_EVENT_REQUEST) ))
 	{
 		CWLog("[F:%s, L:%d] :AssembleBEheader  htons( BE_WTP_EVENT_REQUEST)= %d",__FILE__,__LINE__, htons( BE_WTP_EVENT_REQUEST));
-		memcpy(rsp+BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN,buf, BE_TYPELEN_LEN);
-		memcpy(rsp+BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN+BE_TYPELEN_LEN,xml, *len - BE_TYPELEN_LEN);
+		memcpy(rsp,(char*)&(type), BE_TYPE_LEN);
+		rsp = rsp + BE_TYPE_LEN;
+		memcpy(rsp,(char*)&(length), BE_LENGTH_LEN);
+		rsp = rsp + BE_LENGTH_LEN;
+		memcpy(rsp,xml, *len - BE_TYPELEN_LEN);
 	}
 	
 	CWLog("[F:%s, L:%d] :buf len = %d",__FILE__,__LINE__,*len);
@@ -318,7 +331,7 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	
 	CWLog("[F:%s, L:%d] :packetLen = %d",__FILE__,__LINE__,*len);
 	
-	return rsp;
+	return rspStart;
 }
 
 
@@ -327,7 +340,7 @@ void SendBEResponseDirectly(int type,u_char *apMac,int socketIndex,CWResultCode 
 	int length,BESize = 0,n = 0;
 	int ret;
 	BEHeader beHeader;
-	char *rsp = NULL;
+	char *rsp = NULL,*rspStart = NULL;
 	int i,packetLen = 0;
 	time_t timestamp;
 
@@ -338,7 +351,7 @@ void SendBEResponseDirectly(int type,u_char *apMac,int socketIndex,CWResultCode 
 	}
 	
 	type =htons( type) ;
-	length = htons(sizeof(CWResultCode));
+	length = Swap32(sizeof(CWResultCode));
 	ret = Swap32(resultCode);
 		
 	BESize = BE_TYPELEN_LEN+sizeof(CWResultCode);
@@ -352,7 +365,7 @@ void SendBEResponseDirectly(int type,u_char *apMac,int socketIndex,CWResultCode 
 	beHeader.timestamp =Swap32(timestamp);
 	beHeader.type = htons(BE_CAPWAP_HEADER);
 	CWLog("[F:%s, L:%d] :beHeader.length = %d",__FILE__,__LINE__,beHeader.length);
-	beHeader.length =htons(beHeader.length);
+	beHeader.length =Swap32(beHeader.length);
 
 	
 	for(i=0; i<MAC_ADDR_LEN; i++)
@@ -363,12 +376,23 @@ void SendBEResponseDirectly(int type,u_char *apMac,int socketIndex,CWResultCode 
 	CWLog("[F:%s, L:%d] :beHeader.mac = %x:%x:%x:%x:%x:%x",__FILE__,__LINE__,beHeader.apMac[0],beHeader.apMac[1],beHeader.apMac[2],beHeader.apMac[3],beHeader.apMac[4],beHeader.apMac[5]);
 	CW_CREATE_STRING_ERR(rsp, packetLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return;});				
 	memset(rsp, 0, packetLen+1);
+	rspStart = rsp;
 	//字节对齐
-	memcpy(rsp,(char*)&beHeader, BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN);
 	
-	memcpy(rsp+BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN,&type, BE_TYPE_LEN);
-	memcpy(rsp+BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN+BE_TYPE_LEN,&length, BE_LENGTH_LEN);
-	memcpy(rsp+BE_TYPELEN_LEN+TIME_LEN+MAC_ADDR_LEN+BE_TYPE_LEN+BE_LENGTH_LEN,(char*)&ret, sizeof(int));
+	memcpy(rsp,(char*)&(beHeader.type), BE_TYPE_LEN);
+	rsp = rsp + BE_TYPE_LEN;
+	memcpy(rsp,(char*)&(beHeader.length), BE_LENGTH_LEN);
+	rsp = rsp + BE_LENGTH_LEN;
+	memcpy(rsp,(char*)&(beHeader.timestamp), TIME_LEN);
+	rsp = rsp + TIME_LEN;
+	memcpy(rsp,(char*)&(beHeader.apMac), MAC_ADDR_LEN);
+	rsp = rsp + MAC_ADDR_LEN;	
+	
+	memcpy(rsp,&type, BE_TYPE_LEN);
+	rsp = rsp + BE_TYPE_LEN;	
+	memcpy(rsp,&length, BE_LENGTH_LEN);
+	rsp = rsp + BE_LENGTH_LEN;
+	memcpy(rsp,(char*)&ret, BE_CODE_LEN);
 	
 	if(!CWErr(CWThreadMutexLock(&appsManager.socketMutex[socketIndex]))) {
 		CWLog("Error locking numSocketFree Mutex");
@@ -377,7 +401,7 @@ void SendBEResponseDirectly(int type,u_char *apMac,int socketIndex,CWResultCode 
 
 	while(n != packetLen)
 	{
-		if ( (n += Writen(appsManager.appSocket[socketIndex], rsp, packetLen))  < 0 ) {
+		if ( (n += Writen(appsManager.appSocket[socketIndex], rspStart, packetLen))  < 0 ) {
 			//CWThreadMutexUnlock(&appsManager.socketMutex[socketIndex]);
 			CWLog("Error write appsManager.appSocket[socketIndex]");
 			break;
@@ -387,7 +411,7 @@ void SendBEResponseDirectly(int type,u_char *apMac,int socketIndex,CWResultCode 
 
 	CWThreadMutexUnlock(&appsManager.socketMutex[socketIndex]);
 
-	CW_FREE_OBJECT(rsp);
+	CW_FREE_OBJECT(rspStart);
 
 }
 void SendBEResponse(char* buf,int len,int apId)
@@ -953,7 +977,8 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 	//int i, j,k, nameLength, numActiveWTPs=0, wtpIndex;
    	//int iTosend, nLtoSend;
 	//unsigned char msg_elem;
-	unsigned short beType,beLen;
+	unsigned short beType;
+	unsigned int beLen;
 	BEHeader beHeader;
 	//CWProtocolVendorSpecificValues* vendorValues;
 	//CWVendorWumValues* wumValues;
@@ -1006,7 +1031,7 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 		beLen = 0;
 		beHeader.type = 0;
 		
-		if ( ( n = Readn(sock, &beHeader.type, BE_TYPE_SIZE))> 0 ) 
+		if ( ( n = Readn(sock, &beHeader.type, BE_TYPE_LEN))> 0 ) 
 		{
 			//type
 			beHeader.type = ntohs(beHeader.type );
@@ -1018,12 +1043,12 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 			CWLog("Receive BEHeader ...");
 
 			//len
-			if  ((n = Readn(sock, &beHeader.length, BE_LENGTH_SIZE)) < 0 )
+			if  ((n = Readn(sock, &beHeader.length, BE_LENGTH_LEN)) < 0 )
 			{
 					CWLog("Error while reading from socket.");
 					goto quit_manage;
 			}
-			beHeader.length = ntohs(beHeader.length);
+			beHeader.length = Swap32(beHeader.length);
 			if(beHeader.length < BE_HEADER_MIN_LEN )
 			{
 				CWLog("Error beHeader.length = %d not in range !",beHeader.length);
@@ -1121,7 +1146,7 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 			CWLog("Receive packet beHeader.type length error, drop it !",beHeader.type);
 			goto quit_manage;
 		}
-		if ( ( n = Readn(sock, &beType, BE_TYPE_SIZE) ) > 0 ) 
+		if ( ( n = Readn(sock, &beType, BE_TYPE_LEN) ) > 0 ) 
 		{
 			beType = ntohs(beType);
 			
@@ -1130,12 +1155,12 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 				CWLog("Receive BE_MONITOR_EVENT_REQUSET !");
 				
 				//len
-				if ( (n = Readn(sock, &beLen, BE_LENGTH_SIZE) )< 0 )
+				if ( (n = Readn(sock, &beLen, BE_LENGTH_LEN) )< 0 )
 				{
 						CWLog("Error while reading from socket.");
 						goto quit_manage;
 				}
-				beLen = ntohs(beLen);
+				beLen = Swap32(beLen);
 				if(beLen)
 				{
 					CWLog("Error beLen = %d not in range !",beLen);
@@ -1212,11 +1237,11 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 				CWLog("Receive BE_CONFIG_EVENT_REQUSET !");
 				
 				//len
-				if ( (n = Readn(sock, &beLen, BE_LENGTH_SIZE) )< 0 ) {
+				if ( (n = Readn(sock, &beLen, BE_LENGTH_LEN) )< 0 ) {
 						CWLog("Error while reading from socket.");
 						goto quit_manage;
 				}
-				beLen = ntohs(beLen);
+				beLen = Swap32(beLen);
 				if(!beLen)
 				{
 					CWLog("Error beLen = %d not in range !",beLen);
@@ -1285,11 +1310,11 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 			{
 				CWLog("Receive BE_UPGRADE_EVENT_REQUEST !");
 				//len
-				if ( (n = Readn(sock, &beLen, BE_LENGTH_SIZE) )< 0 ) {
+				if ( (n = Readn(sock, &beLen, BE_LENGTH_LEN) )< 0 ) {
 						CWLog("Error while reading from socket.");
 						goto quit_manage;
 				}
-				beLen = ntohs(beLen);
+				beLen = Swap32(beLen);
 				if(!beLen)
 				{
 					CWLog("Error beLen = %d not in range !",beLen);
@@ -1335,11 +1360,11 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 			{
 				CWLog("Receive BE_PORTAL_EVENT_REQUEST !");
 				//len
-				if ( (n = Readn(sock, &beLen, BE_LENGTH_SIZE) )< 0 ) {
+				if ( (n = Readn(sock, &beLen, BE_LENGTH_LEN) )< 0 ) {
 						CWLog("Error while reading from socket.");
 						goto quit_manage;
 				}
-				beLen = ntohs(beLen);
+				beLen = Swap32(beLen);
 				if(!beLen)
 				{
 					CWLog("Error beLen = %d not in range !",beLen);
@@ -1410,11 +1435,11 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 
 
 				//fileContent
-				if ( (n = Readn(sock, &(bePortalEventRequest.EncodeContentLen), sizeof(short)) )< 0 ) {
+				if ( (n = Readn(sock, &(bePortalEventRequest.EncodeContentLen), sizeof(int)) )< 0 ) {
 						CWLog("Error while reading from socket.");
 						goto quit_manage;
 				}
-				bePortalEventRequest.EncodeContentLen = ntohs(bePortalEventRequest.EncodeContentLen);
+				bePortalEventRequest.EncodeContentLen = Swap32(bePortalEventRequest.EncodeContentLen);
 				
 				if(!(bePortalEventRequest.EncodeContentLen) )
 				{
@@ -1450,11 +1475,11 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 			{
 				CWLog("Receive BE_WTP_EVENT_RESPONSE !");
 				//len
-				if ( (n = Readn(sock, &beLen, BE_LENGTH_SIZE) )< 0 ) {
+				if ( (n = Readn(sock, &beLen, BE_LENGTH_LEN) )< 0 ) {
 						CWLog("Error while reading from socket.");
 						goto quit_manage;
 				}
-				beLen = ntohs(beLen);
+				beLen = Swap32(beLen);
 				if(beLen != sizeof(CWResultCode))
 				{
 					CWLog("Error beLen = %d, ! = sizeof(CWResultCode) not in range !",beLen);
@@ -1484,11 +1509,11 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 			{
 				CWLog("Receive BE_SYSTEM_EVENT_REQUEST !");
 				//len
-				if ( (n = Readn(sock, &beLen, BE_LENGTH_SIZE) )< 0 ) {
+				if ( (n = Readn(sock, &beLen, BE_LENGTH_LEN) )< 0 ) {
 						CWLog("Error while reading from socket.");
 						goto quit_manage;
 				}
-				beLen = ntohs(beLen);
+				beLen = Swap32(beLen);
 				if(beLen != sizeof(char))
 				{
 					CWLog("Error beLen = %d,!=sizeof(char) not in range !",beLen);

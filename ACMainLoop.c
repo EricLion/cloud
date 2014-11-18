@@ -867,7 +867,7 @@ void _CWCloseThread(int i) {
 		CWLog("_CWCloseThread gActiveWTPs = %d",gActiveWTPs);
 		
 		beConEve.type =htons( BE_CONNECT_EVENT);
-		beConEve.length = htons(BE_CONNECT_EVENT_LEN);
+		beConEve.length = Swap32(BE_CONNECT_EVENT_LEN);
 		beConEve.state = BE_CONNECT_EVENT_DISCONNECT;
 		BESize = BE_CONNECT_EVENT_LEN + BE_TYPELEN_LEN;
 		
