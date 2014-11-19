@@ -107,6 +107,7 @@ typedef struct {
 	unsigned short type;
 	unsigned int length;
 	char  state;
+	char* xml;
 }BEconnectEvent;
 #pragma pack()
 //alarm ?

@@ -305,6 +305,17 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 		rsp = rsp + BE_LENGTH_LEN;
 		memcpy(rsp,buf+BE_TYPELEN_LEN, *len-BE_TYPELEN_LEN);
 	}
+	if( xml && type ==( htons( BE_CONNECT_EVENT) ))
+	{
+		CWLog("[F:%s, L:%d] :AssembleBEheader  htons( BE_CONNECT_EVENT)= %d",__FILE__,__LINE__, htons( BE_CONNECT_EVENT));
+		memcpy(rsp,(char*)&(type), BE_TYPE_LEN);
+		rsp = rsp + BE_TYPE_LEN;
+		memcpy(rsp,(char*)&(length), BE_LENGTH_LEN);
+		rsp = rsp + BE_LENGTH_LEN;
+		memcpy(rsp,buf+BE_TYPELEN_LEN, BE_CONNECT_EVENT_LEN);
+		rsp = rsp + BE_CONNECT_EVENT_LEN;
+		memcpy(rsp,xml, *len - BE_TYPELEN_LEN -BE_CONNECT_EVENT_LEN );
+	}
 	if( xml && type ==( htons( BE_MONITOR_EVENT_RESPONSE) ))
 	{
 		CWLog("[F:%s, L:%d] :AssembleBEheader  htons( BE_MONITOR_EVENT_RESPONSE)= %d",__FILE__,__LINE__, htons( BE_MONITOR_EVENT_RESPONSE));

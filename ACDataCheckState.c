@@ -38,7 +38,7 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	int seqNum, BESize;
 	CWProtocolChangeStateEventRequestValues *changeStateEvent;
 	char *beResp = NULL;
-	BEconnectEvent beConEve;
+	//BEconnectEvent beConEve;
 	
 	CWLog("\n");
 	CWDebugLog("######### Status Event #########");	
@@ -132,7 +132,22 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 
 	CWLog("[F:%s, L:%d]  gActiveWTPs:%d",__FILE__,__LINE__,gActiveWTPs);
 	CWThreadMutexUnlock(&gActiveWTPsMutex);
-#if 1
+
+	//move to configureUpdateResp
+
+	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+		CWLog("Error locking the gWTPsMutex mutex");
+		return CW_FALSE;
+	}
+
+	CW_CREATE_OBJECT_ERR(gWTPs[WTPIndex].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+	gWTPs[WTPIndex].vendorValues->vendorPayloadLen = 0;
+	gWTPs[WTPIndex].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE;
+	
+	gWTPs[WTPIndex].isConnect = CW_TRUE;
+	CWThreadMutexUnlock(&gWTPsMutex);
+	
+#if 0
 	//BE: ap connect	
 	beConEve.type = htons(BE_CONNECT_EVENT);
 	beConEve.length = Swap32(BE_CONNECT_EVENT_LEN);

@@ -891,6 +891,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 	BEconfigEventResponse beConfigEventResp;
 	BEmonitorEventResponse beMonitorEventResp;
 	BEPortalEventResponse  bePortalEventResp;
+	BEconnectEvent beConEve;
 
 	if (vendValues != NULL) {
 		char * responseBuffer; 
@@ -1020,7 +1021,6 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			   payloadSize = vendValues->vendorPayloadLen;
 			   CWLog("[F:%s, L:%d] strlen(vendValues->payload) =%d,payloadSize:%d",__FILE__,__LINE__,strlen(vendValues->payload),payloadSize);
 			   CWLog("Msg :CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_XML Saved");
-			   
 			  
 			   beMonitorEventResp.type =htons( BE_MONITOR_EVENT_RESPONSE) ;
 			   beMonitorEventResp.length = Swap32(payloadSize+sizeof(resultCode));
@@ -1029,6 +1029,20 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			   CW_CREATE_STRING_ERR(beMonitorEventResp.xml, payloadSize+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
 			   memset(beMonitorEventResp.xml, 0, payloadSize+1);
 			   memcpy(beMonitorEventResp.xml, (char*)vendValues->payload, payloadSize);
+
+			    //BE: ap connect	
+			  if(gWTPs[WTPIndex].isConnect == CW_TRUE)
+			  {
+			  		CWLog("BE_CONNECT_EVENT Assemble ...");
+					beConEve.type = htons(BE_CONNECT_EVENT);
+					beConEve.length = Swap32(BE_CONNECT_EVENT_LEN);
+					beConEve.state = BE_CONNECT_EVENT_CONNECT;
+					BESize = BE_CONNECT_EVENT_LEN + BE_TYPELEN_LEN + payloadSize;
+					beResp = AssembleBEheader((char*)&beConEve,&BESize,WTPIndex,beMonitorEventResp.xml);
+				      	CW_FREE_OBJECT(beMonitorEventResp.xml);
+			   		CWLog("BE_CONNECT_EVENT Assembled");
+			   		break;
+			   }
 			   
 			   BESize = BE_TYPELEN_LEN+payloadSize+BE_CODE_LEN;
 			   
@@ -1084,7 +1098,21 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 //BE : assemble header
 			 if(beResp)
 			   {
-				SendBEResponse(beResp,BESize,WTPIndex);
+			   	if(gWTPs[WTPIndex].isConnect == CW_TRUE)
+			   	{
+					SendBERequest(beResp,BESize);
+					CWLog("SendBERequest BE_CONNECT_EVENT");
+					if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+							CWLog("Error locking the gWTPsMutex mutex");
+							return CW_FALSE;
+						}
+					gWTPs[WTPIndex].isConnect = CW_FALSE;
+					CWThreadMutexUnlock(&gWTPsMutex);
+				}
+				else
+				{
+					SendBEResponse(beResp,BESize,WTPIndex);
+				}
 				//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 				CW_FREE_OBJECT(beResp);
 				//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);

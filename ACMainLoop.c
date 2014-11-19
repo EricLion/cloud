@@ -404,6 +404,9 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 	//MAC
 	memset(gWTPs[i].MAC, 0, MAC_ADDR_LEN);
 
+	//BE: connectEvent
+	gWTPs[i].isConnect = CW_FALSE;
+
 	CWResetWTPProtocolManager(&(gWTPs[i].WTPProtocolManager));
 
 	CWLog("New Session");
@@ -596,6 +599,23 @@ CWLog("F:%s L:%d",__FILE__,__LINE__);
 							CWCloseThread();
 						}
 					}
+					if(gWTPs[i].isConnect == CW_TRUE)
+					{
+						CWLog("[F:%s, L:%d]CW_ENTER_DATA_CHECK Connect begin...",__FILE__,__LINE__);
+						 int seqNum = CWGetSeqNum();
+
+	                                         if (CWAssembleConfigurationUpdateRequest(&(gWTPs[i].messages),
+	                                                                                                                 &(gWTPs[i].messagesCount),
+	                                                                                                                 gWTPs[i].pathMTU,
+	                                                                                                                 seqNum, CONFIG_UPDATE_REQ_VENDOR_STATE_ELEMENT_TYPE)) {
+
+	                                          if(CWACSendAcknowledgedPacket(i, CW_MSG_TYPE_VALUE_CONFIGURE_UPDATE_RESPONSE, seqNum))
+								CWLog("[F:%s, L:%d]CONFIGURE_UPDATE_REQUEST Send...",__FILE__,__LINE__);		  	
+	                                          else
+	                                                CWACStopRetransmission(i);
+	                                        }
+					}
+					
 					break;
 				}	
 				case CW_ENTER_RUN:
@@ -900,6 +920,7 @@ void _CWCloseThread(int i) {
 	CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
 	gWTPs[i].qosValues=NULL;
 	memset(gWTPs[i].MAC, 0, MAC_ADDR_LEN);
+	gWTPs[i].isConnect = CW_FALSE;
 
 	CWThreadMutexUnlock(&gWTPsMutex);
 	/**** ACInterface ****/

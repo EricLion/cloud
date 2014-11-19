@@ -173,7 +173,8 @@ typedef struct {
 	int responseType;
 	int responseSeqNum;
 	
-
+	//connectEvent
+	char isConnect;
 	/* //Unrecognized message type value
 	 * int unrecognizedMsgType;
 	 */
