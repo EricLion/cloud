@@ -1035,7 +1035,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			  {
 			  		CWLog("BE_CONNECT_EVENT Assemble ...");
 					beConEve.type = htons(BE_CONNECT_EVENT);
-					beConEve.length = Swap32(BE_CONNECT_EVENT_LEN);
+					beConEve.length = Swap32(payloadSize+BE_CONNECT_EVENT_LEN);
 					beConEve.state = BE_CONNECT_EVENT_CONNECT;
 					BESize = BE_CONNECT_EVENT_LEN + BE_TYPELEN_LEN + payloadSize;
 					beResp = AssembleBEheader((char*)&beConEve,&BESize,WTPIndex,beMonitorEventResp.xml);
@@ -1073,6 +1073,13 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 				
 			   //portal
 		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_PORTAL:
+
+			//isLast Resp
+			  if(gWTPs[WTPIndex].vendorPortalValues->isLast == FALSE)
+			  {
+			  	CWLog("[F:%s, L:%d] Portal not last !",__FILE__,__LINE__);
+				break;
+			  }
 			 
 			   bePortalEventResp.type = htons(BE_PORTAL_EVENT_RESPONSE) ;
 			  // 4 sizeof(int) +2

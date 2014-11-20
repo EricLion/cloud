@@ -298,13 +298,17 @@ CWBool CWAssembleWTPVendorPayloadPortal(CWProtocolMessage *msgPtr) {
 		
 		CWLog("F:%s L:%d",__FILE__,__LINE__);
 
-		CW_CREATE_PROTOCOL_MESSAGE(*msgPtr,sizeof(int)+2*sizeof(short)+gWTPs[*iPtr].vendorPortalValues->EncodeNameLen+gWTPs[*iPtr].vendorPortalValues->EncodeContentLen, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+		CW_CREATE_PROTOCOL_MESSAGE(*msgPtr,2*sizeof(int)+3*sizeof(short)+gWTPs[*iPtr].vendorPortalValues->EncodeNameLen+gWTPs[*iPtr].vendorPortalValues->EncodeContentLen, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
 		
 		CWProtocolStore16(msgPtr, msgType);
 		//No msgLen
 		//CWProtocolStore16(msgPtr, msgLen);
 		//CWProtocolStoreStr(msgPtr, xmlPtr->payload);
 		//CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
+		//fragment
+		CWProtocolStore16(msgPtr, gWTPs[*iPtr].vendorPortalValues->isLast);
+		CWProtocolStore32(msgPtr, gWTPs[*iPtr].vendorPortalValues->SeqNum);
+		
 		CWProtocolStore16(msgPtr, gWTPs[*iPtr].vendorPortalValues->EncodeNameLen);
 		//CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 		CWProtocolStoreRawBytes(msgPtr,  gWTPs[*iPtr].vendorPortalValues->EncodeName,gWTPs[*iPtr].vendorPortalValues->EncodeNameLen);

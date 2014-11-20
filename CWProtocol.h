@@ -630,8 +630,10 @@ typedef struct {
  typedef struct {
 	unsigned short  TotalFileNum;
 	unsigned short  FileNo;
-	unsigned short EncodeNameLen;
-	unsigned int    EncodeContentLen;
+	unsigned short  EncodeNameLen;
+	unsigned short  isLast;
+	unsigned int     EncodeContentLen;
+	unsigned int     SeqNum;
 	char* EncodeName;
 	char* EncodeContent;
 } CWProtocolVendorPortalValues;

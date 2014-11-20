@@ -792,7 +792,6 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 
 int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* portalValues) {
 
-	gWTPs[selection].vendorPortalValues = NULL;
 	if(portalValues == NULL)
 	{
 		CWLog("[F:%s, L:%d]CWPortalSetValues portalValues == NULL ",__FILE__,__LINE__);
@@ -819,7 +818,9 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		CWLog("[F:%s, L:%d]selection <0 ||selection >= CW_MAX_WTP ",__FILE__,__LINE__);
 		return FALSE;
 	}
-	CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
+	gWTPs[selection].vendorPortalValues = NULL;
+	
+	//CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
 	//portal to vendor	
 	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorPortalValues, CWProtocolVendorPortalValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
@@ -827,13 +828,36 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 	gWTPs[selection].vendorPortalValues->FileNo= portalValues->FileNo;
 	gWTPs[selection].vendorPortalValues->EncodeNameLen= portalValues->EncodeNameLen;
 	gWTPs[selection].vendorPortalValues->EncodeContentLen= portalValues->EncodeContentLen;
-
+	//CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+	
 	CWLog("[F:%s, L:%d]gWTPs[selection].vendorPortalValues->TotalFileNum = %d ",__FILE__,__LINE__,gWTPs[selection].vendorPortalValues->TotalFileNum);
 	CWLog("[F:%s, L:%d]gWTPs[selection].vendorPortalValues->FileNo = %d ",__FILE__,__LINE__,gWTPs[selection].vendorPortalValues->FileNo);
+	CWLog("[F:%s, L:%d]gWTPs[selection].vendorPortalValues->EncodeNameLen = %d ",__FILE__,__LINE__,gWTPs[selection].vendorPortalValues->EncodeNameLen);
+	CWLog("[F:%s, L:%d]gWTPs[selection].vendorPortalValues->EncodeContentLen = %d ",__FILE__,__LINE__,gWTPs[selection].vendorPortalValues->EncodeContentLen);
+
+	int seqNum;
+	int fragSize;
+	int sent,left,toSend,i;
+	sent = 0;
+	left = gWTPs[selection].vendorPortalValues->EncodeContentLen;
+	toSend = MIN(FRAGMENT_SIZE, left);
+	for (i = 0; left > 0; i++) {
+		seqNum = i;
+		fragSize = toSend;
+
+		if(left <= toSend)
+		{
+			gWTPs[selection].vendorPortalValues->isLast = TRUE;
+		}
+		else
+		{
+			gWTPs[selection].vendorPortalValues->isLast = FALSE;
+		}
+		gWTPs[selection].vendorPortalValues->SeqNum= seqNum;
+		gWTPs[selection].vendorPortalValues->EncodeContentLen= fragSize;
+
 	
 
-	if(gWTPs[selection].vendorPortalValues->EncodeNameLen)
-	{
 
 		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeName, gWTPs[selection].vendorPortalValues->EncodeNameLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 		memset(gWTPs[selection].vendorPortalValues->EncodeName,0,gWTPs[selection].vendorPortalValues->EncodeNameLen+1);
@@ -841,8 +865,45 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		CWLog("gWTPs[%d].vendorPortalValues->EncodeName, :%s", selection, gWTPs[selection].vendorPortalValues->EncodeName);
 		CWLog("gWTPs[%d].vendorPortalValues->EncodeName Len:%d", selection, gWTPs[selection].vendorPortalValues->EncodeNameLen);
 		//gWTPs[selection].vendorValues->vendorPayloadLen = strlen(gWTPs[selection].vendorValues->payload);
-	}
 
+
+		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeContent, gWTPs[selection].vendorPortalValues->EncodeContentLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+		memset(gWTPs[selection].vendorPortalValues->EncodeContent,0,gWTPs[selection].vendorPortalValues->EncodeContentLen+1);
+		memcpy(gWTPs[selection].vendorPortalValues->EncodeContent,  portalValues->EncodeContent+sent,gWTPs[selection].vendorPortalValues->EncodeContentLen);
+		CWLog("fragment EncodeContentLen Len:%d", selection, gWTPs[selection].vendorPortalValues->EncodeContentLen);
+
+		//portalValues->EncodeContent = portalValues->EncodeContent + toSend;
+
+		CWLog("[F:%s, L:%d] -------%d  portal fragment send----------",__FILE__,__LINE__,seqNum);
+		/*
+		ret = BESetWumValues(apMac, socketIndex,vendorValues);
+		if(!ret)
+		{
+			CWLog("[F:%s, L:%d] BESetWumValues fail ! ",__FILE__,__LINE__);
+			return ret;
+		}
+		*/
+		CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
+		gWTPs[selection].applicationIndex = socketIndex;
+		gWTPs[selection].interfaceCommand = PORTAL_MSG_CMD;
+		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+		
+		//block
+		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+		
+		CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+		
+		CWLog("[F:%s, L:%d] -------%d  portal fragment recv----------",__FILE__,__LINE__,seqNum);
+		left -= toSend;
+		sent += toSend;
+		CWLog("[F:%s, L:%d] portal fileContent sended %d ",__FILE__,__LINE__,sent);
+		toSend = MIN(FRAGMENT_SIZE, left);	
+	} 
+
+#if 0
 	if(gWTPs[selection].vendorPortalValues->EncodeContentLen)
 	{
 		
@@ -853,37 +914,9 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		CWLog("gWTPs[%d].vendorPortalValues->EncodeContent Len:%d", selection, gWTPs[selection].vendorPortalValues->EncodeContentLen);
 		//gWTPs[selection].vendorValues->vendorPayloadLen = strlen(gWTPs[selection].vendorValues->payload);
 	}
+#endif
+	
 
-	gWTPs[selection].interfaceCommand = PORTAL_MSG_CMD;
-	/*
-	if(xmlValues->wum_type == WTP_CONFIG_REQUEST)
-	{
-		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
-		gWTPs[selection].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG;
-		gWTPs[selection].interfaceCommand = WTP_CONFIG_CMD;
-	}
-	else if(xmlValues->wum_type == WTP_STATE_REQUEST)
-	{
-		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
-		gWTPs[selection].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE;
-		gWTPs[selection].interfaceCommand = WTP_STATE_CMD;
-	}
-	else
-	{
-		CWLog("[F:%s, L:%d]  Unknown wum_type:%d",__FILE__,__LINE__,xmlValues->wum_type);
-		return FALSE;
-	}
-	*/
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
-	gWTPs[selection].applicationIndex = socketIndex;
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
-	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
-	//block
-	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
-	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	return TRUE;
 }
 
@@ -1471,13 +1504,16 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 
 				result = FALSE;
 				result = BESetPortalValues(beHeader.apMac, socketIndex, &bePortalEventRequest);
+				CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 				CW_FREE_OBJECT(bePortalEventRequest.EncodeName);
-				CW_FREE_OBJECT(bePortalEventRequest.EncodeContent);	
+				CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
+				CW_FREE_OBJECT(bePortalEventRequest.EncodeContent);
+				CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 				if(!result)
 				{
 					SendBEResponseDirectly(BE_PORTAL_EVENT_RESPONSE,beHeader.apMac,socketIndex,rc);
 				}
-				
+				CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 				goto quit_manage;
 			}
 			
