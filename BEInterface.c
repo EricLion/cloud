@@ -743,7 +743,10 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 		CWLog("[F:%s, L:%d]selection <0 ||selection >= CW_MAX_WTP ",__FILE__,__LINE__);
 		return FALSE;
 	}
-	CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
+	if(!CWErr(CWThreadMutexLock(&(gWTPs[selection].interfaceMutex)))) {
+		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly");
+		return FALSE;
+	}
 	//Free Old	
 	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 	gWTPs[selection].vendorValues->vendorPayloadLen = 0;
@@ -792,6 +795,11 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 
 int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* portalValues) {
 
+	if(!CWErr(CWThreadMutexLock(&(gWTPs[selection].interfaceMutex)))) {
+		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly");
+		return FALSE;
+	}
+	
 	if(portalValues == NULL)
 	{
 		CWLog("[F:%s, L:%d]CWPortalSetValues portalValues == NULL ",__FILE__,__LINE__);
@@ -856,16 +864,12 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		gWTPs[selection].vendorPortalValues->SeqNum= seqNum;
 		gWTPs[selection].vendorPortalValues->EncodeContentLen= fragSize;
 
-	
-
-
 		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeName, gWTPs[selection].vendorPortalValues->EncodeNameLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 		memset(gWTPs[selection].vendorPortalValues->EncodeName,0,gWTPs[selection].vendorPortalValues->EncodeNameLen+1);
 		memcpy(gWTPs[selection].vendorPortalValues->EncodeName,  portalValues->EncodeName,portalValues->EncodeNameLen);
 		CWLog("gWTPs[%d].vendorPortalValues->EncodeName, :%s", selection, gWTPs[selection].vendorPortalValues->EncodeName);
 		CWLog("gWTPs[%d].vendorPortalValues->EncodeName Len:%d", selection, gWTPs[selection].vendorPortalValues->EncodeNameLen);
 		//gWTPs[selection].vendorValues->vendorPayloadLen = strlen(gWTPs[selection].vendorValues->payload);
-
 
 		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeContent, gWTPs[selection].vendorPortalValues->EncodeContentLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 		memset(gWTPs[selection].vendorPortalValues->EncodeContent,0,gWTPs[selection].vendorPortalValues->EncodeContentLen+1);
@@ -883,7 +887,7 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 			return ret;
 		}
 		*/
-		CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
+		//CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
 		gWTPs[selection].applicationIndex = socketIndex;
 		gWTPs[selection].interfaceCommand = PORTAL_MSG_CMD;
 		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
@@ -892,9 +896,7 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		
 		//block
 		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
-		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
-		
-		CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 		
 		CWLog("[F:%s, L:%d] -------%d  portal fragment recv----------",__FILE__,__LINE__,seqNum);
 		left -= toSend;
@@ -916,6 +918,7 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 	}
 #endif
 	
+	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
 
 	return TRUE;
 }
@@ -930,7 +933,10 @@ int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 		return FALSE;
 	}
 	
-	CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
+	if(!CWErr(CWThreadMutexLock(&(gWTPs[selection].interfaceMutex)))) {
+		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly");
+		return FALSE;
+	}
 	
 	if(sysCode == SYSTEM_RESET)
 	{
@@ -970,7 +976,10 @@ int CWWumSetValues(int selection, int socketIndex, CWProtocolVendorSpecificValue
 		return FALSE;
 	}
 	
-	CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
+	if(!CWErr(CWThreadMutexLock(&(gWTPs[selection].interfaceMutex)))) {
+		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly");
+		return FALSE;
+	}
 	
 	gWTPs[selection].vendorValues = vendorValues;
 	gWTPs[selection].vendorValues->payload = vendorValues->payload;
