@@ -495,7 +495,12 @@ CWLog("F:%s L:%d",__FILE__,__LINE__);
 				//CWThreadSetSignals(SIG_UNBLOCK, 1, CW_SOFT_TIMER_EXPIRED_SIGNAL);
 				//continue;
 				 CWLog("F:%s L:%d",__FILE__,__LINE__);
+
+				CWLog("Close thread");
+				_CWCloseThread(i);
+				
 #else
+				 CWLog("F:%s L:%d",__FILE__,__LINE__);
 				//CWSecurityReceive core ????
 			  if(!CWErr(CWSecurityReceive(gWTPs[i].session,
 										  gWTPs[i].buf,

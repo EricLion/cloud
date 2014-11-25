@@ -896,7 +896,7 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		
 		//block
 		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
-		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
+		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 		
 		CWLog("[F:%s, L:%d] -------%d  portal fragment recv----------",__FILE__,__LINE__,seqNum);
 		left -= toSend;
