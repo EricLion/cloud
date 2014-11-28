@@ -73,6 +73,16 @@ int FindApIndex(u_char* apMac)
 						break;
 					}
 				}
+				else
+				{
+					break;
+
+				}
+			}
+
+			if(finded >=0)
+			{
+				break;
 			}
 		}
 	}

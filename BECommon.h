@@ -58,7 +58,8 @@ typedef enum {
 	CW_FAILURE_MISSING_MSG_ELEM		= 20, // Failure: missing mandatory message element
 	CW_FAILURE_UNRECOGNIZED_MSG_ELEM	= 21,  // Failure: unrecognized message element
 	CW_FAILURE_WTP_NOT_CONNECTED	= 22 ,// Failure:WTP not online
-	CW_FAILURE_WTP_IMAGE_PATH_ERROR	= 23 //Image Data Error:WTP image path error
+	CW_FAILURE_WTP_IMAGE_PATH_ERROR	= 23 ,//Image Data Error:WTP image path error
+	CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE	= 24 //WTP upgrading ,reject new upgrade
 } CWResultCode;
 
 

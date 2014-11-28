@@ -937,6 +937,31 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			if (wumPayloadBytes[0] == WTP_UPDATE_RESPONSE )
 			{
 				CWLog("Recive WTP_UPDATE_RESPONSE ");
+
+				if( resultCode == CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE)
+				{	
+					CWLog("Recive WTP_UPDATE_RESPONSE resultCode = %d",resultCode);
+					CWLog("Recive CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE ");
+
+					BEupgradeEventResponse beUpgradeEventResp;
+					beUpgradeEventResp.type = htons(BE_UPGRADE_EVENT_RESPONSE) ;
+					// 4 sizeof(int)
+					payloadSize = sizeof(resultCode);
+					beUpgradeEventResp.length = Swap32(sizeof(resultCode));//4
+					beUpgradeEventResp.resultCode = Swap32(resultCode);
+
+					//CW_CREATE_STRING_ERR(&beConfigEventResp.resultCode, payloadSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
+					//memset(beMonitorEventResp.xml, 0, payloadSize);
+					//memcpy(beMonitorEventResp.xml, vendValues->payload, payloadSize);
+
+					BESize = BE_TYPELEN_LEN+BE_CODE_LEN;
+
+					beResp = AssembleBEheader((char*)&beUpgradeEventResp,&BESize,WTPIndex,NULL);
+					
+					break;
+					
+				}
+				
 				if( resultCode != CW_PROTOCOL_SUCCESS)
 				{
 					CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
@@ -944,7 +969,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 					CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
 					CWLog("Recive WTP_UPDATE_RESPONSE resultCode = %d,fail !",resultCode);
 				}
-				
+	
 				//CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
 			}
 			if (wumPayloadBytes[0] == WTP_CUP_ACK )
@@ -961,7 +986,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			}
 			if (wumPayloadBytes[0] == WTP_COMMIT_ACK )
 			{
-				CWLog("Recive WTP_UPDATE_RESPONSE resultCode = %d",resultCode);
+				CWLog("Recive WTP_COMMIT_ACK resultCode = %d",resultCode);
 				BEupgradeEventResponse beUpgradeEventResp;
 				beUpgradeEventResp.type = htons(BE_UPGRADE_EVENT_RESPONSE) ;
 				// 4 sizeof(int)
@@ -982,7 +1007,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 					CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
 					gWTPs[WTPIndex].interfaceResult = UPGRADE_FAILED;
 					CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
-					CWLog("Recive WTP_UPDATE_RESPONSE resultCode = %d,fail !",resultCode);
+					CWLog("Recive WTP_COMMIT_ACK resultCode = %d,fail !",resultCode);
 					//CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
 				}
 				else
