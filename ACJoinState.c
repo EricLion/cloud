@@ -107,12 +107,24 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 	}
 
 	CWThreadMutexUnlock(&gWTPsMutex);
-	
-	if(!gWTPs[WTPIndex].MAC)
+
+
+	for(i = 0;i < MAC_ADDR_LEN;i++)
 	{
-		CWLog("WTP MAC is None!");
-		return CW_FALSE;
+		if(gWTPs[WTPIndex].MAC[i] == 0)
+		{
+			if( i == (MAC_ADDR_LEN - 1))
+			{
+				CWLog("WTP %d MAC is 0:0:0:0:0:0",WTPIndex);
+				return CW_FALSE;
+			}
+		}
+		else
+		{
+			break;
+		}
 	}
+
 		//compare MAC
 		//add mutex
 	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex))) {

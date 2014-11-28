@@ -242,6 +242,8 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 		CWLog("AssembleBEheader buf == NULL || len == NULL ");
 		return NULL;
 	}
+
+	CWLog("[F:%s, L:%d] :buf len = %d",__FILE__,__LINE__,*len);
 	
 	memcpy((char*)&type, buf, BE_TYPE_LEN);
 	memcpy((char*)&length,buf+BE_TYPE_LEN,BE_LENGTH_LEN);
@@ -256,15 +258,15 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	
 	beHeader.length =*len  + TIME_LEN + MAC_ADDR_LEN;
 	packetLen = BE_TYPELEN_LEN + beHeader.length; 
-	
+
+
+	beHeader.type = htons(BE_CAPWAP_HEADER);
+	CWLog("[F:%s, L:%d] :beHeader.length = %d",__FILE__,__LINE__,beHeader.length);
+	beHeader.length =Swap32(beHeader.length);
 	
 	time(&timestamp);
 	CWLog("[F:%s, L:%d] :beHeader.timestamp = %d",__FILE__,__LINE__,timestamp);
 	beHeader.timestamp =Swap32(timestamp);
-	beHeader.type = htons(BE_CAPWAP_HEADER);
-	CWLog("[F:%s, L:%d] :beHeader.length = %x",__FILE__,__LINE__,beHeader.length);
-	beHeader.length =Swap32(beHeader.length);
-
 
 	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
 		CWLog("Error locking the gWTPsMutex mutex");
@@ -281,6 +283,9 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	CWThreadMutexUnlock(&gWTPsMutex);
 	
 	CWLog("[F:%s, L:%d] :beHeader.mac = %x:%x:%x:%x:%x:%x",__FILE__,__LINE__,beHeader.apMac[0],beHeader.apMac[1],beHeader.apMac[2],beHeader.apMac[3],beHeader.apMac[4],beHeader.apMac[5]);
+
+
+
 	CW_CREATE_STRING_ERR(rsp, packetLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
 	memset(rsp, 0, packetLen+1);
 	//×Ö½Ú¶ÔÆë
@@ -337,7 +342,7 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 		memcpy(rsp,xml, *len - BE_TYPELEN_LEN);
 	}
 	
-	CWLog("[F:%s, L:%d] :buf len = %d",__FILE__,__LINE__,*len);
+	
 	*len = packetLen;
 	
 	CWLog("[F:%s, L:%d] :packetLen = %d",__FILE__,__LINE__,*len);
@@ -472,7 +477,7 @@ void SendBEResponse(char* buf,int len,int apId)
 
 void SendBERequest(char* buf,int len)
 {
-	int ret,n;
+	int ret,n,sockfd;
 
 	n = 0;
 	ret = 0;
@@ -482,8 +487,8 @@ void SendBERequest(char* buf,int len)
 		CWLog("SendBERequest buf == NULL");
 		return;
 	}
-//	struct sockaddr_in servaddr;
-/*
+	struct sockaddr_in servaddr;
+
 	char *address = gACBEServerAddr;
 	int port = gACBEServerPort;
 	
@@ -499,11 +504,6 @@ void SendBERequest(char* buf,int len)
 	servaddr.sin_port = htons(port);
 	inet_pton(AF_INET, address, &servaddr.sin_addr);
 
-	//flags = fcntl(sockfd,F_GETFL,0);
-	//fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
-	//fcntl(sockfd, F_SETFL, 0);
-*/
-
 	CWLog("[F:%s, L:%d] SendBERequset len:%d",__FILE__,__LINE__,len);
 	if(len > BE_MAX_PACKET_LEN)
 	{
@@ -511,22 +511,15 @@ void SendBERequest(char* buf,int len)
 		return;
 	}
 	
-	if(!CWErr(CWThreadMutexLock(&appsManager.appClientSocketMutex))) {
-				CWLog("Error locking numSocketFree Mutex");
-				return;
-			}
 
-#if 0
-	if ((ret = connect(appsManager.appClientSocket, (SA*) &appsManager.appClientAddr, sizeof(struct sockaddr_in)) )< 0) {
+	if ((ret = connect(sockfd, (SA*) &servaddr, sizeof(struct sockaddr_in)) )< 0) {
 		CWLog("SendBERequest connect error,ret = %d",ret);
-		CWThreadMutexUnlock(&appsManager.appClientSocketMutex);
 		return ;
 	}
-#endif
 
 	while(n != len)
 	{
-		if ( (n += Writen(appsManager.appClientSocket, buf, len))  < 0 ) {
+		if ( (n += Writen(sockfd, buf, len))  < 0 ) {
 			//CWThreadMutexUnlock(&appsManager.appClientSocketMutex);
 			CWLog("Error write appsManager.appClientSocket");
 			break;
@@ -534,13 +527,12 @@ void SendBERequest(char* buf,int len)
 		CWLog("[F:%s, L:%d] Writen n:%d !=len",__FILE__,__LINE__,n);
 	}
 	CWLog("[F:%s, L:%d] Writen n:%d",__FILE__,__LINE__,n);
-	CWThreadMutexUnlock(&appsManager.appClientSocketMutex);
 
-/*
+
 	if (close(sockfd) < 0) {
 		CWLog("SendBERequest close error");
 	}
-	*/
+	
 /*
 	if (Read32(sockfd, &ret) != 4) {
 		exit(1);
@@ -1656,7 +1648,8 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 	 ****************************************************/
 	 /* BE client */
 	
-	int clientSock, ret;
+	/*
+	int clientSock;
 	struct sockaddr_in clientAddr;
 	char *clientAddress = gACBEServerAddr;
 	int clientPort = gACBEServerPort;
@@ -1677,12 +1670,15 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 	//fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
 	//fcntl(sockfd, F_SETFL, 0);
 
+
+	
 	if ((ret = connect(clientSock, (SA*) &clientAddr, sizeof(struct sockaddr_in)) )< 0) {
 		CWLog("clientSock connect error,ret = %d",ret);
 		//test
 		close(clientSock);
 		return NULL;
 	}
+		
 
 	if ( !CWErr(CWCreateThreadMutex(&appsManager.appClientSocketMutex)) ) {
 		CWLog("Error on mutex creation on appManager structure: appClientSocketMutex");
@@ -1699,7 +1695,7 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 
 	CWThreadMutexUnlock(&appsManager.appClientSocketMutex);
 
-	
+	*/
 	//
 	for ( i=0; i < MAX_APPS_CONNECTED_TO_AC; i++) 
 		appsManager.isFree[i] = CW_TRUE;	
@@ -1828,8 +1824,8 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 			CWLog("Error on accept (applications) system call");
       }
 	
-	CWDestroyThreadMutex(&appsManager.numSocketFreeMutex);
-	CWDestroyThreadMutex(&appsManager.appClientSocketMutex);
+	//CWDestroyThreadMutex(&appsManager.numSocketFreeMutex);
+	//CWDestroyThreadMutex(&appsManager.appClientSocketMutex);
 	
 	close(listen_sock);
 }

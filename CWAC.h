@@ -96,9 +96,11 @@ typedef struct {
 	int numSocketFree;
 	CWThreadMutex numSocketFreeMutex;
 	//add client
+	/*
 	CWSocket appClientSocket;
 	struct sockaddr_in appClientAddr;
 	CWThreadMutex appClientSocketMutex;
+	*/
 } applicationsManager;
 
 applicationsManager appsManager;
