@@ -119,6 +119,10 @@ char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValu
 	
 	if(finded >=0)
 	{
+		
+		if(!CWWumSetValues(finded, socketIndex, vendorValues))
+			return FALSE;
+
 		CWThreadMutexLock(&gWTPs[finded].interfaceMutex);
 		interfaceResult = gWTPs[finded].interfaceResult;
 		CWThreadMutexUnlock(&gWTPs[finded].interfaceMutex);
@@ -128,8 +132,12 @@ char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValu
 			CWLog("[F:%s, L:%d] interfaceResult= UPGRADE_FAILED",__FILE__,__LINE__);
 			return FALSE;
 		}
-		if(!CWWumSetValues(finded, socketIndex, vendorValues))
-			return FALSE;
+		
+		if(interfaceResult == CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE)
+		{
+			CWLog("[F:%s, L:%d] interfaceResult= CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE",__FILE__,__LINE__);
+			return CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE;
+		}
 	}
 	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	return TRUE;
@@ -602,6 +610,11 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 	if(!ret)
 	{
 		CWLog("[F:%s, L:%d] BESetWumValues fail ! ",__FILE__,__LINE__);
+		return ret;
+	}
+	if(ret == CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE)
+	{
+		CWLog("[F:%s, L:%d] BESetWumValues  CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE, stop !! ",__FILE__,__LINE__);
 		return ret;
 	}
 	 //WTP_CUP_FRAGMENT
@@ -1635,6 +1648,8 @@ quit_manage:
 	CWThreadMutexUnlock(&appsManager.numSocketFreeMutex); 
 		
 	close(sock);
+	CWLog("Close AppThread ...");
+	CWExitThread();
 	return NULL;  
 }
 

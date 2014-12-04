@@ -943,6 +943,10 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 					CWLog("Recive WTP_UPDATE_RESPONSE resultCode = %d",resultCode);
 					CWLog("Recive CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE ");
 
+					CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
+					gWTPs[WTPIndex].interfaceResult = CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE;
+					CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+
 					BEupgradeEventResponse beUpgradeEventResp;
 					beUpgradeEventResp.type = htons(BE_UPGRADE_EVENT_RESPONSE) ;
 					// 4 sizeof(int)
