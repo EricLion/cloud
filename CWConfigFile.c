@@ -83,7 +83,7 @@ char * CWGetCommand(FILE *configFile) {
 		int len = strlen(buff);
 		buff[len-1] = '\0'; /* remove newline */
 		
-		CW_CREATE_STRING_ERR(command, len-1, return NULL;);
+		CW_CREATE_STRING_ERR(command, len, return NULL;);
 		strcpy(command, buff);
 	}
 	
