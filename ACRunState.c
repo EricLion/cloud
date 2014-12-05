@@ -894,8 +894,8 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 	BEconnectEvent beConEve;
 
 	if (vendValues != NULL) {
-		char * responseBuffer; 
-		int socketIndex, payloadSize, headerSize, netWTPIndex, netresultCode, netpayloadSize;
+		//char * responseBuffer; 
+		int  payloadSize;
 
 
 		/********************************

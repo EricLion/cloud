@@ -35,9 +35,9 @@
 CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 
 	/*CWProtocolMessage *messages = NULL;*/
-	int seqNum, BESize;
+	int seqNum;
 	CWProtocolChangeStateEventRequestValues *changeStateEvent;
-	char *beResp = NULL;
+	//char *beResp = NULL;
 	//BEconnectEvent beConEve;
 	
 	CWLog("\n");

@@ -32,6 +32,7 @@
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
 
+CWThreadAttr gThreadAttr = {{0}};
 int gCWForceMTU = 0;
 int gCWRetransmitTimer = CW_RETRANSMIT_INTERVAL_DEFAULT;	//Default value for RetransmitInterval
 int gCWNeighborDeadInterval = CW_NEIGHBORDEAD_INTERVAL_DEFAULT; //Default value for NeighbourDeadInterval (no less than 2*EchoInterval and no greater than 240) 

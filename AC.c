@@ -157,6 +157,13 @@ void CWACInit() {
 
 	CWLog("Starting AC");
 
+	//CWLog("%s  ,%d",__FILE__,__LINE__);
+	if(!CWThreadInitLib())
+	{
+		CWLog("AC CWThreadInitLib Fail !");
+		exit(1);
+	}
+
 	//�����ź�
 	CWThreadSetSignals(SIG_BLOCK, 1, SIGALRM);
 	if (timer_init() == 0) {
@@ -260,6 +267,8 @@ void CWACDestroy() {
 	CW_FREE_OBJECT(gACName);
 	CW_FREE_OBJECT(gInterfaces);
 	CW_FREE_OBJECT(gACBEServerAddr);
+
+	CWThreadDestroyLib();
 	
 	CWLog("AC Destroyed");
 }

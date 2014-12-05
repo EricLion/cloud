@@ -133,5 +133,6 @@ int CWTimevalSubtract(struct timeval *res, const struct timeval *x, const struct
 CWBool CWParseSettingsFile();
 void CWErrorHandlingInitLib();
 
+extern CWThreadAttr gThreadAttr;
 
 #endif

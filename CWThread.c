@@ -42,13 +42,64 @@
 
 CW_THREAD_RETURN_TYPE CWThreadManageTimers(void *arg);
 
+// add thread staksize control
+CWBool CWThreadInitLib(void)
+{
+	 int ret = 0;
+	 //pthread_attr_t attr = {0};
+	 size_t size = 0;
+
+	 ret = pthread_attr_init (&gThreadAttr);
+	 if(ret)
+	 {
+	 	CWLog("pthread_attr_init fail !,ret = %d",ret);
+		return CW_FALSE;
+	 }
+
+	 CWLog("pthread_attr_init");
+
+	 ret = pthread_attr_setstacksize(&gThreadAttr,CW_THREAD_STACKSIZE);
+	 if(ret)
+	 {
+	 	CWLog("pthread_attr_setstacksize fail !,ret = %d",ret);
+		return CW_FALSE;
+	 }
+	 CWLog("pthread_attr_setstacksize is = %d",CW_THREAD_STACKSIZE);
+
+	 pthread_attr_getstacksize(&gThreadAttr,&size);
+	 if(ret)
+	 {
+	 	CWLog("pthread_attr_getstacksize fail !,ret = %d",ret);
+		return CW_FALSE;
+	 }
+	 CWLog("pthread_attr_getstacksize is = %d",size);
+
+	 return CW_TRUE;
+
+}
+
+CWBool CWThreadDestroyLib(void)
+{
+	  int ret = 0;
+	  ret = pthread_attr_destroy(&gThreadAttr);
+
+	  if(ret)
+	 {
+	 	CWLog("pthread_attr_destroy fail !,ret = %d",ret);
+		return CW_FALSE;
+	 }
+	  
+	  return CW_TRUE;
+}
+
 // Creates a thread that will execute a given function with a given parameter
 CWBool CWCreateThread(CWThread *newThread, CW_THREAD_FUNCTION threadFunc, void *arg) {
 	if(newThread == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
 	
 	CWDebugLog("Create Thread\n");
 		
-	if(pthread_create(newThread, NULL, threadFunc, arg) != 0) {
+	//if(pthread_create(newThread, NULL, threadFunc, arg) != 0) {
+	if(pthread_create(newThread, &gThreadAttr, threadFunc, arg) != 0) {
 		CWDebugLog("Can't create thread (maybe there are too many other threads) !!! ");
 		return CWErrorRaise(CW_ERROR_NEED_RESOURCE, "Can't create thread (maybe there are too many other threads)");
 	}

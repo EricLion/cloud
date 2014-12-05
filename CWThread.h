@@ -65,6 +65,7 @@ typedef pthread_mutex_t CWThreadMutex;
 typedef pthread_cond_t CWThreadCondition;
 typedef pthread_key_t CWThreadSpecific;
 typedef pthread_once_t CWThreadOnce;
+typedef pthread_attr_t CWThreadAttr;
 
 typedef void* (*CW_THREAD_FUNCTION)(void*);
 typedef int CWThreadId;
@@ -80,10 +81,12 @@ typedef void 	*CWTimerArg;
 #define	CWThreadSendSignal			CWThreadKill
 #define	CW_THREAD_ONCE_INIT			PTHREAD_ONCE_INIT
 #define	CWThreadCallOnce			pthread_once
+#define   CW_THREAD_STACKSIZE         (100*1024)
 
 __inline__ sem_t *CWThreadGetSemT(CWThreadSem *semPtr);
 
 CWBool CWThreadInitLib(void);
+CWBool CWThreadDestroyLib(void);
 
 CWBool CWCreateThread(CWThread *newThread, 
 		      CW_THREAD_FUNCTION threadFunc,
