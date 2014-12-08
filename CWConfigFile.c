@@ -85,6 +85,7 @@ char * CWGetCommand(FILE *configFile) {
 		
 		CW_CREATE_STRING_ERR(command, len, return NULL;);
 		strcpy(command, buff);
+		command[len-1] = '\0'; /* remove newline */
 	}
 	
 	CW_FREE_OBJECT(buff);
