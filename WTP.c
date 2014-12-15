@@ -525,6 +525,10 @@ void CWWTPDestroy() {
 	
 	timer_destroy();
 
+	CW_FREE_OBJECT(gWTPLocation);
+	CW_FREE_OBJECT(gWTPName);
+	CW_FREE_OBJECT(gSettingsFile);
+	CW_FREE_OBJECT(gInterfaceName);
 	CW_FREE_OBJECT(gCWACList);
 	CW_FREE_OBJECT(gRadiosInfo.radiosInfo);
 }

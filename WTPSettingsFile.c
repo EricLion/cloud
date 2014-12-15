@@ -80,7 +80,7 @@ CWBool CWParseSettingsFile()
 
 			CWExtractValue(endTag, &startValue, &endValue, &offset);
 
-			CW_CREATE_STRING_ERR(gInterfaceName, offset, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY,NULL););
+			CW_CREATE_STRING_ERR(gInterfaceName, offset+1, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY,NULL););
 			strncpy(gInterfaceName, startValue, offset);
 			gInterfaceName[offset] ='\0';
 			CWLog(": %s", gInterfaceName);

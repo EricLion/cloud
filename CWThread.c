@@ -66,6 +66,14 @@ CWBool CWThreadInitLib(void)
 	 }
 	 CWLog("pthread_attr_setstacksize is = %d",CW_THREAD_STACKSIZE);
 
+	  ret = pthread_attr_setdetachstate(&gThreadAttr,PTHREAD_CREATE_DETACHED);
+	  if(ret)
+	 {
+	 	CWLog("pthread_attr_setdetachstate fail !,ret = %d",ret);
+		return CW_FALSE;
+	 }
+	 CWLog("pthread_attr_setdetachstate success");
+
 	 pthread_attr_getstacksize(&gThreadAttr,&size);
 	 if(ret)
 	 {
