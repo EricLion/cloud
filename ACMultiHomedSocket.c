@@ -27,6 +27,7 @@
 
  
 #include "CWAC.h"
+//#include <sys/epoll.h>
 
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
@@ -534,6 +535,246 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 	return CW_TRUE;
 }
 
+
+
+ #if 0
+int setnonblocking(int sockfd)
+{
+	if (fcntl(sockfd, F_SETFL, fcntl(sockfd, F_GETFD, 0)|O_NONBLOCK) == -1) 
+	{
+		CWLog("setnonblocking fail !");
+		return -1;
+	}
+	
+	return 0;
+}
+
+
+/*
+ * Blocks until one ore more interfaces are ready to read something. When there
+ * is at least one packet pending, call CWManageIncomingPacket() for each pending
+ * packet, then return.
+ * select --> epoll
+ * UDP no listen, accept,without connect;
+ * so only TCP need epoll
+ */
+
+CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr, 
+				 void (*CWManageIncomingPacket)(CWSocket, 
+					 			char *, 
+								int, 
+								int, 
+								CWNetworkLev4Address*),
+				 CWBool peekRead) {
+	//fd_set fset;
+	int  i;
+	CWNetworkLev4Address addr;
+	int flags = ((peekRead != CW_FALSE) ? MSG_PEEK : 0);
+
+	struct epoll_event ev,events[MAX_EVENTS];
+	int listenSock, nfds, epollFd,n;
+	//struct sockaddr localAddr;
+	//struct sockaddr_in clientAddr;
+	//struct sockaddr_in serverAddr;
+	//char *localAddr="127.0.0.1";
+	//int portNum = 5246;
+	char buf[CW_BUFFER_SIZE];
+	
+	if (sockPtr == NULL || sockPtr->count == 0 || CWManageIncomingPacket == NULL) 
+		return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
+
+/*
+	listenSock = socket(AF_INET, SOCK_STREAM, 0);
+	bzero(&serverAddr, sizeof(serverAddr));
+	serverAddr.sin_family = AF_INET;
+	inet_aton(localAddr,&(serverAddr.sin_addr));//htons(portnumber);
+	serverAddr.sin_port=htons(portNum);
+	
+	bind(listenSock,(struct sockaddr *)&serverAddr, sizeof(serverAddr));
+	listen(listenSock, LISTEN_BACKLOG);
+*/
+CWLog("strerror(errno) =%s",strerror(errno));
+	epollFd = epoll_create(MAX_EVENTS);
+
+	if(epollFd == -1)
+	{
+		CWLog("epoll create fail !");
+		CWLog("strerror(errno) =%s",strerror(errno));
+		//exit(EXIT_FAILURE);
+	}
+
+	/* epoll() on all the sockets */
+	for(i = 0; i < sockPtr->count; i++) {
+
+		listenSock = sockPtr->interfaces[i].sock;
+		
+		ev.events = EPOLLIN;//readable
+		ev.data.fd = listenSock;	
+
+		if(epoll_ctl(epollFd,EPOLL_CTL_ADD,ev.data.fd, &ev) == -1)
+		{
+				
+			CWLog("epoll control fail !");
+			//exit(EXIT_FAILURE);
+		}
+	}
+
+	while((nfds = epoll_wait(epollFd,events,MAX_EVENTS,0)) < 0) {
+		
+		CWLog("epoll_wait fail !");
+		if (errno != EINTR) {
+			CWNetworkRaiseSystemError(CW_ERROR_GENERAL);
+		}
+	}
+	
+	if(1)
+	{
+	/*
+		nfds = epoll_wait(epollFd,events,MAX_EVENTS,-1);
+		if(nfds == -1)
+		{
+			CWLog("epoll_wait fail !exit !");
+			exit(EXIT_FAILURE);
+		}
+	*/
+		for(n = 0;n < nfds; ++n)
+		{
+			for(i = 0; i < sockPtr->count; i++) 
+			{
+				//find new connect client
+				listenSock = sockPtr->interfaces[i].sock;
+				//UDP no listen, accept
+				/*
+				if(events[n].data.fd == listenSock)
+				{
+					connSock = accept(listenSock, (struct sockaddr *)&clientAddr, &addrLen);
+					if(connSock == -1)
+					{
+						CWLog("accept fail !exit !");
+						exit(EXIT_FAILURE);
+					}
+				   	char *str = inet_ntoa(clientAddr.sin_addr);
+					CWLog("Client addr = %s\n",str);
+
+					setnonblocking(connSock);
+					//ev.events = EPOLLIN | EPOLLET; //ET
+					ev.events = EPOLLIN ; //use LT
+					ev.data.fd = connSock;
+
+					if(epoll_ctl(epollFd, EPOLL_CTL_ADD, connSock, &ev) == -1)
+					{
+						CWLog("epoll_ctl fail !exit !");
+						exit(0);
+					}
+
+					else
+					{
+						CWLog("epoll recv msg from sock id = %d\n",n);	
+					}
+				}
+				*/
+				//connSock EPOLLIN,read
+				//else if(events[n].events == EPOLLIN)
+				if(events[n].events == EPOLLIN && events[n].data.fd == listenSock)
+				{
+						
+						CWLog("Read client sock");
+						/*
+						sockFd = events[n].data.fd;
+						if(sockFd == listenSock)
+						{
+							CWLog("listen sock ,not accept client sock !");
+							continue;
+						}
+						if((n = read(events[n].data.fd,buf,CW_BUFFER_SIZE)) < 0)
+						{
+							if(errno == ECONNRESET)
+							{
+								CWLog("ECONNRESET");
+								close(sockFd);
+								events[n].data.fd = -1;
+
+							}
+							else
+							{
+								CWLog("read buf error !");	
+								//continue;
+							}
+							//n = 0;
+							continue;
+
+						}
+						else if(n == 0)
+						{
+								
+								CWLog("nothing read");
+								close(sockFd);
+								events[n].data.fd = -1;
+								continue;
+						}
+						buf[n] = '\0';
+
+						CWLog("read buf = %s\n",buf);
+						*/
+
+						int readBytes;
+						//CWLog("---------FD_ISSET---------");
+						/*	
+						CWUseSockNtop(&(sockPtr->interfaces[i].addr),
+							CWDebugLog("Ready on %s", str);
+						);
+						*/
+						
+						CW_ZERO_MEMORY(buf, CW_BUFFER_SIZE);
+						
+						/* message */
+						if(!CWErr(CWNetworkReceiveUnsafe(sockPtr->interfaces[i].sock, buf, CW_BUFFER_SIZE-1, flags, &addr, &readBytes))) {
+
+							sleep(1);
+							continue;
+						}
+						
+						CWManageIncomingPacket(sockPtr->interfaces[i].sock, 
+								       buf, 
+								       readBytes,
+								       CWNetworkGetInterfaceIndexFromSystemIndex(sockPtr, sockPtr->interfaces[i].systemIndex),
+								       &addr);
+
+						/*
+						ev.events = EPOLLOUT;
+						if(epoll_ctl(epollFd, EPOLL_CTL_MOD, sockFd, &ev) == -1)
+						{
+							CWLog("epoll control fail !exit !");
+							exit(0);
+						}
+						*/
+
+				}
+				/*
+				else if(events[n].events == EPOLLOUT)
+				{
+					
+					CWLog("write something");
+					sockFd = events[n].data.fd;
+					// write(sockfd, line, n);
+					ev.data.fd=sockfd;
+					ev.events = EPOLLIN;
+					if(epoll_ctl(epollFd, EPOLL_CTL_MOD, sockFd, &ev) == -1)
+					{
+						CWLog("epoll control fail !exit !");
+						exit(0);
+					}
+
+				}
+				*/
+			}
+			
+		}
+	}
+	
+	return CW_TRUE;
+}
+#endif
 
 /* count distinct interfaces managed by the multihomed socket */
 int CWNetworkCountInterfaceAddresses(CWMultiHomedSocket *sockPtr) {
