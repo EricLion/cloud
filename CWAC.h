@@ -272,6 +272,11 @@ CWBool CWAssembleResetRequest(CWProtocolMessage **messagesPtr,
 					   int *fragmentsNumPtr, int PMTU,
 					   int seqNum);
 
+CWBool CWAssembleWTPEventResponse(CWProtocolMessage **messagesPtr,
+				  int *fragmentsNumPtr,
+				  int PMTU,
+				  int seqNum);
+
 /* in ACDiscoveryState.c */
 CWBool CWAssembleDiscoveryResponse(CWProtocolMessage **messagesPtr, int seqNum);
 CWBool CWParseDiscoveryRequestMessage(char *msg,

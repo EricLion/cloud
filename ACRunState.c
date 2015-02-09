@@ -75,11 +75,6 @@ CWBool CWParseWTPEventRequestMessage(CWProtocolMessage *msgPtr,
 CWBool CWSaveWTPEventRequestMessage(CWProtocolWTPEventRequestValues *WTPEventRequest,
 				    CWWTPProtocolManager *WTPProtocolManager);
 
-CWBool CWAssembleWTPEventResponse(CWProtocolMessage **messagesPtr,
-				  int *fragmentsNumPtr,
-				  int PMTU,
-				  int seqNum);
-
 CWBool CWParseChangeStateEventRequestMessage2(CWProtocolMessage *msgPtr,
 					      int len,
 					      CWProtocolChangeStateEventRequestValues **valuesPtr);
@@ -562,7 +557,7 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			if(beResp)
 			{
 				//SendBERequest(beResp,BESize);
-				SendBERequest(beResp,BESize);
+				SendBERequestWaitResp(beResp,BESize,WTPIndex);
 				CW_FREE_OBJECT(beResp);
 			}
 			else

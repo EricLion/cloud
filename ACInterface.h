@@ -50,4 +50,6 @@
 #define SYSTEM_REBOOT_MSG_CMD	8
 #define PORTAL_MSG_CMD	9
 
+#define WTP_ALARM_CMD	 10
+
 #endif

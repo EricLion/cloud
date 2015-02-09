@@ -245,6 +245,37 @@ char BESetSysValues(u_char* apMac, int socketIndex, SystemCode sysCode)
 }
 
 
+char BESetWtpEventValues(u_char* apMac)
+{
+	int finded = -1;
+
+	if(apMac == NULL)
+	{
+		CWLog("BESetWtpEventValues apMac == NULL");
+		return FALSE;
+	}
+	
+	finded = FindApIndex(apMac);
+
+//no this ap online
+	if(finded <0)
+	{
+		CWLog("[F:%s, L:%d] BESetWtpEventValues, can't find this ap:%x:%x:%x:%x:%x:%x",__FILE__,__LINE__,apMac[0],
+			apMac[1],apMac[2],apMac[3],apMac[4],apMac[5]);
+		//
+			return FALSE;
+	}
+	
+	if(finded >=0)
+	{
+		if(!CWWtpEventSetValues(finded))
+			return FALSE;
+	}
+	return TRUE;
+}
+
+
+
 char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 {
 	BEHeader beHeader;
@@ -525,7 +556,7 @@ void SendBERequest(char* buf,int len)
 	CWLog("[F:%s, L:%d] SendBERequset len:%d",__FILE__,__LINE__,len);
 	if(len > BE_MAX_PACKET_LEN)
 	{
-		CWLog("SendBEResponse Error len > 80000");
+		CWLog("SendBERequest Error len > 80000");
 		return;
 	}
 	
@@ -542,7 +573,7 @@ void SendBERequest(char* buf,int len)
 			CWLog("Error write appsManager.appClientSocket");
 			break;
 		}
-		CWLog("[F:%s, L:%d] Writen n:%d !=len",__FILE__,__LINE__,n);
+		CWLog("[F:%s, L:%d] Writen n:%d,len = %d ,continue",__FILE__,__LINE__,n,len);
 	}
 	CWLog("[F:%s, L:%d] Writen n:%d",__FILE__,__LINE__,n);
 
@@ -566,7 +597,255 @@ void SendBERequest(char* buf,int len)
 */
 	return;
 }
+//Recv BE WTPEventRsp
+CW_THREAD_RETURN_TYPE CWRecvBEWtpEventRsp(void* arg) 
+{
+	int ret,n,sockfd,finded;
+	unsigned short beType;
+	unsigned int beLen;
+	BEHeader beHeader;
+	CWResultCode resultCode;
+	char result,readBuf[26];
+	char *rp = NULL;
+	struct timeval timeout={3,0};//3s
+	timeout.tv_sec = 3;
+	timeout.tv_usec = 0;
+	
+	sockfd = (int) arg;
+	CWLog("CWRecvBEWtpEventRsp sockfd =%d",sockfd);
+	
+	ret = setsockopt(sockfd,SOL_SOCKET,SO_RCVTIMEO,(const char*)&timeout,sizeof(timeout));
+	if(ret == -1)
+	{
+		CWLog("CWRecvBEWtpEventRsp setsockopt fail !");
+	}
 
+	CWLog("sizeof(beHeader) = %d, right = 16",sizeof(beHeader));
+	CWLog("sizeof(BEwtpEventResponse) = %d, right = 10",sizeof(BEwtpEventResponse));
+	//Parse BEHeader
+	n = 0;
+	beType = 0;
+	beLen = 0;
+	beHeader.type = 0;
+	memset(readBuf,0,sizeof(readBuf));
+	
+	if ( ( n = Readn(sockfd, readBuf, 26)) != 26 ) 
+	{
+		CWLog("Timeout :%d s,fail read CWRecvBEWtpEventRsp !",timeout.tv_sec );
+		goto quit_manage;
+	}
+	CWLog("Read CWRecvBEWtpEventRsp success");
+
+	rp = (char *)readBuf;
+	if ( ( n = memcpy((char*)(&beHeader.type),rp, BE_TYPE_LEN)) <= 0 ) 
+	{
+		CWLog("Receive packet beHeader.type length error, drop it !",beHeader.type);
+	}
+	else
+	{
+		rp = rp + BE_TYPE_LEN;
+		//type
+		beHeader.type = ntohs(beHeader.type );
+		if(beHeader.type != BE_CAPWAP_HEADER)
+		{
+			CWLog("Error on receive BEHeader !,type = %d",beHeader.type);
+			goto quit_manage;
+		}
+		CWLog("Receive BEHeader ...");
+
+		//len
+		if  ((n = memcpy( (char*)(&beHeader.length), rp, BE_LENGTH_LEN)) < 0 )
+		{
+				CWLog("Error while reading from socket.");
+				goto quit_manage;
+		}
+		rp = rp + BE_LENGTH_LEN;
+		beHeader.length = Swap32(beHeader.length);
+		if(beHeader.length < BE_HEADER_MIN_LEN )
+		{
+			CWLog("Error beHeader.length = %d not in range !",beHeader.length);
+			goto quit_manage;
+		}	
+		CWLog("Receive BEHeader.length = %d",beHeader.length);
+
+		//timestamp
+		if  ((n = memcpy((char*)&beHeader.timestamp, rp, TIME_LEN)) < 0 )
+		{
+				CWLog("Error while reading from socket.");
+				goto quit_manage;
+		}
+		rp = rp + TIME_LEN;
+		beHeader.timestamp = Swap32(beHeader.timestamp);
+		
+		CWLog("Receive BEHeader.timestamp = %d",beHeader.timestamp);
+
+		//apmac
+		if ((n = memcpy((char*)beHeader.apMac, rp, MAC_ADDR_LEN )) < 0 ) 
+		{
+			CWLog("Error while reading from socket.");
+			goto quit_manage;
+		}
+		rp = rp + MAC_ADDR_LEN;
+		CWLog("Receive beHeader.apMac = %x:%x:%x:%x:%x:%x ",
+							beHeader.apMac[0],
+							beHeader.apMac[1],
+							beHeader.apMac[2],
+							beHeader.apMac[3],
+							beHeader.apMac[4],
+						   	beHeader.apMac[5]);
+
+		finded = FindApIndex(beHeader.apMac);
+		if(finded < 0)
+		{
+			CWLog("[F:%s, L:%d] can't find this ap",__FILE__,__LINE__);
+		}
+	}
+
+	if ( ( n = memcpy((char*)&beType, rp, BE_TYPE_LEN) ) <= 0 ) 
+	{
+		CWLog("BE type exist,but no body !");
+	}
+	else
+	{
+	rp = rp + BE_TYPE_LEN;
+		beType = ntohs(beType);
+
+		//Alarm
+		if( beType == BE_WTP_EVENT_RESPONSE)
+		{
+			CWLog("Receive BE_WTP_EVENT_RESPONSE !");
+			//len
+			if ( (n = memcpy((char*)&beLen, rp, BE_LENGTH_LEN) )< 0 ) {
+					CWLog("Error while reading from socket.");
+					goto quit_manage;
+			}
+			rp = rp + BE_LENGTH_LEN;
+			beLen = Swap32(beLen);
+			if(beLen != sizeof(CWResultCode))
+			{
+				CWLog("Error beLen = %d, ! = sizeof(CWResultCode) not in range !",beLen);
+				goto quit_manage;
+			}	
+			CWLog("Receive beLen = %d",beLen);
+
+			//ResultCode
+			if ( (n = memcpy((char*)&resultCode, rp, beLen) )< 0 ) {
+					CWLog("Error while reading from socket.");
+					goto quit_manage;
+			}
+			rp = rp + beLen;
+			resultCode = Swap32(resultCode);
+			if(!resultCode)
+			{
+				CWLog("resultCode = %d,ERROR !",resultCode);
+				goto quit_manage;
+			}	
+			CWLog("Receive resultCode = %d",resultCode);
+
+			result = FALSE;
+			//if be set is come at the same time,this will set be ok(mutex lock);
+			//but it must not happen,becaue main thread block before
+			//so better is be use set sock to send alarm rsp
+			//main always check packet first,then check be set
+			result = BESetWtpEventValues(beHeader.apMac);
+			if(!result)
+			{
+				//resultCode = CW_FAILURE_WTP_NOT_CONNECTED;
+				//SendBEResponseDirectly(BE_WTP_EVENT_REQUEST,beHeader.apMac,socketIndex,rc);
+			}
+			
+			goto quit_manage;
+		}
+
+		else
+		{
+			CWLog("Receive beType = %d,unknown !", beType);
+		}
+
+	}
+	
+quit_manage:
+	
+	if (close(sockfd) < 0) {
+		CWLog("CWRecvBEWtpEventRsp close error");
+	}
+	CWLog("CWRecvBEWtpEventRsp Exit Thread !");
+	CWExitThread();
+	return NULL;
+}
+
+void SendBERequestWaitResp(char* buf,int len,int WTPIndex)
+{
+	int ret,n,sockfd;
+	
+	CWThread thread_id;
+	struct sockaddr_in servaddr;
+
+	char *address = gACBEServerAddr;
+	int port = gACBEServerPort;
+
+	n = 0;
+	ret = 0;
+
+	if(buf == NULL)
+	{
+		CWLog("SendBERequestWaitResp buf == NULL");
+		return;
+	}
+
+	
+	CWLog("SendBERequestWaitResp ,addr = %s,port = %d...... ",address,port);
+	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		CWLog("SendBERequestWaitResp socket init error ");
+		close(sockfd);
+		return ;
+	}
+
+	bzero(&servaddr, sizeof (struct sockaddr_in));
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_port = htons(port);
+	inet_pton(AF_INET, address, &servaddr.sin_addr);
+
+	CWLog("[F:%s, L:%d] SendBERequestWaitResp len:%d",__FILE__,__LINE__,len);
+	if(len > BE_MAX_PACKET_LEN)
+	{
+		CWLog("SendBERequestWaitResp Error len > 80000");
+		return;
+	}
+	
+
+	if ((ret = connect(sockfd, (SA*) &servaddr, sizeof(struct sockaddr_in)) )< 0) {
+		CWLog("SendBERequestWaitResp connect error,ret = %d",ret);
+		return ;
+	}
+
+	while(n != len)
+	{
+		if ( (n += Writen(sockfd, buf, len))  < 0 ) {
+			//CWThreadMutexUnlock(&appsManager.appClientSocketMutex);
+			CWLog("Error write appsManager.appClientSocket");
+			break;
+		}
+		CWLog("[F:%s, L:%d] Writen n:%d,len = %d ,continue",__FILE__,__LINE__,n,len);
+	}
+	CWLog("[F:%s, L:%d] Writen n:%d",__FILE__,__LINE__,n);
+
+//Read
+
+//set timeout
+//can not block,so use new thread to read
+//the thread only live 3s,then exit
+	CWLog("SendBERequestWaitResp sockfd =%d",sockfd);
+	if(!CWErr(CWCreateThread(&thread_id, CWRecvBEWtpEventRsp, (void*)sockfd)))
+	{
+		CWLog("SendBERequestWaitResp Error starting CWRecvBEWtpEventRsp Thread");
+		if (close(sockfd) < 0) {
+			CWLog("SendBERequestWaitResp close error");
+		}
+	}
+
+	return;
+}
 
 char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_info update_v)
 {
@@ -976,6 +1255,40 @@ int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 	
 	return TRUE;
 }
+
+
+
+
+int CWWtpEventSetValues(int selection){
+	
+	if(selection <0 ||selection >= CW_MAX_WTP)
+	{
+		CWLog("[F:%s, L:%d]selection <0 ||selection >= CW_MAX_WTP ",__FILE__,__LINE__);
+		return FALSE;
+	}
+	
+	if(!CWErr(CWThreadMutexLock(&(gWTPs[selection].interfaceMutex)))) {
+		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly");
+		return FALSE;
+	}
+	
+
+	gWTPs[selection].interfaceCommand = WTP_ALARM_CMD;
+
+	CWLog("[F:%s, L:%d] CWWtpEventSetValues begin ...",__FILE__,__LINE__);	
+	
+	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+	CWLog("[F:%s, L:%d] CWWtpEventSetValues CWWaitThreadCondition",__FILE__,__LINE__);	
+	
+	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
+	
+	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+	CWLog("[F:%s, L:%d] CWWtpEventSetValues end ...",__FILE__,__LINE__);	
+	
+	return TRUE;
+}
+
 
 int CWWumSetValues(int selection, int socketIndex, CWProtocolVendorSpecificValues* vendorValues) {
 

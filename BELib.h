@@ -26,16 +26,21 @@ char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValu
 char BESetApValues(u_char* apMac, int socketIndex, CWVendorXMLValues* Values);
 char BESetSysValues(u_char* apMac, int socketIndex, SystemCode sysCode);
 char BESetPortalValues(u_char* apMac, int socketIndex, CWVendorPortalValues* portalValues);
+char BESetWtpEventValues(u_char* apMac);
+
 
 char* AssembleBEheader(char* buf,int *len,int apId,char *xml);
 void SendBEResponseDirectly(int type,u_char *apMac,int socketIndex,CWResultCode resultCode);
 void SendBEResponse(char* buf,int len,int apId);
 //int BEServerConnect(char *address, int port);
 void SendBERequest(char* buf,int len);
+void SendBERequestWaitResp(char* buf,int len,int WTPIndex);
+CW_THREAD_RETURN_TYPE CWRecvBEWtpEventRsp(void* arg) ;
 
 int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues) ;
 int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* portalValues);
 int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode );
+int CWWtpEventSetValues(int selection);
 
 #define Swap16(s) ((((s) & 0xff) << 8) | (((s) >> 8) & 0xff))
 #define Swap32(l) (((l) >> 24) |  (((l)&0x00ff0000) >> 8)  |  (((l) & 0x0000ff00) << 8)  | ((l) << 24))

@@ -45,7 +45,7 @@ void CWErrorHandlingInitLib() {
 	#ifndef CW_SINGLE_THREAD
 		if(!CWThreadCreateSpecific(&gLastError, NULL)) 
 		{
-			CWLog("Critical Error, closing the process..."); 
+			CWLog("Critical Error, closing the process...,EXIT!"); 
 			exit(1);
 		}
 	#else
@@ -61,11 +61,11 @@ CWBool _CWErrorRaise(CWErrorCode code, const char *msg, const char *fileName, in
 	#ifndef CW_SINGLE_THREAD
 		infoPtr = CWThreadGetSpecific(&gLastError);
 		if(infoPtr==NULL){
-			CW_CREATE_OBJECT_ERR(infoPtr, CWErrorHandlingInfo, exit(1););
+			CW_CREATE_OBJECT_ERR(infoPtr, CWErrorHandlingInfo, {CWLog("[%s %d]Critical Error, closing the process...",__FILE__,__LINE__); exit(1);});
 			infoPtr->code = CW_ERROR_NONE;
 			if(!CWThreadSetSpecific(&gLastError, infoPtr))
 			{
-				CWLog("Critical Error, closing the process..."); 
+				CWLog("[%s %d]Critical Error, closing the process...",__FILE__,__LINE__); 
 				exit(1);
 			}
 		}
@@ -75,7 +75,7 @@ CWBool _CWErrorRaise(CWErrorCode code, const char *msg, const char *fileName, in
 	
 	if(infoPtr == NULL) 
 	{
-		CWLog("Critical Error: something strange has happened, closing the process..."); 
+		CWLog("[%s %d]Critical Error: something strange has happened, closing the process...",__FILE__,__LINE__); 
 		exit(1);
 	}
 	
@@ -141,10 +141,12 @@ CWBool _CWErrorHandleLast(const char *fileName, int line) {
 		case CW_ERROR_OUT_OF_MEMORY:
 			__CW_ERROR_PRINT("Out of Memory");
 			#ifndef CW_SINGLE_THREAD
+				CWLog("[%s %d]CW_ERROR_OUT_OF_MEMORY, exit thread!",__FILE__,__LINE__); 
 				CWExitThread(); // note: we can manage this on per-thread basis: ex. we can
 								// kill some other thread if we are a manager thread.
 			#else
-				exit(1);
+			CWLog("[%s %d]CW_ERROR_OUT_OF_MEMORY, EXIT!",__FILE__,__LINE__); 
+			exit(1);
 			#endif
 			break;
 			
