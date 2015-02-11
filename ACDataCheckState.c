@@ -125,7 +125,7 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 
 	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex)))
 	{
-		CWLog("_CWCloseThread CWThreadMutexLock fail,exit thread!");
+		CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
 		return CW_FALSE;
 	}
 	gActiveWTPs++;
@@ -139,8 +139,8 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 		CWLog("Error locking the gWTPsMutex mutex");
 		return CW_FALSE;
 	}
-	//fix mutex bug
-	CW_CREATE_OBJECT_ERR(gWTPs[WTPIndex].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); CWThreadMutexUnlock(&gWTPsMutex); return 0;});
+
+	CW_CREATE_OBJECT_ERR(gWTPs[WTPIndex].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 	gWTPs[WTPIndex].vendorValues->vendorPayloadLen = 0;
 	gWTPs[WTPIndex].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE;
 	

@@ -89,13 +89,13 @@ void CWACEnterMainLoop() {
  					 CW_SOFT_TIMER_EXPIRED_SIGNAL);
 
 	if(!(CWThreadCreateSpecific(&gIndexSpecific, NULL))) {
-		CWLog("Critical Error With Thread Data,EXIT!");
+		CWLog("Critical Error With Thread Data");
 		exit(1);
 	}
 	
 	CWThread thread_interface;
 	if(!CWErr(CWCreateThread(&thread_interface, CWInterface, NULL))) {
-		CWLog("Error starting Interface Thread,EXIT!");
+		CWLog("Error starting Interface Thread");
 		exit(1);
 	}
 
@@ -107,7 +107,7 @@ void CWACEnterMainLoop() {
 						    CWACManageIncomingPacket,
 						    CW_FALSE)))
 			{
-				CWLog("Error CWNetworkUnsafeMultiHomed !!!,EXIT!");
+				CWLog("Error CWNetworkUnsafeMultiHomed !!!");
 				exit(1);
 			}
 
@@ -152,7 +152,6 @@ void CWACManageIncomingPacket(CWSocket sock,
 	if(wtpPtr != NULL) {
 		/* known WTP */
 		/* Clone data packet */
-		CWLog("[F:%s,L:%d] known WTP",__FILE__,__LINE__);
 		CW_CREATE_OBJECT_SIZE_ERR(pData, readBytes, { CWLog("Out Of Memory"); return; });
 		memcpy(pData, buf, readBytes);
 		//CWLog("F:%s,L:%d",__FILE__,__LINE__);
@@ -167,11 +166,9 @@ void CWACManageIncomingPacket(CWSocket sock,
 		int seqNum, tmp;
 		CWDiscoveryRequestValues values;
 		
-		if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex)))
-		{
-			CWLog("[F:%s,L:%d] CWThreadMutexLock(&gActiveWTPsMutex) fail!EXIT!",__FILE__,__LINE__);
+		if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex))) 
 			exit(1);
-		}	
+			
 		tmp = gActiveWTPs;
 		//CWThreadMutexUnlock(&gActiveWTPsMutex);
 
@@ -211,7 +208,7 @@ void CWACManageIncomingPacket(CWSocket sock,
 				 * killing some thread or doing other funky 
 				 * things.
 				 */
-				CWLog("Critical Error Assembling Discovery Response,EXIT!");
+				CWLog("Critical Error Assembling Discovery Response");
 				exit(1);
 			}
 
@@ -220,7 +217,7 @@ void CWACManageIncomingPacket(CWSocket sock,
 								 (*msgPtr).msg,
 								 (*msgPtr).offset))) {
 
-				CWLog("Critical Error Sending Discovery Response,EXIT!");
+				CWLog("Critical Error Sending Discovery Response");
 				exit(1);
 			}
 			
@@ -233,11 +230,7 @@ void CWACManageIncomingPacket(CWSocket sock,
 			
 			CWUseSockNtop(addrPtr, CWDebugLog("Possible Client Hello from %s", str););
 			
-			if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
-			{
-				CWLog("[F:%s,L:%d] CWThreadMutexLock(&gActiveWTPsMutex) fail!EXIT!",__FILE__,__LINE__);
-				exit(1);
-			}
+			if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) exit(1);
 			/* look for the first free slot */
 			for(i = 0; i < CW_MAX_WTP && gWTPs[i].isNotFree; i++);
 	
@@ -250,10 +243,7 @@ void CWACManageIncomingPacket(CWSocket sock,
 			if (!CWErr(CWCreateSafeList(&gWTPs[i].packetReceiveList))) {
 
 				if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
-				{
-					CWLog("[F:%s,L:%d] CWThreadMutexLock(&gActiveWTPsMutex) fail!EXIT!",__FILE__,__LINE__);
 					exit(1);
-				}
 				gWTPs[i].isNotFree = CW_FALSE;
 				CWThreadMutexUnlock(&gWTPsMutex);
 				return;
@@ -292,11 +282,8 @@ void CWACManageIncomingPacket(CWSocket sock,
 			if(!CWErr(CWCreateThread(&(gWTPs[i].thread), CWManageWTP, argPtr))) {
 
 				CW_FREE_OBJECT(argPtr);
-				if(!CWErr(CWThreadMutexLock(&gWTPsMutex)))
-				{
-					CWLog("[F:%s,L:%d] CWThreadMutexLock(&gActiveWTPsMutex) fail!EXIT!",__FILE__,__LINE__);
+				if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
 					exit(1);
-				}
 				
 				CWDestroySafeList(&gWTPs[i].packetReceiveList);
 				gWTPs[i].isNotFree = CW_FALSE;
@@ -726,38 +713,6 @@ CWLog("F:%s L:%d",__FILE__,__LINE__);
 				}
 				break;
 			  }
-
-			//Alarm
-			case WTP_ALARM_CMD:
-			{
-				int seqNum = CWGetSeqNum();
-				
-						/* Clear Configuration Request */
-				if (CWAssembleWTPEventResponse(&(gWTPs[i].messages),
-														&(gWTPs[i].messagesCount),
-														gWTPs[i].pathMTU, seqNum)) {
-				  
-				  if(CWACSendAcknowledgedPacket(i, CW_MSG_TYPE_VALUE_WTP_EVENT_RESPONSE, seqNum)) 
-				{
-					bResult = CW_TRUE;
-					CWACStopRetransmission(i);
-					
-					CWThreadMutexLock(&gWTPs[i].interfaceMutex);
-					if(gWTPs[i].interfaceResult != UPGRADE_FAILED)
-					{
-						gWTPs[i].interfaceResult = 1;
-					}
-					gWTPs[i].interfaceCommandProgress = CW_FALSE;
-					CWSignalThreadCondition(&gWTPs[i].interfaceComplete);
-					CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
-				}
-					  else
-						CWACStopRetransmission(i);
-					}
-
-				break;
-
-			}
 			/********************************************************
 			 * 2009 Update:											*
 			 *				New switch case for OFDM_CONTROL_CMD	*

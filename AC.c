@@ -241,7 +241,6 @@ void CWACInit() {
 	CW_FREE_OBJECT(IPv4Addresses);
 
 	if(!CWErr(CWCreateThreadMutex(&gCreateIDMutex))) {
-		CWLog("CWCreateThreadMutex(&gCreateIDMutex) fail !Can't start AC");
 		exit(1);
 	}
 	

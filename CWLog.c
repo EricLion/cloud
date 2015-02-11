@@ -44,13 +44,13 @@ void CWLogInitFile(char *fileName) {
 	}
 	
 	if((gLogFile = fopen(fileName, "w")) == NULL) {
-		CWLog("Can't open log file: %s, EXIT", strerror(errno));
+		CWLog("Can't open log file: %s", strerror(errno));
 		exit(1);
 	}
 	
 	#ifndef CW_SINGLE_THREAD
 		if(!CWCreateThreadMutex(&gFileMutex)) {
-			CWLog("Can't Init File Mutex for Log, EXIT");
+			CWLog("Can't Init File Mutex for Log");
 			exit(1);
 		}
 	#endif
