@@ -33,8 +33,7 @@
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
 
-CWBool CWWTPParseGenericRunMessage(CWProtocolMessage *msg,
-				  CWControlHeaderValues* controlVal);
+CWBool CWWTPParseGenericRunMessage(CWProtocolMessage *msg, CWControlHeaderValues* controlVal);
 CWBool CWWTPManageGenericRunMessage(CWProtocolMessage *msgPtr);
 
 CWBool CWWTPCheckForBindingFrame();
@@ -249,7 +248,7 @@ CWBool CWWTPManageGenericRunMessage(CWProtocolMessage *msgPtr) {
 	/* we have received a new Request or an Echo Response */
 	if (pendingMsgIndex < 0) {
 	//check if the msg type&seq is repeat
-		CWWTPParseGenericRunMessage(msgPtr, &controlVal);
+		//CWWTPParseGenericRunMessage(msgPtr, &controlVal);
 	
 		CWProtocolMessage *messages = NULL;
 		int fragmentsNum=0;

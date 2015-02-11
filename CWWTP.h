@@ -52,6 +52,7 @@ typedef struct {
 /*_____________________________________________________________*/
 /*  *******************___WTP VARIABLES___*******************  */
 extern char* gInterfaceName;
+extern FILE* gSettingsFile;
 
 extern char **gCWACAddresses;
 extern int gCWACCount;
