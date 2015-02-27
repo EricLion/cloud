@@ -294,6 +294,7 @@ int timer_init() {
 			pthread_cancel(timerq.ticker);
 			pthread_join(timerq.ticker, NULL);
 		}
+		pthread_mutex_unlock(&timerq.mutex);
 		pthread_mutex_destroy(&timerq.mutex);
 		pthread_cond_destroy(&timerq.cond);
 		return 0;

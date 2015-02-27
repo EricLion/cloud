@@ -33,7 +33,7 @@ CC = gcc
 #LDFLAGS = /usr/lib/libefence.a ./static/libssl.a ./static/libcrypto.a -lpthread -ldl -D_REENTRANT
 LDFLAGS = ./static/libssl.a ./static/libcrypto.a -lpthread -ldl -D_REENTRANT -L/usr/local/lib -lxml2 -lz -lm -ldl
 
-CFLAGS = -Wall -g -O0 -D_REENTRANT -I./include/ -I/usr/local/include/libxml2 #-DCW_NO_DTLS
+CFLAGS = -Wall -g -rdynamic -O0 -D_REENTRANT -I./include/ -I/usr/local/include/libxml2 #-DCW_NO_DTLS
 
 OPENSSL_INCLUDE = #-I/usr/local/ssl/include/ #Openssl include files
 
@@ -71,7 +71,7 @@ WUA_NAME = WUA
 .PHONY: deps clean clean_libs libs
 
 # top-level rule, to compile everything. 
-all: $(AC_NAME) $(WTP_NAME) $(WUA_NAME)
+all: $(AC_NAME)
 
 $(AC_NAME): $(AC_OBJS) 
 	$(CC) $(AC_OBJS) $(CC_FLAGS) $(OPENSSL_INCLUDE) $(LDFLAGS) -o $(AC_NAME) 

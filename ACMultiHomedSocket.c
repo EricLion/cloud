@@ -477,8 +477,13 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 	int max = 0, i;
 	CWNetworkLev4Address addr;
 	int flags = ((peekRead != CW_FALSE) ? MSG_PEEK : 0);
+	//buf malloc
+	//char buf[CW_BUFFER_SIZE];
+	char *buf = NULL;
+
+	CW_CREATE_OBJECT_SIZE_ERR(buf,CW_BUFFER_SIZE,CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "CWNetworkUnsafeMultiHomed malloc buf fai");)
 	
-	char buf[CW_BUFFER_SIZE];
+	//memset(buf, 0, CW_BUFFER_SIZE *sizeof(char));
 	
 	if (sockPtr == NULL || sockPtr->count == 0 || CWManageIncomingPacket == NULL) 
 		return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
@@ -532,6 +537,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 		}
 		/* else {CWDebugLog("~~~~~~~Non Ready on....~~~~~~");} */
 	}
+	CW_FREE_OBJECT(buf);
 	return CW_TRUE;
 }
 

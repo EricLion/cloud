@@ -34,6 +34,7 @@
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
 
+
 /*_________________________________________________________*/
 /*  *******************___VARIABLES___*******************  */
 CWThreadMutex gCreateIDMutex;
@@ -140,13 +141,18 @@ void CWACInit() {
 	struct sockaddr_in *IPv4Addresses = NULL;
 	
 	CWLogInitFile(AC_LOG_FILE_NAME);
+
+	if(signal(SIGSEGV,dump) == SIG_ERR)
+	{
+		CWDebugLog("can't catch SIGSEGV");	
+	}
 	
 	#ifndef CW_SINGLE_THREAD
 		CWDebugLog("Use Threads");
 	#else
 		CWDebugLog("Don't Use Threads");
 	#endif
-	//�߳�����Ҫ�洢����ֵ
+
 	CWErrorHandlingInitLib();
 	
 	if(!CWParseSettingsFile())

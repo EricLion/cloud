@@ -17,8 +17,10 @@ addr2line 0x400ae4 -e t -f
 #include <time.h>
 #include "string.h"
 #include <pthread.h>
+//
 #include <stddef.h>
 #include <execinfo.h>
+//
 #include <signal.h>
 
 //#define AC_LOG_FILE_NAME				"./ac.log.txt"

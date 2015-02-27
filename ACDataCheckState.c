@@ -170,7 +170,12 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	//*/
 #endif
 
-	CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
+	if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex)))
+	{
+		CWLog("ACEnterDataCheck CWThreadMutexLock fail,exit !");
+		return CW_FALSE;
+	}
+	//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
 	gWTPs[WTPIndex].interfaceResult = UPGRADE_SUCCESS;
 	CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
 	

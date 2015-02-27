@@ -38,7 +38,7 @@ CWBool CWCreateSafeList(CWSafeList* pSafeList)
 	if (pSafeList == NULL)
 		return CW_FALSE;
 
-	CW_CREATE_OBJECT_ERR(pNewList, CWPrivateSafeList, return CW_FALSE;);
+	CW_CREATE_OBJECT_ERR(pNewList, CWPrivateSafeList, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "Can't CWCreateSafeList");return CW_FALSE;});
 
 	//
 	pNewList->pThreadMutex = NULL;
@@ -217,7 +217,7 @@ CWBool CWAddElementToSafeListTail(CWSafeList safeList, void* pData, int nSize)
 	if ((pList == NULL) || (pData == NULL))
 		return CW_FALSE;
 
-	CW_CREATE_OBJECT_ERR(pNewElement, CWPrivateSafeElement, return CW_FALSE;);
+	CW_CREATE_OBJECT_ERR(pNewElement, CWPrivateSafeElement, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "Can't CWAddElementToSafeListTail");return CW_FALSE;});
 	pNewElement->pData = pData;
 	pNewElement->nSize = nSize;
 	pNewElement->pNext = NULL;

@@ -31,7 +31,8 @@
 
 #include "CWThread.h"
 
-typedef void* CWSafeList;
+//typedef void* CWSafeList;
+//typedef CWPrivateSafeList * CWSafeList;
 
 typedef struct _CWPrivateSafeElement
 {
@@ -49,7 +50,7 @@ typedef struct _CWPrivateSafeList
 	unsigned long nCount;
 	CWPrivateSafeElement* pFirstElement;
 	CWPrivateSafeElement* pLastElement;
-} CWPrivateSafeList;
+} CWPrivateSafeList,*CWSafeList;
 
 CWBool CWCreateSafeList(CWSafeList* pSafeList);
 void CWDestroySafeList(CWSafeList safeList);

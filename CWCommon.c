@@ -64,3 +64,34 @@ int CWTimevalSubtract(struct timeval *res, const struct timeval *x, const struct
 	// Return 1 if result is negative (x < y)
 	return ((x->tv_sec < z.tv_sec) || ((x->tv_sec == z.tv_sec) && (x->tv_usec < z.tv_usec)));
 }
+
+
+void dump(int signal)
+{
+	void *buffer[64] = {0};
+	size_t size = 0;
+	char **strings  = NULL;
+	size_t i = 0;
+
+	size = backtrace(buffer,64);
+	CWLog("Process recive signal [SIGSEGV], %zd stack frames\n ",size);
+	strings = backtrace_symbols(buffer, size);
+
+	if(!strings)
+	{
+		CWLog("backtrace_symbols.");
+		exit(EXIT_FAILURE);
+	}
+
+	
+	for(i = 0;i < size;i++)
+	{
+		CWLog("%s\n",strings[i]);	
+		
+	}
+
+	free(strings);
+	strings = NULL;
+	exit(0);
+}
+

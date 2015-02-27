@@ -128,11 +128,15 @@ extern int gEnabledLog;
 #include "CWProtocol.h"
 #include "CWSecurity.h"
 #include "CWConfigFile.h"
+//dump
+#include <stddef.h>
+#include <execinfo.h>
 
 int CWTimevalSubtract(struct timeval *res, const struct timeval *x, const struct timeval *y);
 CWBool CWParseSettingsFile();
 void CWErrorHandlingInitLib();
 
 extern CWThreadAttr gThreadAttr;
+void dump(int signal);
 
 #endif

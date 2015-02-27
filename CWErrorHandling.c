@@ -27,6 +27,7 @@
 
  
 #include "CWCommon.h"
+#include "CWAC.h"
 
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
@@ -49,6 +50,7 @@ void CWErrorHandlingInitLib() {
 			exit(1);
 		}
 	#else
+		CWErrorHandlingInfo *infoPtr;
 		CW_CREATE_OBJECT_ERR(infoPtr, CWErrorHandlingInfo, return;);
 		infoPtr->code = CW_ERROR_NONE;
 		gLastErrorDataPtr = infoPtr;
@@ -80,9 +82,18 @@ CWBool _CWErrorRaise(CWErrorCode code, const char *msg, const char *fileName, in
 	}
 	
 	infoPtr->code = code;
-	if(msg != NULL) strcpy(infoPtr->message, msg);
+	if(msg != NULL && strlen(msg) < 256) 
+	{
+		strcpy(infoPtr->message, msg);
+		infoPtr->message[strlen(msg)]='\0';
+	}
 	else infoPtr->message[0]='\0';
-	if(fileName != NULL) strcpy(infoPtr->fileName, fileName);
+	if(fileName != NULL && strlen(fileName) < 64) 
+	{
+		strcpy(infoPtr->fileName, fileName);
+		infoPtr->fileName[strlen(fileName)]='\0';
+	}
+	else infoPtr->fileName[0]='\0';
 	infoPtr->line = line;
 	
 	return CW_FALSE;
@@ -141,8 +152,9 @@ CWBool _CWErrorHandleLast(const char *fileName, int line) {
 		case CW_ERROR_OUT_OF_MEMORY:
 			__CW_ERROR_PRINT("Out of Memory");
 			#ifndef CW_SINGLE_THREAD
-				CWExitThread(); // note: we can manage this on per-thread basis: ex. we can
+				//CWExitThread(); // note: we can manage this on per-thread basis: ex. we can
 								// kill some other thread if we are a manager thread.
+				CWCloseThread();
 			#else
 				exit(1);
 			#endif

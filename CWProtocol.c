@@ -508,7 +508,10 @@ CWBool CWAssembleMessage(CWProtocolMessage **completeMsgPtr, int *fragmentsNumPt
 
 void CWProtocolDestroyFragment(void *f) {
 	CW_FREE_OBJECT(((CWProtocolFragment*)f)->data);
+	CWLog("[F:%s L:%d] CWProtocolDestroyFragment free f->data",__FILE__,__LINE__);
+	//CW_FREE_OBJECT(((CWProtocolFragment*)f)->transportVal.bindingValuesPtr);
 	CW_FREE_OBJECT(f);
+	CWLog("[F:%s L:%d] CWProtocolDestroyFragment free f",__FILE__,__LINE__);
 }
 
 CWBool CWCompareFragment(void *newFrag, void *oldFrag)

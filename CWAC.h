@@ -48,7 +48,7 @@
 //�ݲ�����
 #define CW_NO_DTLS
 
-#define CW_MAX_WTP				1000
+#define CW_MAX_WTP				2000
 #define CW_CRITICAL_TIMER_EXPIRED_SIGNAL	SIGUSR2
 #define CW_SOFT_TIMER_EXPIRED_SIGNAL		SIGUSR1
 #define AC_LOG_FILE_NAME				"./ac.log.txt"

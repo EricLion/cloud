@@ -718,8 +718,8 @@ CWBool CWThreadSetSpecific(CWThreadSpecific *specPtr, void *valPtr) {
 
 // terminate the calling thread
 void CWExitThread() {
-	printf("\n*** Exit Thread ***\n");
-	CWLog("CWExitThread()...");
+	//printf("\n*** Exit Thread ***\n");
+	//CWLog("CWExitThread()...");
 	pthread_exit((void *) 0);
 }
 
@@ -789,8 +789,8 @@ CWBool CWTimerRequest(int sec, CWThread *threadPtr, CWTimerID *idPtr, int signal
 	CWDebugLog("Timer Request");
 	if(sec < 0 || threadPtr == NULL || idPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
 	
-	CW_CREATE_OBJECT_ERR(arg, CWThreadTimerArg, return CW_FALSE;);
-	CW_CREATE_OBJECT_ERR(arg->requestedThreadPtr, CWThread, CW_FREE_OBJECT(arg); return CW_FALSE;);
+	CW_CREATE_OBJECT_ERR(arg, CWThreadTimerArg, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "Can't CWTimerRequest");return CW_FALSE;});
+	CW_CREATE_OBJECT_ERR(arg->requestedThreadPtr, CWThread, {CW_FREE_OBJECT(arg); CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "Can't CWTimerRequest");return CW_FALSE;});
  	CW_COPY_MEMORY(arg->requestedThreadPtr, threadPtr, sizeof(CWThread));
  	arg->signalToRaise = signalToRaise;
  			

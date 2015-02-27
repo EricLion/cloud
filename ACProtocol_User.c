@@ -50,8 +50,12 @@ __inline__ int CWACGetLimit() {
 
 __inline__ int CWACGetActiveWTPs() {
 	int tmp;
-	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex))) return 0;
-		tmp = gActiveWTPs;
+	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex))) 
+	{
+		CWLog("F:%s L:%d Error locking  mutex",__FILE__,__LINE__);
+		return 0;
+	}
+	tmp = gActiveWTPs;
 	CWThreadMutexUnlock(&gActiveWTPsMutex);
 	
 	return tmp;

@@ -133,6 +133,7 @@ __inline__ void CWVLog(const char *format, va_list args) {
 		char fileLine[256];
 		
 		#ifndef CW_SINGLE_THREAD
+		//bug?
 			CWThreadMutexLock(&gFileMutex);
 			fseek(gLogFile, 0L, SEEK_END);
 		#endif
@@ -202,6 +203,7 @@ __inline__ void CWDebugLog(const char *format, ...) {
 			char fileLine[256];
 			
 			#ifndef CW_SINGLE_THREAD
+			//bug?
 				CWThreadMutexLock(&gFileMutex);
 				fseek(gLogFile, 0L, SEEK_END);
 			#endif

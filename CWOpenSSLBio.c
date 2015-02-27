@@ -47,7 +47,7 @@ typedef struct
 {
 	CWSocket sock;
 	CWNetworkLev4Address sendAddress;
-	CWSafeList* pRecvAddress;
+	void* pRecvAddress;
 	unsigned int nMtu;
 } BIO_memory_data;
 
@@ -69,7 +69,7 @@ BIO_METHOD* BIO_s_memory(void)
 	return(&methods_memory);
 }
 
-BIO* BIO_new_memory(CWSocket sock, CWNetworkLev4Address* pSendAddress, CWSafeList* pRecvAddress)
+BIO* BIO_new_memory(CWSocket sock, CWNetworkLev4Address* pSendAddress, void* pRecvAddress)
 {
 	BIO *ret;
 	BIO_memory_data* pData;
@@ -82,7 +82,9 @@ BIO* BIO_new_memory(CWSocket sock, CWNetworkLev4Address* pSendAddress, CWSafeLis
 	pData = (BIO_memory_data*)ret->ptr;
 	pData->sock = sock;
 	memcpy(&pData->sendAddress, pSendAddress, sizeof(CWNetworkLev4Address));
-	pData->pRecvAddress = pRecvAddress;
+	//bug?
+	//pData->pRecvAddress = pRecvAddress;
+	memcpy(pData->pRecvAddress, pRecvAddress, sizeof(CWPrivateSafeList));
 
 	return ret;
 }

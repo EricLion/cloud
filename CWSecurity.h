@@ -41,7 +41,7 @@ typedef SSL *CWSecuritySession;
 CWBool CWSecurityInitLib(void);
 CWBool CWSecurityInitSessionClient(CWSocket sock,
 				   CWNetworkLev4Address *addrPtr,
-				   CWSafeList packetReceiveList,
+				   void* packetReceiveList,
 				   CWSecurityContext ctx,
 				   CWSecuritySession *sessionPtr,
 				   int *PMTUPtr);
@@ -64,7 +64,7 @@ void CWSecurityDestroySession(CWSecuritySession s);
 
 BIO* BIO_new_memory(CWSocket sock,
 		    CWNetworkLev4Address* pSendAddress,
-		    CWSafeList* pRecvAddress);
+		    void* pRecvAddress);
 
 void CWSslCleanUp();
 

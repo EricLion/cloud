@@ -123,7 +123,11 @@ char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValu
 		if(!CWWumSetValues(finded, socketIndex, vendorValues))
 			return FALSE;
 
-		CWThreadMutexLock(&gWTPs[finded].interfaceMutex);
+		if(!CWErr(CWThreadMutexLock(&gWTPs[finded].interfaceMutex))) 
+		{
+			CWLog("F:%s L:%d Error locking Mutex",__FILE__,__LINE__);
+			return CW_FALSE;
+		}
 		interfaceResult = gWTPs[finded].interfaceResult;
 		CWThreadMutexUnlock(&gWTPs[finded].interfaceMutex);
 
@@ -1666,7 +1670,8 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 	struct sockaddr_in servaddr;
 	CWInterfaceThreadArg *argPtr;
 	CWThread thread_id;
-	int i, clientFull = htonl(FULL_CLIENT_CONNECTED), optValue = 1;
+	//int i, clientFull = htonl(FULL_CLIENT_CONNECTED), optValue = 1;
+	int i, optValue = 1;
 	
 	/****************************************************
 	 * Setup of Application Socket Management Structure	*
@@ -1729,7 +1734,8 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 	
 	if ( !CWErr(CWCreateThreadMutex(&appsManager.numSocketFreeMutex)) ) {
 		CWLog("Error on mutex creation on appManager structure");
-		return NULL;
+		//return NULL;
+		goto Quit;
 	}
 		
 	/****************************************************
@@ -1738,7 +1744,8 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 		
 	if ( ( listen_sock = socket(AF_INET, SOCK_STREAM, 0 ) ) < 0 ) {
 		CWLog("Error on socket creation on Interface");
-		return NULL;
+		//return NULL;
+		goto Quit;
 	}
 	
 	memset(&servaddr, 0, sizeof(servaddr));
@@ -1750,7 +1757,8 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 
 	if (setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &optValue, sizeof(int)) == -1) {
 		CWLog("Error on socket creation on Interface");
-		return NULL;
+		close(listen_sock);
+		goto Quit;
 	}
 	
 	/************************************
@@ -1759,12 +1767,14 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 	
 	if (  bind(listen_sock, (struct sockaddr *) &servaddr, sizeof(struct sockaddr_in)) < 0 ) {
 		CWLog("Error on Binding");
-		return NULL;
+		close(listen_sock);
+		goto Quit;
 	}
 	
 	if ( listen(listen_sock, MAX_APPS_CONNECTED_TO_AC) < 0 ) {
 		CWLog("Error on LIsTsocket creation");
-		return NULL;
+		close(listen_sock);
+		goto Quit;
 	}
 	
 	/********************************
@@ -1783,7 +1793,8 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 			
 			if(!CWErr(CWThreadMutexLock(&appsManager.numSocketFreeMutex))) {
 				CWLog("Error locking numSocketFree Mutex");
-				return NULL;
+				close(listen_sock);
+				goto Quit;
 			}
 			
 			if ( appsManager.numSocketFree > 0 ) { 
@@ -1809,7 +1820,7 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 				
 				if ( !CWErr(CWCreateThreadMutex(&appsManager.socketMutex[argPtr->index])) ) {
 	              			CWLog("Error on mutex creation on appManager structure");
-	              			return NULL;
+	              			goto QuitApp;
 				}
 							
 				if(!CWErr(CWCreateThread(&thread_id, CWManageApplication, argPtr))) {
@@ -1825,7 +1836,7 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 	                                     */
 	                                    if(!CWErr(CWThreadMutexLock(&appsManager.numSocketFreeMutex))) {
 	                                            CWLog("Error locking numSocketFree Mutex");
-	                                            return NULL;
+	                                            goto QuitApp;
 	                                    }
 	                                    appsManager.numSocketFree++;
 	                                    CWThreadMutexUnlock(&appsManager.numSocketFreeMutex);
@@ -1851,8 +1862,12 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 	
 	//CWDestroyThreadMutex(&appsManager.numSocketFreeMutex);
 	//CWDestroyThreadMutex(&appsManager.appClientSocketMutex);
-	
+QuitApp:
+	CWDestroyThreadMutex(&appsManager.numSocketFreeMutex);
 	close(listen_sock);
+Quit:
+	CWExitThread();
+	return NULL;
 }
 
 

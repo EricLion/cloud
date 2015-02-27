@@ -162,7 +162,7 @@ CWBool CWSecurityInitLib() {
  
 CWBool CWSecurityInitSessionClient(CWSocket 		sock, 
 				   CWNetworkLev4Address *addrPtr,
-				   CWSafeList 		packetReceiveList,
+				   void* 		packetReceiveList,
 				   CWSecurityContext 	ctx,
 				   CWSecuritySession 	*sessionPtr,
 				   int 			*PMTUPtr) {
@@ -303,7 +303,7 @@ CWBool CWSecurityInitSessionServer(CWWTPManager* pWtp,
 		CWSecurityRaiseError(CW_ERROR_CREATING);
 	}
 	
-	if((sbio = BIO_new_memory(sock, &pWtp->address, pWtp->packetReceiveList)) == NULL) {
+	if((sbio = BIO_new_memory(sock, &pWtp->address, (void*)pWtp->packetReceiveList)) == NULL) {
 
 		SSL_free(*sessionPtr);
 		CWSecurityRaiseError(CW_ERROR_CREATING);
