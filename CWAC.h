@@ -121,7 +121,9 @@ typedef struct {
 	CWStateTransition currentState;
 	int interfaceIndex;
 	CWSocket socket;
-	char buf[CW_BUFFER_SIZE];
+	//too large, malloc
+	//char buf[CW_BUFFER_SIZE];
+	char *buf;
 	enum  {
 		CW_DTLS_HANDSHAKE_IN_PROGRESS,
 		CW_WAITING_REQUEST,

@@ -229,8 +229,12 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 	if (!CWACSendFragments(WTPIndex)) {
 		return CW_FALSE;
 	}
-
+	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+							CWLog("Error locking the gWTPsMutex mutex");
+							return CW_FALSE;
+		}
 	gWTPs[WTPIndex].currentState = CW_ENTER_CONFIGURE;
+	CWThreadMutexUnlock(&gWTPsMutex);
 
 	return CW_TRUE;
 }

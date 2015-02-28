@@ -481,6 +481,12 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 
 	CWResetWTPProtocolManager(&(gWTPs[i].WTPProtocolManager));
 
+	//buf 
+	gWTPs[i].buf = NULL; 
+	CW_CREATE_OBJECT_SIZE_ERR(gWTPs[i].buf,CW_BUFFER_SIZE,{ CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);CWLog("Out Of Memory");CWCloseThread();});
+	memset(gWTPs[i].buf, 0, CW_BUFFER_SIZE);
+
+	gWTPs[i].session = NULL;
 	CWLog("New Session");
 
 	/* start WaitJoin timer */
@@ -966,16 +972,19 @@ void _CWCloseThread(int i) {
 	
 	BEconnectEvent beConEve;
 
-	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex)))
-	{
-		CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
-		exit(1);
-	}
+
 
 		//num can't < 0
 	if(gActiveWTPs && gWTPs[i].currentState == CW_ENTER_RUN)
 	{
+		if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex)))
+		{
+			CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
+			exit(1);
+		}
 		gActiveWTPs--;
+		CWThreadMutexUnlock(&gActiveWTPsMutex);
+		
 		CWLog("_CWCloseThread gActiveWTPs = %d",gActiveWTPs);
 		
 		beConEve.type =htons( BE_CONNECT_EVENT);
@@ -995,10 +1004,10 @@ void _CWCloseThread(int i) {
 		}
 	}
 	
-	CWThreadMutexUnlock(&gActiveWTPsMutex);
+	CWDebugLog("Close Thread: %08x", (unsigned int)CWThreadSelf());
+
+	CWACStopRetransmission(i);
 	
-
-
 	/**** ACInterface ****/
 	if(!CWErr(CWThreadMutexLock(&gWTPsMutex)))
 	{
@@ -1006,20 +1015,19 @@ void _CWCloseThread(int i) {
 		exit(1);
 	}
 	//CWThreadMutexLock(&gWTPsMutex);
-	gWTPs[i].qosValues=NULL;
+	CW_FREE_OBJECT(gWTPs[i].qosValues);
+	CW_FREE_OBJECT(gWTPs[i].ofdmValues);
+	
+	//gWTPs[i].qosValues=NULL;
 	memset(gWTPs[i].MAC, 0, MAC_ADDR_LEN);
 	gWTPs[i].isConnect = CW_FALSE;
 
-	CWThreadMutexUnlock(&gWTPsMutex);
 	/**** ACInterface ****/
 
 	gInterfaces[gWTPs[i].interfaceIndex].WTPCount--;
 
 	CWUseSockNtop( ((struct sockaddr*)&(gInterfaces[gWTPs[i].interfaceIndex].addr)),
 			CWLog("Remove WTP on Interface %s (%d)", str, gWTPs[i].interfaceIndex););
-	
-	
-	CWDebugLog("Close Thread: %08x", (unsigned int)CWThreadSelf());
 	
 	if(gWTPs[i].subState != CW_DTLS_HANDSHAKE_IN_PROGRESS) {
 	
@@ -1028,8 +1036,6 @@ void _CWCloseThread(int i) {
 	
 	/* this will do nothing if the timer isn't active */
 	CWTimerCancel(&(gWTPs[i].currentTimer));
-	
-	CWACStopRetransmission(i);
 
 	if (gWTPs[i].interfaceCommandProgress == CW_TRUE) {
 
@@ -1041,18 +1047,16 @@ void _CWCloseThread(int i) {
 
 		CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
 	}
-
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex)))
-	{
-		CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
-		exit(1);
-	}
 	//child thread last core 
 	gWTPs[i].session = NULL;
+	gWTPs[i].currentState == CW_QUIT;
 	gWTPs[i].subState = CW_DTLS_HANDSHAKE_IN_PROGRESS;
+
+	CW_FREE_OBJECT(gWTPs[i].buf);
 	if(gWTPs[i].fragmentsList != NULL)
 	{
 		CWDeleteList(&(gWTPs[i].fragmentsList), CWProtocolDestroyFragment);
+		gWTPs[i].fragmentsList = NULL;
 	}
 	
 	/* CW_FREE_OBJECT(gWTPs[i].configureReqValuesPtr); */
@@ -1061,6 +1065,8 @@ void _CWCloseThread(int i) {
 	CWDestroySafeList(gWTPs[i].packetReceiveList);	
 	
 	gWTPs[i].isNotFree = CW_FALSE;
+	CWResetWTPProtocolManager(&(gWTPs[i].WTPProtocolManager));
+	
 	CWThreadMutexUnlock(&gWTPsMutex);
 	
 	CWExitThread();

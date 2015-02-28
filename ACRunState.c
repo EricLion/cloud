@@ -629,8 +629,15 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 		CWFreeMessageFragments(messages, messagesCount);
 		CW_FREE_OBJECT(messages);
 	}
+	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
+	{
+		CWLog("Error locking the gWTPsMutex mutex");
+		return CW_FALSE;
+	}
 	gWTPs[WTPIndex].currentState = CW_ENTER_RUN;
 	gWTPs[WTPIndex].subState = CW_WAITING_REQUEST;
+
+	CWThreadMutexUnlock(&gWTPsMutex);
 
 	return CW_TRUE;
 }
@@ -1247,8 +1254,14 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 	 * On a positive WTP_COMMIT_ACK, we need to close the WTP Manager.
 	 */
 	if (closeWTPManager) {
+		if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+							CWLog("Error locking the gWTPsMutex mutex");
+							return CW_FALSE;
+		}
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+		CWThreadMutexUnlock(&gWTPsMutex);
 		CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceWait);
+		
 	}
 
 	CWDebugLog("Configuration Update Response Saved");
