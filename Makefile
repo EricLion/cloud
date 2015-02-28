@@ -64,7 +64,7 @@ WTP_DEPS := $(WTP_OBJS:.o=.d)
 WUA_DEPS := $(WUA_OBJS:.o=.d)
 
 # program executables. 
-AC_NAME = BE_AC 
+AC_NAME =  AC
 WTP_NAME = WTP 
 WUA_NAME = WUA
 
@@ -75,6 +75,7 @@ all: $(AC_NAME)
 
 $(AC_NAME): $(AC_OBJS) 
 	$(CC) $(AC_OBJS) $(CC_FLAGS) $(OPENSSL_INCLUDE) $(LDFLAGS) -o $(AC_NAME) 
+	objdump -S -d $(AC_NAME) >$(AC_NAME).s
 
 $(WTP_NAME): $(WTP_OBJS) 
 	$(CC) -DWRITE_STD_OUTPUT $(WTP_OBJS) $(CC_FLAGS) $(LDFLAGS) -o $(WTP_NAME) 
@@ -83,7 +84,7 @@ $(WUA_NAME): $(WUA_OBJS)
 	$(CC) $(WUA_OBJS) $(CC_FLAGS)  $(LDFLAGS) -o $(WUA_NAME) 
 
 clean: 
-	$(RM) $(AC_NAME) $(WTP_NAME) $(WUA_NAME) $(AC_OBJS) $(WTP_OBJS) $(WUA_OBJS) $(AC_DEPS) $(WTP_DEPS)
+	$(RM) $(AC_NAME) $(WTP_NAME) $(WUA_NAME) $(AC_OBJS) $(WTP_OBJS) $(WUA_OBJS) $(AC_DEPS) $(WTP_DEPS) $(AC_NAME).s
 
 clean_deps:
 	$(AC_DEPS) $(WTP_DEPS)
