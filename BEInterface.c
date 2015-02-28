@@ -32,8 +32,7 @@ int FindApIndex(u_char* apMac)
 		CWLog("FindApIndex apMac == NULL");
 		return FALSE;
 	}
-	
-	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
+
 	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex))) {
 		CWLog("Error locking the gActiveWTPsMutex mutex");
 		return finded;
@@ -64,7 +63,7 @@ int FindApIndex(u_char* apMac)
 				if (apMac[j] == gWTPs[i].MAC[j]) 
 				{
 					if (j == (MAC_ADDR_LEN - 1))
-					{	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+					{	
 						finded = i;
 						CWLog("[F:%s, L:%d] finded = %d",__FILE__,__LINE__,finded);
 						//CWThreadMutexUnlock(&gWTPsMutex);
@@ -95,7 +94,7 @@ int FindApIndex(u_char* apMac)
 char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValues* vendorValues)
 {
 	int finded = -1,interfaceResult = 0;
-	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
+
 	if(apMac == NULL)
 	{
 		CWLog("BESetWumValues apMac == NULL");
@@ -143,7 +142,6 @@ char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValu
 			return CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE;
 		}
 	}
-	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	return TRUE;
 }
 
@@ -151,7 +149,6 @@ char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValu
 char BESetApValues(u_char* apMac, int socketIndex, CWVendorXMLValues* xmlValues)
 {
 	int finded = -1;
-	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 
 	if(apMac == NULL)
 	{
@@ -187,7 +184,6 @@ char BESetApValues(u_char* apMac, int socketIndex, CWVendorXMLValues* xmlValues)
 char BESetPortalValues(u_char* apMac, int socketIndex, CWVendorPortalValues* portalValues)
 {
 	int finded = -1;
-	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 
 	if(apMac == NULL)
 	{
@@ -491,7 +487,6 @@ void SendBEResponse(char* buf,int len,int apId)
 		}
 		CWLog("[F:%s, L:%d] Writen n:%d",__FILE__,__LINE__,n);
 	}
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	CWThreadMutexUnlock(&appsManager.socketMutex[socketIndex]);
 
 }
@@ -783,13 +778,11 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 	}
 	if(xmlValues->wum_type == WTP_CONFIG_REQUEST)
 	{
-		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 		gWTPs[selection].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG;
 		gWTPs[selection].interfaceCommand = WTP_CONFIG_CMD;
 	}
 	else if(xmlValues->wum_type == WTP_STATE_REQUEST)
 	{
-		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 		gWTPs[selection].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE;
 		gWTPs[selection].interfaceCommand = WTP_STATE_CMD;
 	}
@@ -798,16 +791,11 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 		CWLog("[F:%s, L:%d]  Unknown wum_type:%d",__FILE__,__LINE__,xmlValues->wum_type);
 		return FALSE;
 	}
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	gWTPs[selection].applicationIndex = socketIndex;
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	//block
 	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	return TRUE;
 }
 
@@ -850,7 +838,6 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 	//CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
 	//portal to vendor	
 	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorPortalValues, CWProtocolVendorPortalValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	gWTPs[selection].vendorPortalValues->TotalFileNum= portalValues->TotalFileNum;
 	gWTPs[selection].vendorPortalValues->FileNo= portalValues->FileNo;
 	gWTPs[selection].vendorPortalValues->EncodeNameLen= portalValues->EncodeNameLen;
@@ -909,13 +896,10 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		//CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
 		gWTPs[selection].applicationIndex = socketIndex;
 		gWTPs[selection].interfaceCommand = PORTAL_MSG_CMD;
-		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
-		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 		
 		//block
 		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
-		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 		
 		CWLog("[F:%s, L:%d] -------%d  portal fragment recv----------",__FILE__,__LINE__,seqNum);
 		left -= toSend;
@@ -973,7 +957,6 @@ int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 	CWLog("[F:%s, L:%d] CWSysSetValues CWWaitThreadCondition",__FILE__,__LINE__);	
 	
 	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	
 	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
 	CWLog("[F:%s, L:%d] CWSysSetValues end ...",__FILE__,__LINE__);	
@@ -1019,7 +1002,6 @@ int CWWumSetValues(int selection, int socketIndex, CWProtocolVendorSpecificValue
 	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
 	CWLog("[F:%s, L:%d] CWWaitThreadCondition",__FILE__,__LINE__);	
 	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
-	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
 	CWLog("[F:%s, L:%d] CWWumSetValues end ...",__FILE__,__LINE__);	
 	
@@ -1282,13 +1264,11 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 				CW_CREATE_OBJECT_ERR(xmlValues, CWVendorXMLValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 				xmlValues->wum_type =WTP_STATE_REQUEST;
 				xmlValues->payloadLen = beLen;
-				CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 
 				result = FALSE;
 				result = BESetApValues(beHeader.apMac, socketIndex, xmlValues);
 				//CW_FREE_OBJECT(xmlValues->payload);
 				CW_FREE_OBJECT(xmlValues);
-				CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);	
 				if(!result)
 				{
 					SendBEResponseDirectly(BE_MONITOR_EVENT_RESPONSE,beHeader.apMac,socketIndex,rc);
@@ -1532,16 +1512,12 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 
 				result = FALSE;
 				result = BESetPortalValues(beHeader.apMac, socketIndex, &bePortalEventRequest);
-				CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 				CW_FREE_OBJECT(bePortalEventRequest.EncodeName);
-				CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 				CW_FREE_OBJECT(bePortalEventRequest.EncodeContent);
-				CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 				if(!result)
 				{
 					SendBEResponseDirectly(BE_PORTAL_EVENT_RESPONSE,beHeader.apMac,socketIndex,rc);
 				}
-				CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 				goto quit_manage;
 			}
 			

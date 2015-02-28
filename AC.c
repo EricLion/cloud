@@ -166,7 +166,6 @@ void CWACInit() {
 
 	CWLog("Starting AC");
 
-	//CWLog("%s  ,%d",__FILE__,__LINE__);
 	if(!CWThreadInitLib())
 	{
 		CWLog("AC CWThreadInitLib Fail !");

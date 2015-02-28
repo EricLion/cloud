@@ -285,7 +285,6 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 	switch(controlVal.messageTypeValue) {
 		case CW_MSG_TYPE_VALUE_CONFIGURE_UPDATE_RESPONSE:
 		{
-			CWLog("F:%s L:%d",__FILE__,__LINE__);
 			CWProtocolResultCode resultCode;
 			/*Update 2009:
 				Store Protocol specific response data*/
@@ -306,12 +305,9 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 				}
 			}
 
-			CWLog("F:%s L:%d",__FILE__,__LINE__);
 			CWSaveConfigurationUpdateResponseMessage(resultCode, WTPIndex, protocolValues);
-//			CWLog("F:%s L:%d",__FILE__,__LINE__);
 			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE) {
 
-//			CWLog("F:%s L:%d",__FILE__,__LINE__);
 		if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) {
 						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex",__FILE__,__LINE__);
 						return CW_FALSE;
@@ -1151,9 +1147,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			   BESize = BE_TYPELEN_LEN+payloadSize;
 			   
    			   beResp = AssembleBEheader((char*)&bePortalEventResp,&BESize,WTPIndex,NULL);
-			   CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 			   CW_FREE_OBJECT(gWTPs[WTPIndex].vendorPortalValues);
-			   CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 			   
 			   break;
 		}
@@ -1175,9 +1169,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 				{
 					SendBEResponse(beResp,BESize,WTPIndex);
 				}
-				//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 				CW_FREE_OBJECT(beResp);
-				//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 				result = CW_TRUE;
 			   }
 			   //else
@@ -1188,12 +1180,9 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			//CW_FREE_OBJECT(responseBuffer);
 			if(vendValues->vendorPayloadLen > 0)
 			{
-				CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 				CW_FREE_OBJECT(vendValues->payload);				
 			}
-			//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 			CW_FREE_OBJECT(vendValues);
-			//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 			//return result;
 		}
 #if 0
