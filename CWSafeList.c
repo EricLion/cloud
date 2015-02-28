@@ -33,7 +33,7 @@
 
 CWBool CWCreateSafeList(CWSafeList* pSafeList)
 {
-	CWPrivateSafeList* pNewList;
+	CWPrivateSafeList* pNewList = NULL;
 
 	if (pSafeList == NULL)
 		return CW_FALSE;
@@ -56,7 +56,8 @@ CWBool CWCreateSafeList(CWSafeList* pSafeList)
 
 void CWDestroySafeList(CWSafeList safeList)
 {
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeList* pList = NULL;
+	pList = (CWPrivateSafeList*)safeList;
 
 	if (pList == NULL)
 		return;
@@ -67,7 +68,8 @@ void CWDestroySafeList(CWSafeList safeList)
 
 void CWSetMutexSafeList(CWSafeList safeList, CWThreadMutex* pThreadMutex)
 {
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeList* pList = NULL;
+	 pList = (CWPrivateSafeList*)safeList;
 
 	if (pList == NULL)
 		return;
@@ -77,7 +79,8 @@ void CWSetMutexSafeList(CWSafeList safeList, CWThreadMutex* pThreadMutex)
 
 void CWSetConditionSafeList(CWSafeList safeList, CWThreadCondition* pThreadCond)
 {
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeList* pList = NULL;
+	pList = (CWPrivateSafeList*)safeList;
 
 	if (pList == NULL)
 		return;
@@ -87,7 +90,8 @@ void CWSetConditionSafeList(CWSafeList safeList, CWThreadCondition* pThreadCond)
 
 CWBool CWLockSafeList(CWSafeList safeList)
 {
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeList* pList = NULL;
+	pList = (CWPrivateSafeList*)safeList;
 
 	if ((pList == NULL) || (pList->pThreadMutex == NULL))
 		return CW_FALSE;
@@ -98,7 +102,8 @@ CWBool CWLockSafeList(CWSafeList safeList)
 
 void CWUnlockSafeList(CWSafeList safeList)
 {
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeList* pList = NULL;
+	pList = (CWPrivateSafeList*)safeList;
 
 	if ((pList == NULL) || (pList->pThreadMutex == NULL))
 		return;
@@ -109,7 +114,8 @@ void CWUnlockSafeList(CWSafeList safeList)
 
 CWBool CWWaitElementFromSafeList(CWSafeList safeList)
 {
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeList* pList = NULL;
+	pList = (CWPrivateSafeList*)safeList;
 
 	if ((pList == NULL) || (pList->pThreadMutex == NULL) || (pList->pThreadCond == NULL))
 		return CW_FALSE;
@@ -119,7 +125,8 @@ CWBool CWWaitElementFromSafeList(CWSafeList safeList)
 
 CWBool CWSignalElementSafeList(CWSafeList safeList)
 {
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeList* pList = NULL;
+	 pList = (CWPrivateSafeList*)safeList;
 
 	if ((pList == NULL) || (pList->pThreadCond == NULL))
 		return CW_FALSE;
@@ -130,7 +137,8 @@ CWBool CWSignalElementSafeList(CWSafeList safeList)
 
 unsigned long CWGetCountElementFromSafeList(CWSafeList safeList)
 {
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeList* pList = NULL;
+	pList = (CWPrivateSafeList*)safeList;
 
 	if (pList == NULL)
 		return 0;
@@ -141,8 +149,9 @@ unsigned long CWGetCountElementFromSafeList(CWSafeList safeList)
 // No thread-safe
 CWBool CWAddElementToSafeListHead(CWSafeList safeList, void* pData, int nSize)
 {
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
-	CWPrivateSafeElement* pNewElement;
+	CWPrivateSafeList* pList = NULL;
+	 pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeElement* pNewElement = NULL;
 
 	if ((pList == NULL) || (pData == NULL))
 		return CW_FALSE;
@@ -167,8 +176,9 @@ CWBool CWAddElementToSafeListHead(CWSafeList safeList, void* pData, int nSize)
 // No thread-safe
 void* CWGetHeadElementFromSafeList(CWSafeList safeList, int* pSize)
 {
-	CWPrivateSafeElement* pElement;
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeElement* pElement = NULL;
+	CWPrivateSafeList* pList = NULL;
+	 pList = (CWPrivateSafeList*)safeList;
 
 	if ((pList == NULL) || (pList->pFirstElement == NULL))
 		return NULL;
@@ -184,9 +194,10 @@ void* CWGetHeadElementFromSafeList(CWSafeList safeList, int* pSize)
 // No thread-safe
 void* CWRemoveHeadElementFromSafeList(CWSafeList safeList, int* pSize)
 {
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
-	CWPrivateSafeElement* pElement;
-	void* pData;
+	CWPrivateSafeList* pList = NULL;
+	 pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeElement* pElement = NULL;
+	void* pData = NULL;
 
 	if ((pList == NULL) || (pList->pFirstElement == NULL))
 		return NULL;
@@ -211,8 +222,9 @@ void* CWRemoveHeadElementFromSafeList(CWSafeList safeList, int* pSize)
 // No thread-safe
 CWBool CWAddElementToSafeListTail(CWSafeList safeList, void* pData, int nSize)
 {
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
-	CWPrivateSafeElement* pNewElement;
+	CWPrivateSafeList* pList = NULL;
+	 pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeElement* pNewElement = NULL;
 
 	if ((pList == NULL) || (pData == NULL))
 		return CW_FALSE;
@@ -237,9 +249,10 @@ CWBool CWAddElementToSafeListTail(CWSafeList safeList, void* pData, int nSize)
 // No thread-safe
 void* CWRemoveTailElementFromSafeList(CWSafeList safeList, int* pSize)
 {
-	CWPrivateSafeList* pList = (CWPrivateSafeList*)safeList;
-	CWPrivateSafeElement* pElement;
-	void* pData;
+	CWPrivateSafeList* pList = NULL;
+	 pList = (CWPrivateSafeList*)safeList;
+	CWPrivateSafeElement* pElement = NULL;
+	void* pData = NULL;
 
 	if ((pList == NULL) || (pList->pLastElement == NULL))
 		return NULL;
@@ -264,7 +277,7 @@ void* CWRemoveTailElementFromSafeList(CWSafeList safeList, int* pSize)
 // No thread-safe
 void CWCleanSafeList(CWSafeList safeList, void (*deleteFunc)(void *))
 {
-	void* pData;
+	void* pData = NULL;
 
 	CW_REPEAT_FOREVER
 	{

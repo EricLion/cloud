@@ -268,6 +268,8 @@ void CWACManageIncomingPacket(CWSocket sock,
 			CW_COPY_NET_ADDR_PTR(&(gWTPs[i].address), addrPtr);
 			gWTPs[i].isNotFree = CW_TRUE;
 			gWTPs[i].isRequestClose = CW_FALSE;
+			//pointer NULL
+			gWTPs[i].packetReceiveList = NULL;
 			CWThreadMutexUnlock(&gWTPsMutex);
 
 			/* Capwap receive packets list */
@@ -472,6 +474,10 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 
 	//BE: connectEvent
 	gWTPs[i].isConnect = CW_FALSE;
+
+	gWTPs[i].ofdmValues = NULL;  
+	gWTPs[i].vendorValues = NULL;
+	gWTPs[i].vendorPortalValues = NULL;
 
 	CWResetWTPProtocolManager(&(gWTPs[i].WTPProtocolManager));
 

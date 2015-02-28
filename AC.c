@@ -144,7 +144,7 @@ void CWACInit() {
 	struct sockaddr_in *IPv4Addresses = NULL;
 	
 	CWLogInitFile(AC_LOG_FILE_NAME);
-#if 0
+#if 1
 	if(signal(SIGSEGV,dump) == SIG_ERR)
 	{
 		CWDebugLog("can't catch SIGSEGV");	
