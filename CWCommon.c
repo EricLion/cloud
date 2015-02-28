@@ -72,7 +72,8 @@ void dump(int signal)
 	size_t size = 0;
 	char **strings  = NULL;
 	size_t i = 0;
-
+	
+	gEnabledLog = 1;
 	size = backtrace(buffer,64);
 	CWLog("Process recive signal [SIGSEGV], %zd stack frames\n ",size);
 	strings = backtrace_symbols(buffer, size);

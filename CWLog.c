@@ -162,7 +162,7 @@ __inline__ void CWVLog(const char *format, va_list args) {
 
 __inline__ void CWLog(const char *format, ...) {
 	va_list args;
-	
+
 	va_start(args, format);
 	//printf("CWLog gEnabledLog = %d\n ",gEnabledLog);
 	if (gEnabledLog)
