@@ -105,16 +105,15 @@ int main (int argc, const char * argv[]) {
 		printf("chdir fail");
 		exit(1);
 	}
-	gEnabledLog = 1;
+	//gEnabledLog = 1;
 	CWLog("CWACInit begin...\n");
 	CWACInit();
 	CWLog("CWACEnterMainLoop begin...\n");
-	gEnabledLog = 0;
+	//gEnabledLog = 0;
 	CWACEnterMainLoop();
-	gEnabledLog = 1;
+	//gEnabledLog = 1;
 	CWLog("CWACDestroy begin...\n");
 	CWACDestroy();
-	gEnabledLog = 0;
 	
 	return 0;
 }

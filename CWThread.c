@@ -177,7 +177,8 @@ CWBool CWWaitThreadConditionTimeout(CWThreadCondition *theCondition, CWThreadMut
 // Signal a thread condition (wrapper for pthread_cond_signal)
 void CWSignalThreadCondition(CWThreadCondition *theCondition) {
 	if(theCondition == NULL) return;
-	
+	//coredump
+	CWLog("CWSignalThreadCondition ...");
 	pthread_cond_signal(theCondition);
 }
 

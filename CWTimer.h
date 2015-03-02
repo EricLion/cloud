@@ -59,10 +59,12 @@
 #define FALSE   0 
 #endif
 
+#define CW_TIMER_MAX 2000
 typedef short int       int2; 
 typedef int             int4; 
-#define TIMER_SIGNAL_TYPE       CW_TIMER_INTERNAL_SIGNAL
+//#define TIMER_SIGNAL_TYPE       CW_TIMER_INTERNAL_SIGNAL
 #define TIMER_INTERVAL_TYPE     ITIMER_REAL 
+#define TIMER_SIGNAL_TYPE         SIGALRM
 struct itimerval timer_value;
 
 static unsigned timer_set_timestamp;    /* this holds the value of */ 
@@ -124,6 +126,7 @@ sigset_t mask;
 
 /* used when cancelling timers (if that works) */ 
 struct itimerval cancel_timer = {{ 0,0},{0,0}}; 
+struct timer *t = NULL;
 
 void _clkini();
 int _setimr(unsigned int timeout, int2 *event, void (*ast)(void*, int), CWTimerArg myArg, int4 arg, char *pname, CWTimerID *idPtr);
@@ -161,7 +164,7 @@ __inline__ CWBool CWTimerCreate(int sec, CWTimerID *idPtr, void (*hdl)(CWTimerAr
 
 __inline__ CWTimerArg CWTimerGetArg(CWTimerID *idPtr) 
 {
-	CWTimerArg pResult;
+	CWTimerArg pResult = NULL;
 	
 	if(idPtr == NULL)
 	{
@@ -261,8 +264,8 @@ int _setimr(	unsigned int timeout,		/* time to wait in 10msec ticks */
 		int4 arg,			/* argument to be provided to timeout ast */ 
 		char *pname,
 		CWTimerID *idPtr) { 
-        struct timer *free_timer;       /* pointer to unused timer entry */ 
-        struct timer *t; 
+        struct timer *free_timer = NULL;       /* pointer to unused timer entry */ 
+        struct timer *t = NULL; 
         *event = 0; 
 
         if (timeout == 0) { /* no time, so enable it and don't put on queue */ 
@@ -324,7 +327,7 @@ int _setimr(	unsigned int timeout,		/* time to wait in 10msec ticks */
 
 // cancel a timer
 int _cantim(CWTimerID *idPtr) { 
-        struct timer *t; 
+        struct timer *t = NULL; 
 
         disable_interrupts(); 
        // for (t=timerq;t<&timerq[CW_TIMER_MAX];t++) { 
@@ -362,7 +365,7 @@ void clk_isr() {
 } 
 /* subtract time from all timers, enabling any that run out along the way */ 
 void update_all_timers_by(unsigned int time) { 
-	struct timer *t; int id;
+	struct timer *t = NULL; int id;
 	CWDebugLog("Update Timers");
         for (id=0, t=timerq;t<&timerq[CW_TIMER_MAX];t++, id++) { 
 		if (t->timeout) {
@@ -386,7 +389,7 @@ void update_all_timers_by(unsigned int time) {
         } 
 } 
 struct timer *shortest_timer() { 
-        struct timer *t, *s_t;  /* shortest_timer */ 
+        struct timer *t = NULL, *s_t = NULL;  /* shortest_timer */ 
         unsigned int old_timer = MANY_TENS_OF_MSECS; 
         for (s_t = 0,t=timerq;t<&timerq[CW_TIMER_MAX];t++) { 
                 if (t->timeout > 0 && t->timeout < old_timer) { 
@@ -397,7 +400,7 @@ struct timer *shortest_timer() {
         return(s_t); 
 } 
 void start_timer(t) 
-struct timer *t; 
+//struct timer *t; 
 { 
         next_timer = t;         /* remember for _cantim and _setimr */ 
         if (!t) return; 

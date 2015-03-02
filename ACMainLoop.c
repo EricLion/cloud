@@ -1049,7 +1049,7 @@ void _CWCloseThread(int i) {
 	}
 	//child thread last core 
 	gWTPs[i].session = NULL;
-	gWTPs[i].currentState == CW_QUIT;
+	gWTPs[i].currentState = CW_QUIT;
 	gWTPs[i].subState = CW_DTLS_HANDSHAKE_IN_PROGRESS;
 
 	CW_FREE_OBJECT(gWTPs[i].buf);
