@@ -126,6 +126,7 @@ static int memory_read(BIO *b, char *out, int outl)
 		CWWaitElementFromSafeList(pData->pRecvAddress);
 
 	//
+	 CWLog("%s %d CWRemoveHeadElementFromSafeList",__FILE__,__LINE__);
 	buf = (char*)CWRemoveHeadElementFromSafeList(pData->pRecvAddress, &size);
 
 	CWUnlockSafeList(pData->pRecvAddress);

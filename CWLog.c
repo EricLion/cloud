@@ -26,6 +26,9 @@
  *******************************************************************************************/
 
 #include "CWCommon.h"
+#include <syslog.h>
+
+
 //#define WRITE_STD_OUTPUT 1 
 
 #ifdef DMALLOC
@@ -42,7 +45,8 @@ void CWLogInitFile(char *fileName) {
 	if(fileName == NULL) {
 		CWLog("Wrong File Name for Log File");
 	}
-	
+	//system("ln -s /var/log/messages ./ac.log");
+
 	if((gLogFile = fopen(fileName, "w")) == NULL) {
 		CWLog("Can't open log file: %s", strerror(errno));
 		exit(1);
@@ -117,7 +121,7 @@ __inline__ void CWVLog(const char *format, va_list args) {
 	char *nowReadable = NULL;
 		
 	if(format == NULL) return;
-	
+
 	now = time(NULL);
 	nowReadable = ctime(&now);
 	
@@ -128,6 +132,19 @@ __inline__ void CWVLog(const char *format, va_list args) {
 	
 	//sprintf(logStr, "[CAPWAP::%s]\t\t %s\n", nowReadable, format);
 	sprintf(logStr, "[CAPWAP::%s]\t%08x\t %s\n", nowReadable, (unsigned int)CWThreadSelf(), format);
+#if 0
+	sprintf(logStr, "thread:%08x,%s", (unsigned int)CWThreadSelf(), format);
+
+	char fileLine[256];
+		
+	vsnprintf(fileLine, 255, logStr, args);
+	
+	CWThreadMutexLock(&gFileMutex);
+	openlog("CAPWAP", LOG_CONS | LOG_PID, 0); 
+	syslog(LOG_USER | LOG_INFO, "%s", fileLine);
+	closelog();
+	CWThreadMutexUnlock(&gFileMutex);
+#endif
 
 	if(gLogFile != NULL) {
 		char fileLine[256];
@@ -139,7 +156,7 @@ __inline__ void CWVLog(const char *format, va_list args) {
 		#endif
 		
 		vsnprintf(fileLine, 255, logStr, args);
-	
+
 		if(!checkResetFile()) 
 		{
 			CWThreadMutexUnlock(&gFileMutex);
@@ -148,11 +165,14 @@ __inline__ void CWVLog(const char *format, va_list args) {
 		
 		fwrite(fileLine, strlen(fileLine), 1, gLogFile);
 		fflush(gLogFile);
+
 		
 		#ifndef CW_SINGLE_THREAD
 			CWThreadMutexUnlock(&gFileMutex);
 		#endif
+		
 	}
+
 #ifdef WRITE_STD_OUTPUT
 	vprintf(logStr, args);
 #endif	
@@ -194,11 +214,22 @@ __inline__ void CWDebugLog(const char *format, ...) {
 		// return in case of memory err: we're not performing a critical task
 		CW_CREATE_STRING_ERR(logStr, (strlen(format)+strlen(nowReadable)+100), return;);
 		
+		va_start(args, format);
+		
 		//sprintf(logStr, "[[CAPWAP::%s]]\t\t %s\n", nowReadable, format);
 		sprintf(logStr, "[CAPWAP::%s]\t%08x\t %s\n", nowReadable, (unsigned int)CWThreadSelf(), format);
 
-		va_start(args, format);
+#if 0
+		char fileLine[256];
+		sprintf(logStr, "thread:%08x,%s", (unsigned int)CWThreadSelf(), format);
+		vsnprintf(fileLine, 255, logStr, args);
 		
+		CWThreadMutexLock(&gFileMutex);
+		openlog("CAPWAP", LOG_CONS | LOG_PID, 0); 
+		syslog(LOG_USER | LOG_INFO, "%s", fileLine);
+		closelog();
+		CWThreadMutexUnlock(&gFileMutex);
+#endif
 		if(gLogFile != NULL) {
 			char fileLine[256];
 			
@@ -209,7 +240,7 @@ __inline__ void CWDebugLog(const char *format, ...) {
 			#endif
 			
 			vsnprintf(fileLine, 255, logStr, args);
-
+			
 			if(!checkResetFile()) 
 			{
 				CWThreadMutexUnlock(&gFileMutex);
@@ -219,11 +250,12 @@ __inline__ void CWDebugLog(const char *format, ...) {
 			fwrite(fileLine, strlen(fileLine), 1, gLogFile);
 			
 			fflush(gLogFile);
-			
+
 			#ifndef CW_SINGLE_THREAD
 			CWThreadMutexUnlock(&gFileMutex);
 			#endif
 		}
+
 #ifdef WRITE_STD_OUTPUT	
 		vprintf(logStr, args);
 #endif

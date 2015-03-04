@@ -176,7 +176,7 @@ CWBool CWAssembleWTPVendorPayloadXML(CWProtocolMessage *msgPtr) {
 		CWLog("CWThreadGetSpecific NULL");
 	  	return CW_FALSE;
 	}
-	CWLog("*iPtr = %d",*iPtr);
+	//CWLog("*iPtr = %d",*iPtr);
 	valuesPtr =gWTPs[*iPtr].vendorValues;
 
 	//Debug
@@ -202,7 +202,7 @@ CWBool CWAssembleWTPVendorPayloadXML(CWProtocolMessage *msgPtr) {
 #endif
 	if(valuesPtr != NULL)
 	{
-		CWLog("CWAssembleWTPVendorPayloadXML valuesPtr != NULL");
+		//CWLog("CWAssembleWTPVendorPayloadXML valuesPtr != NULL");
 	switch (valuesPtr->vendorPayloadType){
 			case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG:
 			case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE:

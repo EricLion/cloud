@@ -90,7 +90,7 @@ CWBool ACEnterConfigure(int WTPIndex, CWProtocolMessage *msgPtr) {
 		CWLog("CWTimerRequest Fail !!!");
 		CWCloseThread();
 	}
-	CWLog("CWTimerRequest Success !!!");
+	//CWLog("CWTimerRequest Success !!!");
 	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
 							CWLog("Error locking the gWTPsMutex mutex");
 							return CW_FALSE;

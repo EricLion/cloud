@@ -541,7 +541,7 @@ void SendBERequest(char* buf,int len)
 			CWLog("Error write appsManager.appClientSocket");
 			break;
 		}
-		CWLog("[F:%s, L:%d] Writen n:%d !=len",__FILE__,__LINE__,n);
+//		CWLog("[F:%s, L:%d] Writen n:%d !=len",__FILE__,__LINE__,n);
 	}
 	CWLog("[F:%s, L:%d] Writen n:%d",__FILE__,__LINE__,n);
 
@@ -761,15 +761,15 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly");
 		return FALSE;
 	}
-	//Free Old	
-	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+	
+	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex)); return 0;});
 	gWTPs[selection].vendorValues->vendorPayloadLen = 0;
 	
 	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	
 	if(xmlValues->payloadLen && xmlValues->payload)
 	{
-		CW_CREATE_STRING_ERR(gWTPs[selection].vendorValues->payload, xmlValues->payloadLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+		CW_CREATE_STRING_ERR(gWTPs[selection].vendorValues->payload, xmlValues->payloadLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex)); return 0;});
 		memset(gWTPs[selection].vendorValues->payload,0,xmlValues->payloadLen+1);
 		memcpy((char*)gWTPs[selection].vendorValues->payload, xmlValues->payload,xmlValues->payloadLen);
 		CWLog("gWTPs[%d].vendorValues->payload :%s", selection, gWTPs[selection].vendorValues->payload);
@@ -789,6 +789,7 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 	else
 	{
 		CWLog("[F:%s, L:%d]  Unknown wum_type:%d",__FILE__,__LINE__,xmlValues->wum_type);
+		CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
 		return FALSE;
 	}
 	gWTPs[selection].applicationIndex = socketIndex;
@@ -801,11 +802,6 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 
 
 int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* portalValues) {
-
-	if(!CWErr(CWThreadMutexLock(&(gWTPs[selection].interfaceMutex)))) {
-		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly");
-		return FALSE;
-	}
 	
 	if(portalValues == NULL)
 	{
@@ -833,11 +829,15 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		CWLog("[F:%s, L:%d]selection <0 ||selection >= CW_MAX_WTP ",__FILE__,__LINE__);
 		return FALSE;
 	}
+	if(!CWErr(CWThreadMutexLock(&(gWTPs[selection].interfaceMutex)))) {
+		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly");
+		return FALSE;
+	}
 	gWTPs[selection].vendorPortalValues = NULL;
 	
 	//CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
 	//portal to vendor	
-	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorPortalValues, CWProtocolVendorPortalValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorPortalValues, CWProtocolVendorPortalValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));return 0;});
 	gWTPs[selection].vendorPortalValues->TotalFileNum= portalValues->TotalFileNum;
 	gWTPs[selection].vendorPortalValues->FileNo= portalValues->FileNo;
 	gWTPs[selection].vendorPortalValues->EncodeNameLen= portalValues->EncodeNameLen;
@@ -870,14 +870,14 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		gWTPs[selection].vendorPortalValues->SeqNum= seqNum;
 		gWTPs[selection].vendorPortalValues->EncodeContentLen= fragSize;
 
-		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeName, gWTPs[selection].vendorPortalValues->EncodeNameLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeName, gWTPs[selection].vendorPortalValues->EncodeNameLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex)); return 0;});
 		memset(gWTPs[selection].vendorPortalValues->EncodeName,0,gWTPs[selection].vendorPortalValues->EncodeNameLen+1);
 		memcpy(gWTPs[selection].vendorPortalValues->EncodeName,  portalValues->EncodeName,portalValues->EncodeNameLen);
 		CWLog("gWTPs[%d].vendorPortalValues->EncodeName, :%s", selection, gWTPs[selection].vendorPortalValues->EncodeName);
 		CWLog("gWTPs[%d].vendorPortalValues->EncodeName Len:%d", selection, gWTPs[selection].vendorPortalValues->EncodeNameLen);
 		//gWTPs[selection].vendorValues->vendorPayloadLen = strlen(gWTPs[selection].vendorValues->payload);
 
-		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeContent, gWTPs[selection].vendorPortalValues->EncodeContentLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeContent, gWTPs[selection].vendorPortalValues->EncodeContentLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex)); return 0;});
 		memset(gWTPs[selection].vendorPortalValues->EncodeContent,0,gWTPs[selection].vendorPortalValues->EncodeContentLen+1);
 		memcpy(gWTPs[selection].vendorPortalValues->EncodeContent,  portalValues->EncodeContent+sent,gWTPs[selection].vendorPortalValues->EncodeContentLen);
 		CWLog("fragment EncodeContentLen Len:%d", selection, gWTPs[selection].vendorPortalValues->EncodeContentLen);
@@ -1767,11 +1767,6 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 			 * if this value is greater than 0 will be spawn a new Manage thread.	*
 			 ************************************************************************/
 			
-			if(!CWErr(CWThreadMutexLock(&appsManager.numSocketFreeMutex))) {
-				CWLog("Error locking numSocketFree Mutex");
-				close(listen_sock);
-				goto Quit;
-			}
 			
 			if ( appsManager.numSocketFree > 0 ) { 
 				
@@ -1790,7 +1785,11 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 						break;
 					}
 	                    }
-					
+				if(!CWErr(CWThreadMutexLock(&appsManager.numSocketFreeMutex))) {
+					CWLog("Error locking numSocketFree Mutex");
+					close(listen_sock);
+					goto Quit;
+				}	
 				appsManager.numSocketFree--;
 				CWThreadMutexUnlock(&appsManager.numSocketFreeMutex);
 				
@@ -1820,7 +1819,7 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 				}
 			}
 			else {
-				CWThreadMutexUnlock(&appsManager.numSocketFreeMutex);
+				//CWThreadMutexUnlock(&appsManager.numSocketFreeMutex);
 			
 				/****************************************************************
 				 *	There isn't space for another client, send error answer.	*

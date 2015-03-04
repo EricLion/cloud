@@ -141,12 +141,16 @@ void CWACInit() {
 	int i;
 	CWNetworkLev4Address *addresses = NULL;
 	struct sockaddr_in *IPv4Addresses = NULL;
-	
+
 	CWLogInitFile(AC_LOG_FILE_NAME);
 #if 1
 	if(signal(SIGSEGV,dump) == SIG_ERR)
 	{
 		CWDebugLog("can't catch SIGSEGV");	
+	}
+	if(signal(SIGABRT,dump) == SIG_ERR)
+	{
+		CWDebugLog("can't catch SIGABRT");	
 	}
 #endif
 	
@@ -277,6 +281,7 @@ void CWACDestroy() {
 	CW_FREE_OBJECT(gACBEServerAddr);
 
 	CWThreadDestroyLib();
+	CWLogCloseFile();
 	
 	CWLog("AC Destroyed");
 }

@@ -190,8 +190,10 @@ CWBool CWCreateThreadMutex(CWThreadMutex *theMutex) {
 		case 0: // success
 			break;
 		case ENOMEM:
+			CWLog("CWCreateThreadMutex return ENOMEM, Fail!");
 			return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);
 		default:
+			CWLog("CWCreateThreadMutex return  Fail!");
 			return CWErrorRaise(CW_ERROR_GENERAL, "Can't create thread mutex");
 	}
 	return CW_TRUE;
@@ -201,15 +203,42 @@ CWBool CWCreateThreadMutex(CWThreadMutex *theMutex) {
 // Free a thread mutex (wrapper for pthread_mutex_destroy)
 void CWDestroyThreadMutex(CWThreadMutex *theMutex)  {
 	if(theMutex == NULL) return;
-	pthread_mutex_destroy( theMutex );
+	if(pthread_mutex_destroy( theMutex )!=0)
+	{
+		CWLog("CWDestroyThreadMutex return  Fail!");
+	}
 }
 
 // locks a mutex among threads at the specified address (blocking)
 CWBool CWThreadMutexLock(CWThreadMutex *theMutex) {
 	if(theMutex == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
-	if(pthread_mutex_lock( theMutex ) != 0) {
+	/*if(pthread_mutex_lock( theMutex ) != 0) {
+		CWLog("CWThreadMutexLock Fail!");
 		return CWErrorRaise(CW_ERROR_GENERAL, "Can't lock thread mutex");
+	}*/
+	switch(pthread_mutex_lock( theMutex )) {
+		case 0: // success
+			break;
+		case EBUSY:
+			CWLog("CWThreadMutexlock return EBUSY!");
+			return CWErrorRaise(CW_ERROR_GENERAL, "Can't lock thread mutex");
+		case EINVAL:
+			CWLog("CWThreadMutexlock return EINVAL,not innalize mutex!");
+			return CWErrorRaise(CW_ERROR_GENERAL, "Can't lock thread mutex");
+		case EAGAIN:
+			CWLog("CWThreadMutexlock return EAGAIN,more max mutex!");
+			return CWErrorRaise(CW_ERROR_GENERAL, "Can't lock thread mutex");
+		case EDEADLK:
+			CWLog("CWThreadMutexlock return EDEADLK!");
+			return CWErrorRaise(CW_ERROR_GENERAL, "Can't lock thread mutex");
+		case EPERM:
+			 CWLog("CWThreadMutexlock return EPERM,not own any mutex!");
+			 return CWErrorRaise(CW_ERROR_GENERAL, "Can't lock thread mutex");
+		default:
+			 CWLog("CWThreadMutexlock return Fail!");
+			 return CWErrorRaise(CW_ERROR_GENERAL, "Can't lock thread mutex");
 	}
+	
 /*
 	fprintf(stdout, "Mutex %p locked by %p.\n", theMutex, pthread_self());
 	fflush(stdout);
@@ -230,7 +259,23 @@ CWBool CWThreadMutexTryLock(CWThreadMutex *theMutex) {
 // unlocks a mutex among threads at the specified address
 void CWThreadMutexUnlock(CWThreadMutex *theMutex) {
 	if(theMutex == NULL) return;
-	pthread_mutex_unlock( theMutex );
+	switch(pthread_mutex_unlock( theMutex )) {
+		case 0: // success
+			break;
+		case EBUSY:
+			return CWLog("CWThreadMutexUnlock return EBUSY!");
+		case EINVAL:
+			return CWLog("CWThreadMutexUnlock return EINVAL,not innalize mutex!");
+		case EAGAIN:
+			return CWLog("CWThreadMutexUnlock return EAGAIN,more max mutex!");
+		case EDEADLK:
+			return CWLog("CWThreadMutexUnlock return EDEADLK!");
+			//happen
+		case EPERM:
+			return CWLog("CWThreadMutexUnlock return EPERM,not own any mutex!");
+		default:
+			return CWLog("CWThreadMutexUnlock return Fail!");
+	}
 /*
 	fprintf(stdout, "Mutex %p UNlocked by %p.\n", theMutex, pthread_self());
 	fflush(stdout);

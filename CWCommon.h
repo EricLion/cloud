@@ -138,5 +138,6 @@ void CWErrorHandlingInitLib();
 
 extern CWThreadAttr gThreadAttr;
 void dump(int signal);
+//single thread log
 
 #endif

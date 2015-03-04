@@ -62,7 +62,6 @@ void CWDestroySafeList(CWSafeList safeList)
 	if (pList == NULL)
 		return;
 
-	//
 	CW_FREE_OBJECT(pList);
 }
 
@@ -95,9 +94,16 @@ CWBool CWLockSafeList(CWSafeList safeList)
 
 	if ((pList == NULL) || (pList->pThreadMutex == NULL))
 		return CW_FALSE;
-
-	//
-	return CWThreadMutexLock(pList->pThreadMutex);
+	//use try lock
+	//return CWThreadMutexTryLock(pList->pThreadMutex);
+	/*
+	if(!CWErr(CWThreadMutexLock(pList->pThreadMutex) 
+	{
+		CWLog("CWLockSafeList CWThreadMutexLock Fail!");
+		return CW_FALSE;
+	}
+	*/
+	return CWThreadMutexLock(pList->pThreadMutex) ;
 }
 
 void CWUnlockSafeList(CWSafeList safeList)
@@ -212,7 +218,7 @@ void* CWRemoveHeadElementFromSafeList(CWSafeList safeList, int* pSize)
 	pData = pElement->pData;
 	if (pSize != NULL)
 		*pSize = pElement->nSize;
-
+	//coredump by SIGABRT
 	CW_FREE_OBJECT(pElement);
 
 	pList->nCount--;
@@ -242,6 +248,8 @@ CWBool CWAddElementToSafeListTail(CWSafeList safeList, void* pData, int nSize)
 		pList->pFirstElement = pNewElement;
 
 	pList->nCount++;
+	//core
+	//this is for DTLS,no,for gWTPs[i].interfaceWait
 	CWSignalElementSafeList(safeList);
 	return CW_TRUE;
 }

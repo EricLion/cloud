@@ -308,7 +308,7 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			CWSaveConfigurationUpdateResponseMessage(resultCode, WTPIndex, protocolValues);
 			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE) {
 
-		if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) {
+				if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) {
 						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex",__FILE__,__LINE__);
 						return CW_FALSE;
 					}

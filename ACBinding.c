@@ -221,7 +221,7 @@ CWBool CWBindingAssembleConfigureResponse(CWProtocolMessage **msgElems, int *msg
 			}
 		}
 
-		gWTPs[*iPtr].qosValues=NULL;
+	gWTPs[*iPtr].qosValues=NULL;
 	CWThreadMutexUnlock(&(gWTPs[*iPtr].interfaceMutex));	
 
 	CWLog("Binding Configuration Response Assembled");
