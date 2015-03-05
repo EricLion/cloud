@@ -250,7 +250,8 @@ CWBool CWAddElementToSafeListTail(CWSafeList safeList, void* pData, int nSize)
 	pList->nCount++;
 	//core
 	//this is for DTLS,no,for gWTPs[i].interfaceWait
-	CWSignalElementSafeList(safeList);
+	//signal by hand 
+	//CWSignalElementSafeList(safeList);
 	return CW_TRUE;
 }
 

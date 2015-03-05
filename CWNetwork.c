@@ -126,9 +126,10 @@ CWBool CWNetworkReceiveUnsafe(CWSocket sock,
 	while((*readBytesPtr = recvfrom(sock, buf, len, flags, (struct sockaddr*)addrPtr, &addrLen)) < 0) {
 
 		if(errno == EINTR) continue;
+		CWLog("CWNetworkReceiveUnsafe recvfrom Fail!");
 		CWNetworkRaiseSystemError(CW_ERROR_RECEIVING);	
 	}
-	CWLog("CWNetworkReceiveUnsafe *readBytesPtr = %d",*readBytesPtr);
+	//CWLog("CWNetworkReceiveUnsafe *readBytesPtr = %d",*readBytesPtr);
 	return CW_TRUE;
 }
 

@@ -308,17 +308,25 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			CWSaveConfigurationUpdateResponseMessage(resultCode, WTPIndex, protocolValues);
 			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE) {
 
-				if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) {
-						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex",__FILE__,__LINE__);
-						return CW_FALSE;
-					}
+				if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
+				{
+					CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex !",__FILE__,__LINE__);
+					return CW_FALSE;
+				}
 				//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
 				if(gWTPs[WTPIndex].interfaceResult != UPGRADE_FAILED)
 				{
 					gWTPs[WTPIndex].interfaceResult = 1;
 				}
 				gWTPs[WTPIndex].interfaceCommandProgress = CW_FALSE;
+				CWThreadMutexUnlock(&gWTPsMutex);
+				
 				CWLog("[F:%s L:%d] gWTPs[WTPIndex].interfaceResult =%d",__FILE__,__LINE__,gWTPs[WTPIndex].interfaceResult);
+				if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex)))
+				{
+					CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex",__FILE__,__LINE__);
+					return CW_FALSE;
+				}
 				CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
 				CWLog("[F:%s L:%d] CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete)",__FILE__,__LINE__);
 
@@ -438,13 +446,21 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE)
 			{
 				//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
-				if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) {
-						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex",__FILE__,__LINE__);
-						return CW_FALSE;
-					}
+				if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
+				{
+					CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex !",__FILE__,__LINE__);
+					return CW_FALSE;
+				}
 				
 				gWTPs[WTPIndex].interfaceResult = 1;
 				gWTPs[WTPIndex].interfaceCommandProgress = CW_FALSE;
+				CWThreadMutexUnlock(&gWTPsMutex);
+				
+				if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) 
+				{
+					CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex !",__FILE__,__LINE__);
+					return CW_FALSE;
+				}
 				CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
 
 				CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
@@ -495,13 +511,20 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE)
 			{
 				//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
-				if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) {
-						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex",__FILE__,__LINE__);
-						return CW_FALSE;
-					}
-				
+				if(!CWErr(CWThreadMutexLock(&gWTPsMutex)) )
+				{
+					CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex !",__FILE__,__LINE__);
+					return CW_FALSE;
+				}
 				gWTPs[WTPIndex].interfaceResult = 1;
 				gWTPs[WTPIndex].interfaceCommandProgress = CW_FALSE;
+				CWThreadMutexUnlock(&gWTPsMutex);
+				
+				if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) 
+				{
+					CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex !",__FILE__,__LINE__);
+					return CW_FALSE;
+				}
 				CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
 
 				CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
@@ -665,8 +688,8 @@ CWBool CWACParseGenericRunMessage(int WTPIndex,
 	if((gWTPs[WTPIndex].responseSeqNum != controlVal->seqNum) ||
 	   (gWTPs[WTPIndex].responseType != controlVal->messageTypeValue)) {
 
-		CWDebugLog("[SeqNum]expect: %d != actual: %d\n", gWTPs[WTPIndex].responseSeqNum,controlVal->seqNum);
-		CWDebugLog("[MsgType]expect: %d != actual: %d\n", gWTPs[WTPIndex].responseType,controlVal->messageTypeValue);
+		//CWDebugLog("[SeqNum]expect: %d != actual: %d\n", gWTPs[WTPIndex].responseSeqNum,controlVal->seqNum);
+		//CWDebugLog("[MsgType]expect: %d != actual: %d\n", gWTPs[WTPIndex].responseType,controlVal->messageTypeValue);
 		CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Seq Num or Msg Type not valid!");
 		return CW_FALSE;
 	}
@@ -959,12 +982,12 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 					CWLog("Recive CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE ");
 
 					//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
-					if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) {
-						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex",__FILE__,__LINE__);
+					if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex !",__FILE__,__LINE__);
 						return CW_FALSE;
 					}
 					gWTPs[WTPIndex].interfaceResult = CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE;
-					CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+					CWThreadMutexUnlock(&gWTPsMutex);
 
 					BEupgradeEventResponse beUpgradeEventResp;
 					beUpgradeEventResp.type = htons(BE_UPGRADE_EVENT_RESPONSE) ;
@@ -987,12 +1010,12 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 				
 				if( resultCode != CW_PROTOCOL_SUCCESS)
 				{
-					if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) {
-						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex",__FILE__,__LINE__);
+					if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex !",__FILE__,__LINE__);
 						return CW_FALSE;
 					}
 					gWTPs[WTPIndex].interfaceResult = UPGRADE_FAILED;
-					CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+					CWThreadMutexUnlock(&gWTPsMutex);
 					CWLog("Recive WTP_UPDATE_RESPONSE resultCode = %d,fail !",resultCode);
 				}
 	
@@ -1004,12 +1027,12 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 				if( resultCode != CW_PROTOCOL_SUCCESS)
 				{
 					//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
-					if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) {
-						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex",__FILE__,__LINE__);
+					if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex!",__FILE__,__LINE__);
 						return CW_FALSE;
 					}
 					gWTPs[WTPIndex].interfaceResult = UPGRADE_FAILED;
-					CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+					CWThreadMutexUnlock(&gWTPsMutex);
 					CWLog("Recive WTP_CUP_ACK resultCode = %d,fail !",resultCode);
 				}
 				//CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
@@ -1034,20 +1057,20 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 				
 				if(resultCode != CW_PROTOCOL_SUCCESS)
 				{
-					if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) {
-						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex",__FILE__,__LINE__);
+					if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex!",__FILE__,__LINE__);
 						return CW_FALSE;
 					}
 					gWTPs[WTPIndex].interfaceResult = UPGRADE_FAILED;
-					CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+					CWThreadMutexUnlock(&gWTPsMutex);
 					CWLog("Recive WTP_COMMIT_ACK resultCode = %d,fail !",resultCode);
 					//CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
 				}
 				else
 				{
-					CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
+					CWThreadMutexLock(&gWTPsMutex);
 					gWTPs[WTPIndex].interfaceResult = UPGRADE_SUCCESS;
-					CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+					CWThreadMutexUnlock(&gWTPsMutex);
 				}
 			}
 			break;
@@ -1255,12 +1278,19 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 	 */
 	if (closeWTPManager) {
 		if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-							CWLog("Error locking the gWTPsMutex mutex");
-							return CW_FALSE;
+			CWLog("Error locking the gWTPsMutex mutex !");
+			return CW_FALSE;
 		}
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
 		CWThreadMutexUnlock(&gWTPsMutex);
+
+		if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) 
+		{
+			CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex !",__FILE__,__LINE__);
+			return CW_FALSE;
+		}
 		CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceWait);
+		CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
 		
 	}
 

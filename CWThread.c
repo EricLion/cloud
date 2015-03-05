@@ -123,8 +123,10 @@ CWBool CWCreateThreadCondition(CWThreadCondition *theCondition) {
 		case 0: // success
 			break;
 		case ENOMEM:
+			CWLog("CWCreateThreadCondition return ENOMEM,out of menory !");
 			return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);
 		default:
+			CWLog("CWCreateThreadCondition return Fail !");
 			return CWErrorRaise(CW_ERROR_GENERAL, "Can't create thread condition");
 	}
 	return CW_TRUE;

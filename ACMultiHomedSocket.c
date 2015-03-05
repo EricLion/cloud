@@ -481,7 +481,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 	//char buf[CW_BUFFER_SIZE];
 	char *buf = NULL;
 
-	CW_CREATE_OBJECT_SIZE_ERR(buf,CW_BUFFER_SIZE,CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "CWNetworkUnsafeMultiHomed malloc buf fai");)
+	CW_CREATE_OBJECT_SIZE_ERR(buf,CW_BUFFER_SIZE,return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "CWNetworkUnsafeMultiHomed malloc buf Fail!");)
 	
 	//memset(buf, 0, CW_BUFFER_SIZE *sizeof(char));
 	
@@ -502,6 +502,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 	while(select(max+1, &fset, NULL, NULL, NULL) < 0) {
 		
 		if (errno != EINTR) {
+			CWLog("%s %d select Fail!",__FILE__,__LINE__);
 			CWNetworkRaiseSystemError(CW_ERROR_GENERAL);
 		}
 	}
@@ -526,6 +527,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 			if(!CWErr(CWNetworkReceiveUnsafe(sockPtr->interfaces[i].sock, buf, CW_BUFFER_SIZE-1, flags, &addr, &readBytes))) {
 
 				sleep(1);
+				CWLog("%s %d CWNetworkReceiveUnsafe Fail!",__FILE__,__LINE__);
 				continue;
 			}
 			
