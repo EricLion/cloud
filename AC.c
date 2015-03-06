@@ -38,6 +38,7 @@
 /*_________________________________________________________*/
 /*  *******************___VARIABLES___*******************  */
 CWThreadMutex gCreateIDMutex;
+CWThreadMutex gSocketMutex;
 
 /* array that stores per WTPs infos */
 CWWTPManager gWTPs[CW_MAX_WTP];
@@ -255,6 +256,9 @@ void CWACInit() {
 	if(!CWErr(CWCreateThreadMutex(&gCreateIDMutex))) {
 		exit(1);
 	}
+	if(!CWErr(CWCreateThreadMutex(&gSocketMutex))) {
+		exit(1);
+	}
 	
 	CWLog("AC Started");
 }
@@ -274,6 +278,7 @@ void CWACDestroy() {
 
 	CWDestroyThreadMutex(&gWTPsMutex);
 	CWDestroyThreadMutex(&gCreateIDMutex);
+	CWDestroyThreadMutex(&gSocketMutex);
 	CWDestroyThreadMutex(&gActiveWTPsMutex);
 	
 	CW_FREE_OBJECT(gACName);

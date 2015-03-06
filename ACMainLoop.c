@@ -602,7 +602,7 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 		if (CWGetCountElementFromSafeList(gWTPs[i].packetReceiveList) > 0) {
 
 			CWBool 	bCrypt = CW_FALSE;
-			char	*pBuffer;
+			char	*pBuffer = NULL;
 
 			//CWThreadMutexLock(&gWTPs[i].interfaceMutex);
 			if(!CWErr(CWThreadMutexLock(&gWTPs[i].interfaceMutex))) {
@@ -611,12 +611,19 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 			}
 
 			pBuffer = (char *)CWGetHeadElementFromSafeList(gWTPs[i].packetReceiveList, NULL);
-
+			//why
+			if(pBuffer == NULL)
+			{
+				CWLog("Error CWGetHeadElementFromSafeList pBuffer == NULL !");
+				CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
+				CWCloseThread();
+				//continue;
+			}
+			CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
+			
 			if ((pBuffer[0] & 0x0f) == CW_PACKET_CRYPT)
 			  bCrypt = CW_TRUE;
 
-			CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
-			
 			if (bCrypt) {
 				CWDebugLog("Receive a security packet");
 				CWLog("Don't parse security packet,drop it");
@@ -634,10 +641,10 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 					CWLog("Error gWTPs[i].interfaceMutex !");
 					CWCloseThread();
 			  }
-			  CWLog("%s %d CWRemoveHeadElementFromSafeList",__FILE__,__LINE__);
+			  CWLog("%s %d apindex = %d, CWRemoveHeadElementFromSafeList",__FILE__,__LINE__,i);
 			  pBuffer = (char*)CWRemoveHeadElementFromSafeList(gWTPs[i].packetReceiveList, &readBytes);
 			  CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
-			  
+
 			  memcpy(gWTPs[i].buf, pBuffer, readBytes);
 			  CW_FREE_OBJECT(pBuffer);
 			  if(!CWErr(CWSecurityReceive(gWTPs[i].session,
@@ -658,11 +665,16 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 					CWLog("Error gWTPs[i].interfaceMutex !");
 					CWCloseThread();
 				}
-			  CWLog("%s %d CWRemoveHeadElementFromSafeList",__FILE__,__LINE__);
+			  CWLog("%s %d apindex = %d, CWRemoveHeadElementFromSafeList",__FILE__,__LINE__,i);
 			  pBuffer = (char*)CWRemoveHeadElementFromSafeList(gWTPs[i].packetReceiveList, &readBytes);
 			  CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
-			  
+			  if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
+			{
+				CWLog("F:%s L:%d Error locking  mutex",__FILE__,__LINE__);
+				_CWCloseThread(i);
+			}
 			  memcpy(gWTPs[i].buf, pBuffer, readBytes);
+			  CWThreadMutexUnlock(&gWTPsMutex);
 			  CW_FREE_OBJECT(pBuffer);
 			}
 
@@ -1124,7 +1136,6 @@ void _CWCloseThread(int i) {
 	}
 	
 	/* CW_FREE_OBJECT(gWTPs[i].configureReqValuesPtr); */
-	CWLog("%s %d CWRemoveHeadElementFromSafeList",__FILE__,__LINE__);
 	CWCleanSafeList(gWTPs[i].packetReceiveList, free);
 	CWDestroySafeList(gWTPs[i].packetReceiveList);	
 	

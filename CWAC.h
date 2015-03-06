@@ -188,6 +188,7 @@ typedef struct {
 /*  *******************___EXTERN VARIABLES___*******************  */
 extern CWWTPManager gWTPs[CW_MAX_WTP];
 extern CWThreadMutex gWTPsMutex;
+
 extern CWSecurityContext gACSecurityContext;
 extern int gACHWVersion;
 extern int gACSWVersion;

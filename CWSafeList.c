@@ -211,17 +211,23 @@ void* CWRemoveHeadElementFromSafeList(CWSafeList safeList, int* pSize)
 	pElement = pList->pFirstElement;
 	pList->pFirstElement = pList->pFirstElement->pNext;
 	if (pList->pFirstElement == NULL)
+	{
 		pList->pLastElement = NULL;
+	}
 	else
+	{
 		pList->pFirstElement->pPrev = NULL;
+	}
 	
 	pData = pElement->pData;
 	if (pSize != NULL)
+	{
 		*pSize = pElement->nSize;
+	}
 	//coredump by SIGABRT
 	CW_FREE_OBJECT(pElement);
-
-	pList->nCount--;
+	if(pList->nCount)
+		pList->nCount--;
 	return pData;
 }
 
@@ -241,11 +247,17 @@ CWBool CWAddElementToSafeListTail(CWSafeList safeList, void* pData, int nSize)
 	pNewElement->pNext = NULL;
 	pNewElement->pPrev = pList->pLastElement;
 	if (pList->pLastElement != NULL)
+	{
 		pList->pLastElement->pNext = pNewElement;
-	
-	pList->pLastElement = pNewElement;
+	}
+	else
+	{
+		pList->pLastElement = pNewElement;
+	}
 	if (pList->pFirstElement == NULL)
+	{
 		pList->pFirstElement = pNewElement;
+	}
 
 	pList->nCount++;
 	//core

@@ -33,6 +33,7 @@
 #endif
 
 CWNetworkLev3Service gNetworkPreferredFamily = CW_IPv4;
+extern CWThreadMutex gSocketMutex;
 
 /*
  * Assume address is valid
@@ -56,6 +57,7 @@ __inline__ int CWNetworkGetAddressSize(CWNetworkLev4Address *addrPtr) {
 /* 
  * Send buf on an unconnected UDP socket. Unsafe means that we don't use DTLS.
  */
+ //not allow mutile thread send at same time
 CWBool CWNetworkSendUnsafeUnconnected(CWSocket sock, 
 				      CWNetworkLev4Address *addrPtr,
 				      const char *buf,
@@ -66,11 +68,20 @@ CWBool CWNetworkSendUnsafeUnconnected(CWSocket sock,
 	
 	CWUseSockNtop(addrPtr, CWDebugLog(str););
 
+	if(!CWThreadMutexLock(&gSocketMutex)) {
+		
+		CWLog("Error Locking gSocketSendMutex, Fail !");
+		return CW_FALSE;
+	}
+
 	while(sendto(sock, buf, len, 0, (struct sockaddr*)addrPtr, CWNetworkGetAddressSize(addrPtr)) < 0) {
 
 		if(errno == EINTR) continue;
 		CWNetworkRaiseSystemError(CW_ERROR_SENDING);
 	}
+
+	CWThreadMutexUnlock(&gSocketMutex);
+
 	return CW_TRUE;
 }
 
@@ -122,12 +133,28 @@ CWBool CWNetworkReceiveUnsafe(CWSocket sock,
 	
 	if(buf == NULL || addrPtr == NULL || readBytesPtr == NULL) 
 		return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
-	
+	//up down at sam time is ok
+	#if 0
+	if(!CWThreadMutexLock(&gSocketMutex)) {
+		
+		CWLog("Error Locking gSocketSendMutex, Fail !");
+		return CW_FALSE;
+	}
+	#endif
 	while((*readBytesPtr = recvfrom(sock, buf, len, flags, (struct sockaddr*)addrPtr, &addrLen)) < 0) {
 
 		if(errno == EINTR) continue;
 		CWLog("CWNetworkReceiveUnsafe recvfrom Fail!");
 		CWNetworkRaiseSystemError(CW_ERROR_RECEIVING);	
+	}
+	#if 0
+	CWThreadMutexUnlock(&gSocketMutex);
+	#endif
+
+	if(buf == NULL || *readBytesPtr == 0)
+	{
+		CWLog("CWNetworkReceiveUnsafe recvfrom buf == NULL || *readBytesPtr == 0,Fail!");
+		return CW_FALSE;
 	}
 	//CWLog("CWNetworkReceiveUnsafe *readBytesPtr = %d",*readBytesPtr);
 	return CW_TRUE;

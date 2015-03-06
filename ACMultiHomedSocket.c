@@ -95,7 +95,7 @@ CWBool CWNetworkInitSocketServerMultiHomed(CWMultiHomedSocket *sockPtr,
 					   int multicastGroupsCount) {
 
 	struct ifi_info	*ifi, *ifihead;
-	CWNetworkLev4Address wildaddr;
+	//CWNetworkLev4Address wildaddr;
     	int yes = 1;
 	CWSocket sock;
 	CWMultiHomedInterface *p;
@@ -151,6 +151,8 @@ CWBool CWNetworkInitSocketServerMultiHomed(CWMultiHomedSocket *sockPtr,
 		   strncmp(ifi->ifi_name, "lo", 2)) { /* don't consider loopback an interface
 							 (even if we accept packets from loopback) */
 			CWDebugLog("Primary Address");
+							 
+			CWLog("Primary Address ifi->ifi_name = %s",ifi->ifi_name);			 	
 			p->kind = CW_PRIMARY;
 
 		} else {
@@ -181,7 +183,7 @@ CWBool CWNetworkInitSocketServerMultiHomed(CWMultiHomedSocket *sockPtr,
 		}
 		/* we add a socket to the multihomed socket */
 		sockPtr->count++;	
-		
+#if 0
 		if (ifi->ifi_flags & IFF_BROADCAST) { 
 			/* try to bind broadcast address */
 			if((sock = socket(ifi->ifi_addr->sa_family, SOCK_DGRAM, 0)) < 0) {
@@ -246,6 +248,8 @@ CWBool CWNetworkInitSocketServerMultiHomed(CWMultiHomedSocket *sockPtr,
 			/* we add a socket to the multihomed socket */
 			sockPtr->count++;
 		}
+
+#endif
 	}
 
 	/* get_ifi_info returned an error */
@@ -253,7 +257,7 @@ CWBool CWNetworkInitSocketServerMultiHomed(CWMultiHomedSocket *sockPtr,
 
 		CWDeleteList(&interfaceList, CWNetworkDeleteMHInterface);
 		return CWErrorRaise(CW_ERROR_NEED_RESOURCE, 
-				    "Error With get_ifi_info()");
+				    "Error With get_ifi_info()!");
 	}
 	free_ifi_info(ifihead);
 	
@@ -314,6 +318,7 @@ fail:
 	
 success:
 	/* reuse address */
+#if 0
 	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 	CW_ZERO_MEMORY(&wildaddr, sizeof(wildaddr));
 	
@@ -360,7 +365,7 @@ success:
 		return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);
 	}
 	sockPtr->count++;
-
+#endif
 	/* bind multicast addresses */
 	for(i = 0; i < multicastGroupsCount; i++) {
 		struct addrinfo hints, *res, *ressave;

@@ -176,36 +176,72 @@ void sock_set_port_cw(struct sockaddr *sa, int port)
 struct ifi_info* get_ifi_info(int family, int doaliases)
 {
 	struct ifi_info		*ifi, *ifihead, **ifipnext;
-	int			sockfd, len, lastlen, flags, idx = 0;
-	char			*ptr, *buf, lastname[IFNAMSIZ], *cptr, *sdlname;
+	int			sockfd, len,  flags, idx = 0;
+	char			 *buf, lastname[IFNAMSIZ], *cptr, *sdlname;
 	struct ifconf		ifc;
 	struct ifreq		*ifr, ifrcopy;
 	struct sockaddr_in	*sinptr;
 	struct sockaddr_in6	*sin6ptr;
 
+	CWLog("AF_INET6 = %d, AF_INET = %d,IFNAMSIZ = %d",AF_INET6, AF_INET,IFNAMSIZ);
+	CWLog("family = %d, doaliases = %d",family,doaliases);
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	if(sockfd < 0)
+	{
+		CWLog("sockfd < 0 !");
+		return NULL;
+		
+	}
+#if 1
+	int i=0;
+	//unsigned char buf[512];
+	buf = (char*)malloc(512);
+	struct ifreq *ifreq;
+	//初始化ifconf
+	ifc.ifc_len = 512;
+	ifc.ifc_buf = buf;
 
+	ioctl(sockfd, SIOCGIFCONF, &ifc); //获取所有接口信息
+	//接下来一个一个的获取IP地址
+	ifreq = (struct ifreq*)buf;
+	for (i=(ifc.ifc_len/sizeof (struct ifreq)); i>0; i--)
+	{
+	    if(ifreq->ifr_flags == AF_INET)
+	    {
+	        CWLog("name = [%s] " , ifreq->ifr_name);
+	        CWLog("local addr = [%s]",
+	            inet_ntoa(((struct sockaddr_in*)&(ifreq->ifr_addr))->sin_addr));
+	    ifreq++;
+	    }
+	}
+#endif
+#if 0
 	lastlen = 0;
-	len = 100 * sizeof(struct ifreq);	/* initial buffer size guess */
+	len = 1024* sizeof(struct ifreq);	/* initial buffer size guess */
 	for ( ; ; ) {
 		buf = (char*)malloc(len);
 		ifc.ifc_len = len;
 		ifc.ifc_buf = buf;
+	
 		if (ioctl(sockfd, SIOCGIFCONF, &ifc) >= 0) {
 			if (ifc.ifc_len == lastlen)
 				break;		/* success, len has not changed */
 			lastlen = ifc.ifc_len;
+			CWLog("ifc.ifc_buf =%s",ifc.ifc_buf);
 		}
 		len += 10 * sizeof(struct ifreq);	/* increment */
 		free(buf);
 	}
+#endif
+
 	ifihead = NULL;
 	ifipnext = &ifihead;
 	lastname[0] = 0;
 	sdlname = NULL;
-
-	for (ptr = buf; ptr < buf + ifc.ifc_len; ) {
-		ifr = (struct ifreq *) ptr;
+	CWLog("buf =%s" ,buf);
+	ifr = (struct ifreq *) buf;
+	for (i=(ifc.ifc_len/sizeof (struct ifreq)); i>0; i--) {
+		
 
 #ifdef	HAVE_SOCKADDR_SA_LEN
 		len = max(sizeof(struct sockaddr), ifr->ifr_addr.sa_len);
@@ -222,13 +258,15 @@ struct ifi_info* get_ifi_info(int family, int doaliases)
 			break;
 		}
 #endif	/* HAVE_SOCKADDR_SA_LEN */
-		ptr += sizeof(ifr->ifr_name) + len;	/* for next one in buffer */
+		//ptr += sizeof(ifr->ifr_name) + len;	/* for next one in buffer */
+		//ptr +=sizeof (struct ifreq);
 
 #ifdef	HAVE_SOCKADDR_DL_STRUCT
 		/* assumes that AF_LINK precedes AF_INET or AF_INET6 */
 		if (ifr->ifr_addr.sa_family == AF_LINK) {
 			struct sockaddr_dl *sdl = (struct sockaddr_dl *)&ifr->ifr_addr;
 			sdlname = ifr->ifr_name;
+			CWLog("sdlname = %s",sdlname);
 			idx = sdl->sdl_index;
 			haddr = sdl->sdl_data + sdl->sdl_nlen;
 			hlen = sdl->sdl_alen;
@@ -246,19 +284,31 @@ struct ifi_info* get_ifi_info(int family, int doaliases)
 		}
 		memcpy(lastname, ifr->ifr_name, IFNAMSIZ);
 
+		if(strncmp(ifr->ifr_name,"eth0",4))
+		{
+			ifr++;
+			continue;
+		}
+
 		ifrcopy = *ifr;
 		ioctl(sockfd, SIOCGIFFLAGS, &ifrcopy);
 		flags = ifrcopy.ifr_flags;
 		if ((flags & IFF_UP) == 0)
+		{
+			ifr++;
 			continue;	/* ignore if interface not up */
+		}
 
 		ifi = (struct ifi_info*)calloc(1, sizeof(struct ifi_info));
 		*ifipnext = ifi;			/* prev points to this new one */
 		ifipnext = &ifi->ifi_next;	/* pointer to next one goes here */
 
 		ifi->ifi_flags = flags;		/* IFF_xxx values */
+		//eth0
+		//strcpy(ifr->ifr_name,"eth0");
 		memcpy(ifi->ifi_name, ifr->ifr_name, IFI_NAME);
 		ifi->ifi_name[IFI_NAME-1] = '\0';
+		CWLog("ifi->ifi_name= %s",ifi->ifi_name);
 		/* If the sockaddr_dl is from a different interface, ignore it */
 		if (sdlname == NULL || strcmp(sdlname, ifr->ifr_name) != 0)
 			idx = 0;
@@ -292,8 +342,10 @@ struct ifi_info* get_ifi_info(int family, int doaliases)
 		default:
 			break;
 		}
-	}
+	 ifr++;
+	 }
 	free(buf);
+	close(sockfd);
 	return(ifihead);	/* pointer to first structure in linked list */
 }
 /* end get_ifi_info4 */
