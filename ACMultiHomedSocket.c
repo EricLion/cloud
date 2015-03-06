@@ -506,8 +506,9 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 	
 	while(select(max+1, &fset, NULL, NULL, NULL) < 0) {
 		
+		CWLog("%s %d select Fail!",__FILE__,__LINE__);
 		if (errno != EINTR) {
-			CWLog("%s %d select Fail!",__FILE__,__LINE__);
+			
 			CWNetworkRaiseSystemError(CW_ERROR_GENERAL);
 		}
 	}
@@ -516,7 +517,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 	 * that has an incoming packet 
 	 */
 	for(i = 0; i < sockPtr->count; i++) {
-
+		CWLog("%s %d sockPtr->count = %d",__FILE__,__LINE__,sockPtr->count);
 		if(FD_ISSET(sockPtr->interfaces[i].sock, &fset)) {
 			int readBytes;
 			//CWLog("---------FD_ISSET---------");

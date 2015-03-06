@@ -75,7 +75,7 @@ CWBool CWNetworkSendUnsafeUnconnected(CWSocket sock,
 	}
 
 	while(sendto(sock, buf, len, 0, (struct sockaddr*)addrPtr, CWNetworkGetAddressSize(addrPtr)) < 0) {
-
+		CWLog("CWNetworkSendUnsafeUnconnected <0 while, Fail !");
 		if(errno == EINTR) continue;
 		CWNetworkRaiseSystemError(CW_ERROR_SENDING);
 	}

@@ -136,6 +136,7 @@ CWBool CWParseDiscoveryRequestMessage(char *msg,
 	
 	/* parse message elements */
 	while((completeMsg.offset-offsetTillMessages) < controlVal.msgElemsLen) {
+		CWLog("CWParseDiscoveryRequestMessage while begin ...");
 	
 		unsigned short int elemType = 0;/* = CWProtocolRetrieve32(&completeMsg); */
 		unsigned short int elemLen = 0;	/* = CWProtocolRetrieve16(&completeMsg); */
