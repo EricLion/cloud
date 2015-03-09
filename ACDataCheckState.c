@@ -141,7 +141,7 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	}
 
 	//fix mutex bug
-	CW_CREATE_OBJECT_ERR(gWTPs[WTPIndex].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); CWThreadMutexUnlock(&gWTPsMutex); return 0;})
+	CW_CREATE_OBJECT_ERR(gWTPs[WTPIndex].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); CWThreadMutexUnlock(&gWTPsMutex); return 0;});
 	gWTPs[WTPIndex].vendorValues->vendorPayloadLen = 0;
 	gWTPs[WTPIndex].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE;
 	

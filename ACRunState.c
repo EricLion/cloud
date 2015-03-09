@@ -1290,6 +1290,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			return CW_FALSE;
 		}
 		CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceWait);
+		//gWTPs[WTPIndex].iwvaule = 1;
 		CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
 		
 	}

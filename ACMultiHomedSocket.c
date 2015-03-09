@@ -486,7 +486,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 	//char buf[CW_BUFFER_SIZE];
 	char *buf = NULL;
 
-	CW_CREATE_OBJECT_SIZE_ERR(buf,CW_BUFFER_SIZE,return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "CWNetworkUnsafeMultiHomed malloc buf Fail!");)
+	CW_CREATE_OBJECT_SIZE_ERR(buf,CW_BUFFER_SIZE,return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "CWNetworkUnsafeMultiHomed malloc buf Fail!"););
 	
 	//memset(buf, 0, CW_BUFFER_SIZE *sizeof(char));
 	
@@ -517,7 +517,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 	 * that has an incoming packet 
 	 */
 	for(i = 0; i < sockPtr->count; i++) {
-		CWLog("%s %d sockPtr->count = %d",__FILE__,__LINE__,sockPtr->count);
+		//CWLog("%s %d sockPtr->count = %d",__FILE__,__LINE__,sockPtr->count);
 		if(FD_ISSET(sockPtr->interfaces[i].sock, &fset)) {
 			int readBytes;
 			//CWLog("---------FD_ISSET---------");

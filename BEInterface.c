@@ -799,6 +799,7 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 		return FALSE;
 	}
 	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+	//gWTPs[selection].iwvaule = 1;
 	//block
 	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
 	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
@@ -912,6 +913,7 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 			return FALSE;
 		}
 		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+		//gWTPs[selection].iwvaule = 1;
 		
 		//block
 		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
@@ -974,6 +976,7 @@ int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 		return FALSE;
 	}
 	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+	//gWTPs[selection].iwvaule = 1;
 	CWLog("[F:%s, L:%d] CWSysSetValues CWWaitThreadCondition",__FILE__,__LINE__);	
 	
 	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
@@ -1026,6 +1029,7 @@ int CWWumSetValues(int selection, int socketIndex, CWProtocolVendorSpecificValue
 		return FALSE;
 	}
 	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+	//gWTPs[selection].iwvaule = 1;
 	CWLog("[F:%s, L:%d] CWWaitThreadCondition",__FILE__,__LINE__);	
 	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
 	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));

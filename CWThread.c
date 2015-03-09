@@ -181,7 +181,9 @@ void CWSignalThreadCondition(CWThreadCondition *theCondition) {
 	if(theCondition == NULL) return;
 	//coredump
 	CWLog("CWSignalThreadCondition ...");
+	//now block
 	pthread_cond_signal(theCondition);
+	CWLog("CWSignalThreadCondition end...");
 }
 
 // Creates a thread mutex (wrapper for pthread_mutex_init)
