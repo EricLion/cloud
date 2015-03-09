@@ -178,19 +178,10 @@ void CWACManageIncomingPacket(CWSocket sock,
 			CWLog("F:%s,L:%d [%d]packetReceiveList is NULL, Fail !",__FILE__,__LINE__,index);
 			return;
 		}
-		if(gWTPs[index].packetReceiveList->pThreadMutex == NULL)
-		{
-			CWLog("F:%s,L:%d [%d] packetReceiveList->pThreadMutex is NULL, Fail !",__FILE__,__LINE__,index);
-			return;
-		}
 		//core
 		//pthread_cond_wait must lock
-		if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
-		{
-			CWLog("F:%s,L:%d [%d] Error Lock interfaceMutex, Fail!",__FILE__,__LINE__,index);
-			return;
-		}
-		CWLog("F:%s,L:%d CWLockSafeList",__FILE__,__LINE__);
+		
+		CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 
 		if(gWTPs[index].isNotFree == CW_FALSE)
 		{
@@ -201,11 +192,10 @@ void CWACManageIncomingPacket(CWSocket sock,
 		if(CW_FALSE == CWAddElementToSafeListTail(gWTPs[index].packetReceiveList, pData, readBytes))
 		{
 			CWLog("F:%s,L:%d CWAddElementToSafeListTail Fail !",__FILE__,__LINE__);
-			CWThreadMutexUnlock(&gWTPsMutex);
 			CWLog("F:%s,L:%d CWUnlockSafeList",__FILE__,__LINE__);
 			return;
 		}
-		CWThreadMutexUnlock(&gWTPsMutex);
+
 		if(!CWErr(CWThreadMutexLock(&(gWTPs[index].interfaceMutex)))) 
 		{
 			CWLog("F:%s,L:%d [%d] Error Lock interfaceMutex, Fail!",__FILE__,__LINE__,index);
@@ -354,8 +344,8 @@ void CWACManageIncomingPacket(CWSocket sock,
 			
 			CWSetMutexSafeList(gWTPs[i].packetReceiveList, 
 					   &gWTPs[i].interfaceMutex);
-			//CWSetConditionSafeList(gWTPs[i].packetReceiveList,
-					       //&gWTPs[i].interfaceWait);
+			CWSetConditionSafeList(gWTPs[i].packetReceiveList,
+					       &gWTPs[i].interfaceWait);
 
 			/* Clone data packet */
 			CW_CREATE_OBJECT_SIZE_ERR(pData, readBytes, { CWLog("Out Of Memory"); return; });
@@ -374,21 +364,16 @@ void CWACManageIncomingPacket(CWSocket sock,
 				CWLog("F:%s,L:%d gWTPs[i].packetReceiveList is NULL, Fail !",__FILE__,__LINE__);
 				return;
 			}
-			if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
-			{
-				CWLog("F:%s,L:%d Error Lock gWTPsMutex, Fail!",__FILE__,__LINE__);
-				return;
-			}
+			
 			CWLog("F:%s,L:%d CWLockSafeList",__FILE__,__LINE__);
 			
 			if(CW_FALSE == CWAddElementToSafeListTail(gWTPs[i].packetReceiveList, pData, readBytes))
 			{
 				CWLog("F:%s,L:%d CWAddElementToSafeListTail Fail !",__FILE__,__LINE__);
-				CWThreadMutexUnlock(&gWTPsMutex);
 				CWLog("F:%s,L:%d CWUnlockSafeList",__FILE__,__LINE__);
 				return;
 			}
-			CWThreadMutexUnlock(&gWTPsMutex);
+			
 			if(!CWErr(CWThreadMutexLock(&gWTPs[i].interfaceMutex))) 
 			{
 				CWLog("F:%s,L:%d Error Lock gWTPs[i].interfaceMutex, Fail!",__FILE__,__LINE__);

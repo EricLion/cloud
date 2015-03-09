@@ -206,7 +206,10 @@ void* CWRemoveHeadElementFromSafeList(CWSafeList safeList, int* pSize)
 	void* pData = NULL;
 
 	if ((pList == NULL) || (pList->pFirstElement == NULL))
+	{
+		pList->nCount = 0;
 		return NULL;
+	}
 
 	pElement = pList->pFirstElement;
 	pList->pFirstElement = pList->pFirstElement->pNext;
@@ -299,14 +302,17 @@ void* CWRemoveTailElementFromSafeList(CWSafeList safeList, int* pSize)
 void CWCleanSafeList(CWSafeList safeList, void (*deleteFunc)(void *))
 {
 	void* pData = NULL;
-
+	if(safeList == NULL)
+		return;
+	CWLog("CWCleanSafeList begin ...");
 	CW_REPEAT_FOREVER
 	{
 		pData = CWRemoveHeadElementFromSafeList(safeList, NULL);
-		if (pData == NULL)
+		if (pData == NULL && safeList->nCount == 0)
 			break;
 
 		if (deleteFunc != NULL)
 			deleteFunc(pData);
 	}
+	CWLog("CWCleanSafeList end ...");
 }
