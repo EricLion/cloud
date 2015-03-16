@@ -126,9 +126,11 @@ CWBool CWParseConfigureRequestMessage(char *msg,
 		return CW_FALSE;
 
 	/* different type */
-	if(controlVal.messageTypeValue != CW_MSG_TYPE_VALUE_CONFIGURE_REQUEST)
+	if(controlVal.messageTypeValue != CW_MSG_TYPE_VALUE_CONFIGURE_REQUEST){
+		CWLog("messageTypeValue=%o", controlVal.messageTypeValue);
 		return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Message is not Configure Request (maybe it is Image Data Request)");
-	
+	}
+
 	*seqNumPtr = controlVal.seqNum;
 	/* skip timestamp */
 	controlVal.msgElemsLen -= CW_CONTROL_HEADER_OFFSET_FOR_MSG_ELEMS;

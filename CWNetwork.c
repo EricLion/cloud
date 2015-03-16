@@ -67,7 +67,7 @@ CWBool CWNetworkSendUnsafeUnconnected(CWSocket sock,
 		return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
 	
 	CWUseSockNtop(addrPtr, CWDebugLog(str););
-
+	CWUseSockNtop(addrPtr, CWLog(str););
 	if(!CWThreadMutexLock(&gSocketMutex)) {
 		
 		CWLog("Error Locking gSocketSendMutex, Fail !");

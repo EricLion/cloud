@@ -123,8 +123,10 @@ CWBool CWParseDiscoveryRequestMessage(char *msg,
 		return CW_FALSE;
 	
 	/* different type */
-	if(controlVal.messageTypeValue != CW_MSG_TYPE_VALUE_DISCOVERY_REQUEST)
+	if(controlVal.messageTypeValue != CW_MSG_TYPE_VALUE_DISCOVERY_REQUEST){
+		CWLog("messageTypeValue=%o", controlVal.messageTypeValue);
 		return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Message is not Discovery Request as Expected");
+	}
 	
 	*seqNumPtr = controlVal.seqNum;
 	

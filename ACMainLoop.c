@@ -161,7 +161,7 @@ void CWACManageIncomingPacket(CWSocket sock,
 	if(index >= 0 ) {
 		/* known WTP */
 		/* Clone data packet */
-		CWLog("F:%s,L:%d  coming known WTP, index = %d",__FILE__,__LINE__,index);
+		CWLog("F:%s,L:%d  coming known WTP, index = %d, readBytes=%d",__FILE__,__LINE__,index, readBytes);
 		
 		//gWTPs[i].isNotFree = CW_FALSE;
 		if(gWTPs[index].isNotFree == CW_FALSE)
@@ -286,15 +286,21 @@ void CWACManageIncomingPacket(CWSocket sock,
 			CWACThreadArg *argPtr;
 			
 			CWUseSockNtop(addrPtr, CWDebugLog("Possible Client Hello from %s", str););
-			
 			if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
 			{
 				CWLog("F:%s L:%d Error locking  mutex",__FILE__,__LINE__);
 				exit(1);
 			}
+
+			if(i >= CW_MAX_WTP){
+				CWLog("WTP  number is %d, more than Max%d, refuse!",i, CW_MAX_WTP);
+				return;	
+			}
+			//CWLog("i=%d", i);
 			/* look for the first free slot */
 			for(i = 0; i < CW_MAX_WTP && gWTPs[i].isNotFree; i++);
-	
+			
+
 			CW_COPY_NET_ADDR_PTR(&(gWTPs[i].address), addrPtr);
 			gWTPs[i].isNotFree = CW_TRUE;
 			gWTPs[i].isRequestClose = CW_FALSE;
@@ -312,6 +318,7 @@ void CWACManageIncomingPacket(CWSocket sock,
 				}
 				gWTPs[i].isNotFree = CW_FALSE;
 				CWThreadMutexUnlock(&gWTPsMutex);
+				CWLog("F:%s L:%d CWCreateSafeList error", __FILE__,__LINE__);
 				return;
 			}
 			//main thread must have the mutex
@@ -601,7 +608,6 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 
 		msg.msg = NULL;
 		msg.offset = 0;
-
 		/* Wait WTP action */
 		//if pthread not come here,the packet will wait,so packet list grow
 	if(!CWErr(CWThreadMutexLock(&gWTPs[i].interfaceMutex))) {
@@ -613,13 +619,14 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 		while ((gWTPs[i].isRequestClose == CW_FALSE) &&
 		       (CWGetCountElementFromSafeList(gWTPs[i].packetReceiveList) == 0) &&
 		       (gWTPs[i].interfaceCommand == NO_CMD)) {
-
+			
+			CWLog("CWWaitThreadCondition start");
 			 /*TODO: Check system */
 			CWWaitThreadCondition(&gWTPs[i].interfaceWait, 
 					      &gWTPs[i].interfaceMutex);
 					      //gWTPs[i].iwvaule = 0;
+			CWLog("CWWaitThreadCondition end");
 		}
-
 		CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
 
 		if (gWTPs[i].isRequestClose) {
@@ -634,7 +641,6 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 				   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
 
 		if (CWGetCountElementFromSafeList(gWTPs[i].packetReceiveList) > 0) {
-
 			CWBool 	bCrypt = CW_FALSE;
 			char	*pBuffer = NULL;
 
@@ -659,7 +665,7 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 			
 			if ((pBuffer[0] & 0x0f) == CW_PACKET_CRYPT)
 			  bCrypt = CW_TRUE;
-
+			
 			if (bCrypt) {
 				CWDebugLog("Receive a security packet");
 				CWLog("Don't parse security packet,drop it");
@@ -840,6 +846,7 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 			CW_FREE_PROTOCOL_MESSAGE(msg);
 		}
 		else {
+			CWLog("packetReceiveList no content");
 		  //CWThreadMutexLock(&gWTPs[i].interfaceMutex);
 		  //no lock
 		/*
@@ -1062,6 +1069,7 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 		}
 	}
 	*********/
+	CWLog("CWMangeWtp over !!!");
 	CWDebugLog("CWMangeWtp over !!!");
 }
 
@@ -1084,8 +1092,8 @@ void _CWCloseThread(int i) {
 	int BESize;
 	
 	BEconnectEvent beConEve;
-
-
+	
+	CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 
 		//num can't < 0
 	if(gActiveWTPs && gWTPs[i].currentState == CW_ENTER_RUN)
@@ -1116,7 +1124,7 @@ void _CWCloseThread(int i) {
 			CWLog("Error AssembleBEheader !");
 		}
 	}
-	
+	CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	CWDebugLog("Close Thread: %08x", (unsigned int)CWThreadSelf());
 
 	CWACStopRetransmission(i);
@@ -1130,10 +1138,10 @@ void _CWCloseThread(int i) {
 	//CWThreadMutexLock(&gWTPsMutex);
 	CW_FREE_OBJECT(gWTPs[i].qosValues);
 	CW_FREE_OBJECT(gWTPs[i].ofdmValues);
-	
+	CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	//gWTPs[i].qosValues=NULL;
 	memset(gWTPs[i].MAC, 0, MAC_ADDR_LEN);
-	gWTPs[i].isConnect = CW_FALSE;
+	//gWTPs[i].isConnect = CW_FALSE;
 
 	/**** ACInterface ****/
 
@@ -1173,21 +1181,21 @@ void _CWCloseThread(int i) {
 		CWDeleteList(&(gWTPs[i].fragmentsList), CWProtocolDestroyFragment);
 		gWTPs[i].fragmentsList = NULL;
 	}
-	
+	CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	/* CW_FREE_OBJECT(gWTPs[i].configureReqValuesPtr); */
 	CWCleanSafeList(gWTPs[i].packetReceiveList, free);
 	CWDestroySafeList(gWTPs[i].packetReceiveList);	
 	
-	//gWTPs[i].isNotFree = CW_FALSE;
 	CWResetWTPProtocolManager(&(gWTPs[i].WTPProtocolManager));
 	
 	CWDestroyThreadMutex(&gWTPs[i].interfaceMutex);
 	CWDestroyThreadCondition(&gWTPs[i].interfaceWait);
 	//gWTPs[i].iwvaule = 0;
+	gWTPs[i].isNotFree = CW_FALSE;  /* chenchao test */
 	CWDestroyThreadCondition(&gWTPs[i].interfaceComplete);	
 	
 	CWThreadMutexUnlock(&gWTPsMutex);
-	
+	CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	CWExitThread();
 
 	CWThreadSetSignals(SIG_UNBLOCK, 2, 

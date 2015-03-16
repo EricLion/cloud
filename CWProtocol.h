@@ -78,6 +78,7 @@
 #define     	MAX_UDP_PACKET_SIZE					65536
 //#define		CW_CONTROL_PORT						1234
 #define		CW_CONTROL_PORT						5246
+//#define       CW_CONTROL_PORT                     	1524
 #define		CW_PROTOCOL_VERSION					0
 #define		CW_IANA_ENTERPRISE_NUMBER				13277	
 #define 	CW_CONTROL_HEADER_OFFSET_FOR_MSG_ELEMS			3		//Offset "Seq Num" - "Message Elements"
