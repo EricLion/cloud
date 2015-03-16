@@ -292,13 +292,14 @@ void CWACManageIncomingPacket(CWSocket sock,
 				exit(1);
 			}
 
+			//CWLog("i=%d", i);
+			/* look for the first free slot */
+			for(i = 0; i < CW_MAX_WTP && gWTPs[i].isNotFree; i++);
+			
 			if(i >= CW_MAX_WTP){
 				CWLog("WTP  number is %d, more than Max%d, refuse!",i, CW_MAX_WTP);
 				return;	
 			}
-			//CWLog("i=%d", i);
-			/* look for the first free slot */
-			for(i = 0; i < CW_MAX_WTP && gWTPs[i].isNotFree; i++);
 			
 
 			CW_COPY_NET_ADDR_PTR(&(gWTPs[i].address), addrPtr);
