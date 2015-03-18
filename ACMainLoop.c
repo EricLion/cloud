@@ -339,16 +339,17 @@ void CWACManageIncomingPacket(CWSocket sock,
 			}
 			//main thread must have the mutex
 			CWLog("F:%s,L:%d  CWCreateSafeList gWTPs[%d].packetReceiveList success ",__FILE__,__LINE__,i);
-			//CWDestroyThreadMutex(&gWTPs[i].interfaceMutex);
+			//avoid child close faster than main thread find it to add packet
+			CWDestroyThreadMutex(&gWTPs[i].interfaceMutex);
+			CWDestroyThreadCondition(&gWTPs[i].interfaceWait);
+			CWDestroyThreadCondition(&gWTPs[i].interfaceComplete);	
+			
 			if (!CWErr(CWCreateThreadMutex(&gWTPs[i].interfaceMutex)))
 			{
 				CWLog("F:%s L:%d CWCreateThreadMutex Fail!",__FILE__,__LINE__);
 				return;
 			}
 
-			//CWDestroyThreadCondition(&gWTPs[i].interfaceWait);	
-			//CWCreateThreadCondition(&gWTPs[i].interfaceWait);
-			//gWTPs[i].iwvaule = 0;
 			#if 1
 			if (!CWErr(CWCreateThreadCondition(&gWTPs[i].interfaceWait)))
 			{
@@ -1250,11 +1251,11 @@ void _CWCloseThread(int i) {
 	
 	CWResetWTPProtocolManager(&(gWTPs[i].WTPProtocolManager));
 	
-	CWDestroyThreadMutex(&gWTPs[i].interfaceMutex);
-	CWDestroyThreadCondition(&gWTPs[i].interfaceWait);
+	//CWDestroyThreadMutex(&gWTPs[i].interfaceMutex);
+	//CWDestroyThreadCondition(&gWTPs[i].interfaceWait);
 	//gWTPs[i].iwvaule = 0;
 	gWTPs[i].isNotFree = CW_FALSE;  /* chenchao test */
-	CWDestroyThreadCondition(&gWTPs[i].interfaceComplete);	
+	//CWDestroyThreadCondition(&gWTPs[i].interfaceComplete);	
 	
 	CWThreadMutexUnlock(&gWTPsMutex);
 	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
