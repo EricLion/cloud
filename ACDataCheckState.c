@@ -42,13 +42,6 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	
 	CWLog("\n");
 	CWDebugLog("######### Status Event #########");	
-
-	/* Destroy ChangeStatePending timer */
-	if(!CWErr(CWTimerCancel(&(gWTPs[WTPIndex].currentTimer)))) {
-		CWLog("%s %d CWTimerCancel Fail !!!",__FILE__,__LINE__);
-		CWCloseThread();
-	}
-
 	
 	CW_CREATE_OBJECT_ERR(changeStateEvent, 
 			     CWProtocolChangeStateEventRequestValues,
@@ -77,6 +70,11 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	if(!CWACSendFragments(WTPIndex)) {
 
 		return CW_FALSE;
+	}
+	/* Destroy ChangeStatePending timer */
+	if(!CWErr(CWTimerCancel(&(gWTPs[WTPIndex].currentTimer)))) {
+		CWLog("%s %d CWTimerCancel Fail !!!",__FILE__,__LINE__);
+		CWCloseThread();
 	}
 	
 	/* Start NeighbourDeadInterval timer */

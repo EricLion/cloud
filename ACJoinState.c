@@ -31,7 +31,7 @@
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
-
+int gCWConfigStatePendingTimer = CW_CONFIG_STATE_INTERVAL_DEFAULT;
 CWBool CWAssembleJoinResponse(CWProtocolMessage **messagesPtr,
 			      int *fragmentsNumPtr,
 			      int PMTU,
@@ -70,10 +70,6 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 		return CW_FALSE;
 	}
 
-	// cancel waitJoin timer
-	if (!CWTimerCancel(&(gWTPs[WTPIndex].currentTimer))) {
-		return CW_FALSE;
-	}
 
 	CWBool ACIpv4List = CW_FALSE;
 	CWBool ACIpv6List = CW_FALSE;
@@ -239,6 +235,21 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 	if (!CWACSendFragments(WTPIndex)) {
 		return CW_FALSE;
 	}
+
+	/* Destroy JoinStatePending timer */
+	if(!CWErr(CWTimerCancel(&(gWTPs[WTPIndex].currentTimer)))) {
+		CWLog("%s %d CWTimerCancel Fail !!!",__FILE__,__LINE__);
+		CWCloseThread();
+	}
+
+	if(!CWErr(CWTimerRequest(gCWConfigStatePendingTimer,
+				 &(gWTPs[WTPIndex].thread),
+				 &(gWTPs[WTPIndex].currentTimer),
+				 CW_CRITICAL_TIMER_EXPIRED_SIGNAL))) {
+		CWLog("CWTimerRequest Fail !!!");
+		CWCloseThread();
+	}
+	
 	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
 							CWLog("Error locking the gWTPsMutex mutex");
 							return CW_FALSE;
@@ -385,7 +396,10 @@ CWBool CWParseJoinRequestMessage(char *msg,
 
 	/* different type */
 	if(controlVal.messageTypeValue != CW_MSG_TYPE_VALUE_JOIN_REQUEST)
+	{
+		CWLog("messageTypeValue=%o", controlVal.messageTypeValue);
 		return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Message is not Join Request as Expected");
+	}
 	
 	*seqNumPtr = controlVal.seqNum;
 	/* skip timestamp */

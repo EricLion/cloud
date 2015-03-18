@@ -81,6 +81,13 @@ CWBool ACEnterConfigure(int WTPIndex, CWProtocolMessage *msgPtr) {
 	}
 	
 	CWLog("Configure Response Sent");
+
+	/* Destroy ConfigStatePending timer */
+	if(!CWErr(CWTimerCancel(&(gWTPs[WTPIndex].currentTimer)))) {
+		CWLog("%s %d CWTimerCancel Fail !!!",__FILE__,__LINE__);
+		CWCloseThread();
+	}
+	
 	
 	/* start Change State Pending timer */
 	if(!CWErr(CWTimerRequest(gCWChangeStatePendingTimer,
