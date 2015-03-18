@@ -483,10 +483,11 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 	CWNetworkLev4Address addr;
 	int flags = ((peekRead != CW_FALSE) ? MSG_PEEK : 0);
 	//buf malloc
-	//char buf[CW_BUFFER_SIZE];
-	char *buf = NULL;
-
-	CW_CREATE_OBJECT_SIZE_ERR(buf,CW_BUFFER_SIZE,return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "CWNetworkUnsafeMultiHomed malloc buf Fail!"););
+	char buf[CW_BUFFER_SIZE];
+	//char *buf = NULL;
+	
+	CWLog("%s %d CWNetworkUnsafeMultiHomed begin",__FILE__,__LINE__);
+	//CW_CREATE_OBJECT_SIZE_ERR(buf,CW_BUFFER_SIZE,return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "CWNetworkUnsafeMultiHomed malloc buf Fail!"););
 	
 	//memset(buf, 0, CW_BUFFER_SIZE *sizeof(char));
 	
@@ -496,6 +497,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 	FD_ZERO(&fset);
 
 	/* select() on all the sockets */
+	
 	for(i = 0; i < sockPtr->count; i++) {
 	
 		FD_SET(sockPtr->interfaces[i].sock, &fset);
@@ -512,7 +514,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 			CWNetworkRaiseSystemError(CW_ERROR_GENERAL);
 		}
 	}
-	
+	CWLog("%s %d CWNetworkUnsafeMultiHomed middle",__FILE__,__LINE__);
 	/* calls CWManageIncomingPacket() for each interface 
 	 * that has an incoming packet 
 	 */
@@ -528,7 +530,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 			*/
 			
 			CW_ZERO_MEMORY(buf, CW_BUFFER_SIZE);
-			
+			CWLog("%s %d CWNetworkUnsafeMultiHomed CWNetworkReceiveUnsafe",__FILE__,__LINE__);
 			/* message */
 			if(!CWErr(CWNetworkReceiveUnsafe(sockPtr->interfaces[i].sock, buf, CW_BUFFER_SIZE-1, flags, &addr, &readBytes))) {
 
@@ -542,10 +544,14 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 					       readBytes,
 					       CWNetworkGetInterfaceIndexFromSystemIndex(sockPtr, sockPtr->interfaces[i].systemIndex),
 					       &addr);
+			CWLog("%s %d CWNetworkUnsafeMultiHomed CWManageIncomingPacket end",__FILE__,__LINE__);
 		}
 		/* else {CWDebugLog("~~~~~~~Non Ready on....~~~~~~");} */
 	}
-	CW_FREE_OBJECT(buf);
+	//CWLog("%s %d CWNetworkUnsafeMultiHomed",__FILE__,__LINE__);
+	CWLog("%s %d CWNetworkUnsafeMultiHomed end",__FILE__,__LINE__);
+	//CW_FREE_OBJECT(buf);
+	//CWLog("%s %d CWNetworkUnsafeMultiHomed",__FILE__,__LINE__);
 	return CW_TRUE;
 }
 

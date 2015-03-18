@@ -45,7 +45,7 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 
 	/* Destroy ChangeStatePending timer */
 	if(!CWErr(CWTimerCancel(&(gWTPs[WTPIndex].currentTimer)))) {
-
+		CWLog("%s %d CWTimerCancel Fail !!!",__FILE__,__LINE__);
 		CWCloseThread();
 	}
 
@@ -84,6 +84,7 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 				 &(gWTPs[WTPIndex].thread),
 				 &(gWTPs[WTPIndex].currentTimer),
 				 CW_CRITICAL_TIMER_EXPIRED_SIGNAL))) {
+		CWLog("%s %d CWTimerRequest Fail !!!",__FILE__,__LINE__);
 
 		CWCloseThread();
 	}

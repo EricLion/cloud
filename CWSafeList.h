@@ -52,7 +52,7 @@ typedef struct _CWPrivateSafeList
 	CWPrivateSafeElement* pLastElement;
 } CWPrivateSafeList,*CWSafeList;
 
-CWBool CWCreateSafeList(CWSafeList* pSafeList);
+CWSafeList CWCreateSafeList();
 void CWDestroySafeList(CWSafeList safeList);
 
 void CWSetMutexSafeList(CWSafeList safeList, CWThreadMutex* pThreadMutex);
