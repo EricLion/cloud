@@ -319,13 +319,16 @@ void CWACManageIncomingPacket(CWSocket sock,
 			CW_COPY_NET_ADDR_PTR(&(gWTPs[i].address), addrPtr);
 			gWTPs[i].isNotFree = CW_TRUE;
 			gWTPs[i].isRequestClose = CW_FALSE;
+			CWLog("F:%s L:%d free gWTPs[%d].packetReceiveList begin",__FILE__,__LINE__,i);
+			CW_FREE_OBJECT(gWTPs[i].packetReceiveList);
+			CWLog("F:%s L:%d free gWTPs[%d].packetReceiveList end ",__FILE__,__LINE__,i);
 			//pointer NULL
 			gWTPs[i].packetReceiveList = NULL;
 			CWThreadMutexUnlock(&gWTPsMutex);
 
 			/* Capwap receive packets list */
 			//if (!CWErr(CWCreateSafeList(&gWTPs[i].packetReceiveList))) {
-
+			
 			if (!(gWTPs[i].packetReceiveList = CWCreateSafeList()) ){
 				if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
 				{
@@ -1246,8 +1249,10 @@ void _CWCloseThread(int i) {
 
 	CWCleanSafeList(gWTPs[i].packetReceiveList, free);
 	//CWLog("F:%s,L:%d after gWTPs[%d].packetReceiveList->nCount = %d",__FILE__,__LINE__,i,gWTPs[i].packetReceiveList->nCount);
-	//CWDestroySafeList(gWTPs[i].packetReceiveList);	
-	CW_FREE_OBJECT(gWTPs[i].packetReceiveList);
+	//CWDestroySafeList(gWTPs[i].packetReceiveList);
+	CWLog("F:%s,L:%d ",__FILE__,__LINE__);
+	//CW_FREE_OBJECT(gWTPs[i].packetReceiveList);
+	CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	
 	CWResetWTPProtocolManager(&(gWTPs[i].WTPProtocolManager));
 	
@@ -1258,7 +1263,7 @@ void _CWCloseThread(int i) {
 	//CWDestroyThreadCondition(&gWTPs[i].interfaceComplete);	
 	
 	CWThreadMutexUnlock(&gWTPsMutex);
-	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
+	CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	CWExitThread();
 
 	CWThreadSetSignals(SIG_UNBLOCK, 2, 
