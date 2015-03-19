@@ -282,6 +282,8 @@ CWBool CWParseDiscoveryRequestMessage(char *msg,
 				      int len,
 				      int *seqNumPtr,
 				      CWDiscoveryRequestValues *valuesPtr);
+CWBool CWParseJoinReqMsgNotValue(char *msg, 
+				      int len);
 
 /* in ACRetransmission.c */
 CWBool CWACSendFragments(int WTPIndex);

@@ -187,9 +187,9 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 	{
 		//_CWCloseThread(WTPIndex);
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
-		CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
-		CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceWait);
-		CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+		//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
+		//CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceWait);
+		//CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
 	}
 	
 	
@@ -238,16 +238,16 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 
 	/* Destroy JoinStatePending timer */
 	if(!CWErr(CWTimerCancel(&(gWTPs[WTPIndex].currentTimer)))) {
-		CWLog("%s %d CWTimerCancel Fail !!!",__FILE__,__LINE__);
-		CWCloseThread();
+		CWLog("%s %d [%d] CWTimerCancel Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
 	}
 
 	if(!CWErr(CWTimerRequest(gCWConfigStatePendingTimer,
 				 &(gWTPs[WTPIndex].thread),
 				 &(gWTPs[WTPIndex].currentTimer),
 				 CW_CRITICAL_TIMER_EXPIRED_SIGNAL))) {
-		CWLog("CWTimerRequest Fail !!!");
-		CWCloseThread();
+		CWLog("%s %d [%d] CWTimerRequest Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
 	}
 	
 	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
@@ -397,7 +397,7 @@ CWBool CWParseJoinRequestMessage(char *msg,
 	/* different type */
 	if(controlVal.messageTypeValue != CW_MSG_TYPE_VALUE_JOIN_REQUEST)
 	{
-		CWLog("messageTypeValue=%o", controlVal.messageTypeValue);
+		CWLog("messageTypeValue=%d", controlVal.messageTypeValue);
 		return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Message is not Join Request as Expected");
 	}
 	

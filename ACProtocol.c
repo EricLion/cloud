@@ -341,8 +341,9 @@ CWBool CWAssembleMsgElemDecryptErrorReportPeriod (CWProtocolMessage *msgPtr)
 	if(msgPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
 	
 	if((iPtr = ((int*)CWThreadGetSpecific(&gIndexSpecific))) == NULL) {
-		CWLog("Critical Error... closing thread");
-		CWCloseThread();
+		CWLog("Critical Error... closing process !");
+		//CWCloseThread();
+		exit(0);
 	}
 	
 	radiosInfoPtr=gWTPs[*iPtr].WTPProtocolManager.radioAdminInfo.radios;

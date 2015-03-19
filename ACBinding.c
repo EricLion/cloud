@@ -201,8 +201,9 @@ CWBool CWBindingAssembleConfigureResponse(CWProtocolMessage **msgElems, int *msg
 
 	if(!CWThreadMutexLock(&gWTPsMutex))
 	{
-		CWLog("Error locking a mutex");
-		CWCloseThread();
+		CWLog("WTP[%d] Error locking a mutex, close thread!",*iPtr);
+		//CWCloseThread();
+		gWTPs[*iPtr].isRequestClose = CW_TRUE;	
 	}
 		//Fill gWTPs[*iPtr].qosValues with default settings 
 		gWTPs[*iPtr].qosValues=gDefaultQosValues;

@@ -84,8 +84,9 @@ CWBool ACEnterConfigure(int WTPIndex, CWProtocolMessage *msgPtr) {
 
 	/* Destroy ConfigStatePending timer */
 	if(!CWErr(CWTimerCancel(&(gWTPs[WTPIndex].currentTimer)))) {
-		CWLog("%s %d CWTimerCancel Fail !!!",__FILE__,__LINE__);
-		CWCloseThread();
+		CWLog("%s %d [%d] CWTimerCancel Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+		//CWCloseThread();
+		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
 	}
 	
 	
@@ -94,8 +95,9 @@ CWBool ACEnterConfigure(int WTPIndex, CWProtocolMessage *msgPtr) {
 				 &(gWTPs[WTPIndex].thread),
 				 &(gWTPs[WTPIndex].currentTimer),
 				 CW_CRITICAL_TIMER_EXPIRED_SIGNAL))) {
-		CWLog("CWTimerRequest Fail !!!");
-		CWCloseThread();
+		CWLog("%s %d [%d] CWTimerRequest Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+		//CWCloseThread();
+		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
 	}
 	//CWLog("CWTimerRequest Success !!!");
 	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {

@@ -798,10 +798,19 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly !");
 		return FALSE;
 	}
-	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
-	//gWTPs[selection].iwvaule = 1;
-	//block
-	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+	if (	(gWTPs[selection].isNotFree == CW_TRUE) &&
+		(gWTPs[selection].isRequestClose == CW_FALSE))
+	{
+		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+	}
+	else
+	{
+		CWLog("%s  %d WTP[%d] not online, BE request cannel !",__FILE__,__LINE__,selection);
+		gWTPs[selection].interfaceCommand = NO_CMD;
+		CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+		return FALSE;
+	}
 	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
 	return TRUE;
 }
@@ -912,12 +921,19 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 			CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly");
 			return FALSE;
 		}
-		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
-		//gWTPs[selection].iwvaule = 1;
-		
-		//block
-		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
-		CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+		if (	(gWTPs[selection].isNotFree == CW_TRUE) &&
+		(gWTPs[selection].isRequestClose == CW_FALSE))
+		{
+			CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+			CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+		}
+		else
+		{
+			CWLog("%s  %d WTP[%d] not online, BE request cannel !",__FILE__,__LINE__,selection);
+			gWTPs[selection].interfaceCommand = NO_CMD;
+			CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+			return FALSE;
+		}
 		
 		CWLog("[F:%s, L:%d] -------%d  portal fragment recv----------",__FILE__,__LINE__,seqNum);
 		left -= toSend;
@@ -975,12 +991,19 @@ int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly !");
 		return FALSE;
 	}
-	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
-	//gWTPs[selection].iwvaule = 1;
-	CWLog("[F:%s, L:%d] CWSysSetValues CWWaitThreadCondition",__FILE__,__LINE__);	
-	
-	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
-	
+	if (	(gWTPs[selection].isNotFree == CW_TRUE) &&
+		(gWTPs[selection].isRequestClose == CW_FALSE))
+	{
+		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+	}
+	else
+	{
+		CWLog("%s  %d WTP[%d] not online, BE request cannel !",__FILE__,__LINE__,selection);
+		gWTPs[selection].interfaceCommand = NO_CMD;
+		CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+		return FALSE;
+	}
 	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
 	CWLog("[F:%s, L:%d] CWSysSetValues end ...",__FILE__,__LINE__);	
 	
@@ -1028,10 +1051,20 @@ int CWWumSetValues(int selection, int socketIndex, CWProtocolVendorSpecificValue
 		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly !");
 		return FALSE;
 	}
-	CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
-	//gWTPs[selection].iwvaule = 1;
-	CWLog("[F:%s, L:%d] CWWaitThreadCondition",__FILE__,__LINE__);	
-	CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+	
+	if (	(gWTPs[selection].isNotFree == CW_TRUE) &&
+		(gWTPs[selection].isRequestClose == CW_FALSE))
+	{
+		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+	}
+	else
+	{
+		CWLog("%s  %d WTP[%d] not online, BE request cannel !",__FILE__,__LINE__,selection);
+		gWTPs[selection].interfaceCommand = NO_CMD;
+		CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+		return FALSE;
+	}
 	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
 	CWLog("[F:%s, L:%d] CWWumSetValues end ...",__FILE__,__LINE__);	
 	
@@ -1815,6 +1848,12 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 						break;
 					}
 	                    }
+				if(i >= MAX_APPS_CONNECTED_TO_AC)
+				{
+					CWLog("%s  %d be max request > %d, refuse !"__FILE__,__LINE__,MAX_APPS_CONNECTED_TO_AC);
+					sleep(2);
+					continue;
+				}
 				if(!CWErr(CWThreadMutexLock(&appsManager.numSocketFreeMutex))) {
 					CWLog("Error locking numSocketFree Mutex");
 					close(listen_sock);
@@ -1862,7 +1901,7 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 			}		  
 		}
 		else
-			CWLog("Error on accept (applications) system call");
+			CWLog("Error on accept (applications) system call !");
       }
 	
 	//CWDestroyThreadMutex(&appsManager.numSocketFreeMutex);

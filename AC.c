@@ -227,6 +227,8 @@ void CWACInit() {
 
 	for(i = 0; i < CW_MAX_WTP; i++) {
 		gWTPs[i].isNotFree = CW_FALSE;
+		//add not close
+		gWTPs[i].isRequestClose = CW_FALSE;
 	}
 
 	/* store network interface's addresses */
