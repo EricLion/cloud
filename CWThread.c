@@ -824,7 +824,7 @@ void CWHandleTimer(CWTimerArg arg) {
  	int signalToRaise = a->signalToRaise;
 
 	CWThreadSendSignal(requestedThreadPtr, signalToRaise);
- 	CWDebugLog("Timer Expired, Sent Signal(%d) to Thread: %d", signalToRaise, requestedThreadPtr);
+ 	CWLog("Timer Expired, Sent Signal(%d) to Thread: %d", signalToRaise, requestedThreadPtr);
 
 	CW_FREE_OBJECT(a->requestedThreadPtr);
 	CW_FREE_OBJECT(a);
@@ -836,7 +836,7 @@ CWBool CWTimerRequest(int sec, CWThread *threadPtr, CWTimerID *idPtr, int signal
 
 	CWThreadTimerArg *arg;
 
-	CWDebugLog("Timer Request");
+	CWLog("Timer Request");
 	if(sec < 0 || threadPtr == NULL || idPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
 	
 	CW_CREATE_OBJECT_ERR(arg, CWThreadTimerArg, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "Can't CWTimerRequest");return CW_FALSE;});
@@ -844,10 +844,10 @@ CWBool CWTimerRequest(int sec, CWThread *threadPtr, CWTimerID *idPtr, int signal
  	CW_COPY_MEMORY(arg->requestedThreadPtr, threadPtr, sizeof(CWThread));
  	arg->signalToRaise = signalToRaise;
  			
-	CWDebugLog("Timer Request: thread(%d), signal(%d)", *(arg->requestedThreadPtr), arg->signalToRaise);
+	CWLog("Timer Request: thread(%x), signal(%d)", (unsigned int)*(arg->requestedThreadPtr), arg->signalToRaise);
 	
 	if ((*idPtr = timer_add(sec, 0, &CWHandleTimer, arg)) == -1) {
-		CWDebugLog("timer_add fail!");
+		CWLog("timer_add fail!");
 		return CW_FALSE;
 	}
 

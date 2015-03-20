@@ -699,6 +699,7 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 	CWThreadMutexUnlock(&gWTPsMutex);
 
 	return CW_TRUE;
+
 }
 
 CWBool CWACParseGenericRunMessage(int WTPIndex,
