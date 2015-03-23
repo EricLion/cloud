@@ -81,6 +81,7 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 			&(gWTPs[WTPIndex].WTPProtocolManager)))) {
 
 		resultCodeValue = CW_PROTOCOL_FAILURE_RES_DEPLETION;
+		return CW_FALSE;
 	}
 	//add WTP MAC
 	macId = gWTPs[WTPIndex].WTPProtocolManager.WTPBoardData.vendorInfosCount - 1;
@@ -92,18 +93,10 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 			(u_char)(gWTPs[WTPIndex].WTPProtocolManager.WTPBoardData.vendorInfos[macId].valuePtr[4]),
 			(u_char)(gWTPs[WTPIndex].WTPProtocolManager.WTPBoardData.vendorInfos[macId].valuePtr[5]));
 
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-			CWLog("Error locking the gWTPsMutex mutex");
-			return CW_FALSE;
-		}
-	
 	for(i=0;i<6;i++)
 	{
 		gWTPs[WTPIndex].MAC[i] = (u_char)gWTPs[WTPIndex].WTPProtocolManager.WTPBoardData.vendorInfos[macId].valuePtr[i];
 	}
-
-	CWThreadMutexUnlock(&gWTPsMutex);
-
 
 	for(i = 0;i < MAC_ADDR_LEN;i++)
 	{
@@ -133,12 +126,6 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 	k = numActiveWTPs;
 	#endif
 
-	#if 0
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-		CWLog("Error locking the gWTPsMutex mutex");
-		return CW_FALSE;
-	}
-	#endif
 	
 	for(i = 0; i < CW_MAX_WTP ; i++)
 	{
@@ -163,10 +150,7 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 								(u_char) gWTPs[i].MAC[5],
 								i,
 								WTPIndex);
-						
-						//CWThreadMutexUnlock(&gWTPsMutex);
 						finded = 1;
-						//_CWCloseThread(WTPIndex);
 						break;
 					}
 					continue;
@@ -180,8 +164,6 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 			break;
 		}
 	}
-	//CWThreadMutexUnlock(&gWTPsMutex);
-
 
 	if(finded ==1)
 	{
@@ -250,12 +232,7 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
 	}
 	
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-							CWLog("Error locking the gWTPsMutex mutex");
-							return CW_FALSE;
-		}
 	gWTPs[WTPIndex].currentState = CW_ENTER_CONFIGURE;
-	CWThreadMutexUnlock(&gWTPsMutex);
 
 	return CW_TRUE;
 }

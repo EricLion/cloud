@@ -100,12 +100,8 @@ CWBool ACEnterConfigure(int WTPIndex, CWProtocolMessage *msgPtr) {
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
 	}
 	//CWLog("CWTimerRequest Success !!!");
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-							CWLog("Error locking the gWTPsMutex mutex");
-							return CW_FALSE;
-		}
+
 	gWTPs[WTPIndex].currentState = CW_ENTER_DATA_CHECK;
-	CWThreadMutexUnlock(&gWTPsMutex);
 	
 	return CW_TRUE;
 }

@@ -111,15 +111,11 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	//gWTPs[WTPIndex].currentState = CW_ENTER_RUN;
 	//gWTPs[WTPIndex].subState = CW_WAITING_REQUEST;
 	
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-		CWLog("Error locking the gWTPsMutex mutex");
-		return CW_FALSE;
-	}
+	
 	
 	gWTPs[WTPIndex].currentState = CW_ENTER_RUN;
 	gWTPs[WTPIndex].subState = CW_WAITING_REQUEST;
 
-	CWThreadMutexUnlock(&gWTPsMutex);
 
 	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex)))
 	{
@@ -140,6 +136,7 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 
 	//fix mutex bug
 	CW_CREATE_OBJECT_ERR(gWTPs[WTPIndex].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); CWThreadMutexUnlock(&gWTPsMutex); return 0;});
+	gWTPs[WTPIndex].vendorValues->payload = NULL;
 	gWTPs[WTPIndex].vendorValues->vendorPayloadLen = 0;
 	gWTPs[WTPIndex].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE;
 	
@@ -168,15 +165,8 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	//*/
 #endif
 
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex)))
-	{
-		CWLog("ACEnterDataCheck CWThreadMutexLock fail,exit !");
-		return CW_FALSE;
-	}
-
 	//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
 	gWTPs[WTPIndex].interfaceResult = UPGRADE_SUCCESS;
-	CWThreadMutexUnlock(&gWTPsMutex);
 
 	return CW_TRUE;
 }

@@ -48,11 +48,6 @@ int FindApIndex(u_char* apMac)
 		return finded;
 	}
 	
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-		CWLog("Error locking the gWTPsMutex mutex");
-		return finded;
-	}
-	
 	for(i=0; i<CW_MAX_WTP && k ; i++) 
 	{
 		if(gWTPs[i].isNotFree && gWTPs[i].currentState == CW_ENTER_RUN)  
@@ -66,7 +61,6 @@ int FindApIndex(u_char* apMac)
 					{	
 						finded = i;
 						CWLog("[F:%s, L:%d] finded = %d",__FILE__,__LINE__,finded);
-						//CWThreadMutexUnlock(&gWTPsMutex);
 						//if(!CWXMLSetValues(i, socketIndex, xmlValues))
 							//return FALSE;
 						break;
@@ -85,7 +79,6 @@ int FindApIndex(u_char* apMac)
 			}
 		}
 	}
-	CWThreadMutexUnlock(&gWTPsMutex);
 
 	return finded;
 
@@ -122,13 +115,8 @@ char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValu
 		if(!CWWumSetValues(finded, socketIndex, vendorValues))
 			return FALSE;
 
-		if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
-		{
-			CWLog("F:%s L:%d Error locking gWTPsMutex!",__FILE__,__LINE__);
-			return CW_FALSE;
-		}
+
 		interfaceResult = gWTPs[finded].interfaceResult;
-		CWThreadMutexUnlock(&gWTPsMutex);
 
 		if(interfaceResult == UPGRADE_FAILED)
 		{
@@ -285,11 +273,6 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	time(&timestamp);
 	CWLog("[F:%s, L:%d] :beHeader.timestamp = %d",__FILE__,__LINE__,timestamp);
 	beHeader.timestamp =Swap32(timestamp);
-
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-		CWLog("Error locking the gWTPsMutex mutex");
-		return NULL;
-	}
 	
 	if(gWTPs[apId].isNotFree && (gWTPs[apId].currentState == CW_ENTER_RUN))
 	{
@@ -298,7 +281,6 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 			beHeader.apMac[i] =  gWTPs[apId].MAC[i];
 		}
 	}
-	CWThreadMutexUnlock(&gWTPsMutex);
 	
 	CWLog("[F:%s, L:%d] :beHeader.mac = %x:%x:%x:%x:%x:%x",__FILE__,__LINE__,beHeader.apMac[0],beHeader.apMac[1],beHeader.apMac[2],beHeader.apMac[3],beHeader.apMac[4],beHeader.apMac[5]);
 
@@ -465,13 +447,7 @@ void SendBEResponse(char* buf,int len,int apId)
 		return;
 	}
 	
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-		CWLog("Error locking the gWTPsMutex mutex");
-		return;
-	}
 	socketIndex = gWTPs[apId].applicationIndex;
-
-	CWThreadMutexUnlock(&gWTPsMutex);
 	
 	if(!CWErr(CWThreadMutexLock(&appsManager.socketMutex[socketIndex]))) {
 		CWLog("Error locking numSocketFree Mutex");
@@ -585,7 +561,7 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 
 	memset(wumValues,0,sizeof(CWVendorWumValues));
 	memset(vendorValues,0,sizeof(CWProtocolVendorSpecificValues));
-	
+	vendorValues->payload = NULL;
 	CW_CREATE_OBJECT_ERR(vendorValues->payload, CWVendorWumValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 	memset(vendorValues->payload,0,sizeof(CWVendorWumValues));
 
@@ -763,6 +739,7 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 	}
 	
 	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);CWThreadMutexUnlock(&gWTPsMutex); return 0;});
+	gWTPs[selection].vendorValues->payload = NULL;
 	gWTPs[selection].vendorValues->vendorPayloadLen = 0;
 	gWTPs[selection].applicationIndex = socketIndex;
 	//CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
@@ -844,21 +821,17 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		CWLog("[F:%s, L:%d]selection <0 ||selection >= CW_MAX_WTP ",__FILE__,__LINE__);
 		return FALSE;
 	}
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-		CWLog("Error locking the &gWTPsMutex !");
-		return FALSE;
-	}
+
 	gWTPs[selection].vendorPortalValues = NULL;
 	
 	//CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
 	//portal to vendor	
-	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorPortalValues, CWProtocolVendorPortalValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); CWThreadMutexUnlock(&gWTPsMutex);return 0;});
+	CW_CREATE_OBJECT_ERR(gWTPs[selection].vendorPortalValues, CWProtocolVendorPortalValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 	gWTPs[selection].vendorPortalValues->TotalFileNum= portalValues->TotalFileNum;
 	gWTPs[selection].vendorPortalValues->FileNo= portalValues->FileNo;
 	gWTPs[selection].vendorPortalValues->EncodeNameLen= portalValues->EncodeNameLen;
 	gWTPs[selection].vendorPortalValues->EncodeContentLen= portalValues->EncodeContentLen;
 	//CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
-	CWThreadMutexUnlock(&gWTPsMutex);
 	
 	CWLog("[F:%s, L:%d]gWTPs[selection].vendorPortalValues->TotalFileNum = %d ",__FILE__,__LINE__,gWTPs[selection].vendorPortalValues->TotalFileNum);
 	CWLog("[F:%s, L:%d]gWTPs[selection].vendorPortalValues->FileNo = %d ",__FILE__,__LINE__,gWTPs[selection].vendorPortalValues->FileNo);
@@ -874,10 +847,7 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 	for (i = 0; left > 0; i++) {
 		seqNum = i;
 		fragSize = toSend;
-		if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-			CWLog("Error locking the &gWTPsMutex !");
-			return FALSE;
-		}
+
 		if(left <= toSend)
 		{
 			gWTPs[selection].vendorPortalValues->isLast = TRUE;
@@ -888,15 +858,15 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		}
 		gWTPs[selection].vendorPortalValues->SeqNum= seqNum;
 		gWTPs[selection].vendorPortalValues->EncodeContentLen= fragSize;
-
-		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeName, gWTPs[selection].vendorPortalValues->EncodeNameLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);CWThreadMutexUnlock(&gWTPsMutex); return 0;});
+		gWTPs[selection].vendorPortalValues->EncodeName = NULL;
+		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeName, gWTPs[selection].vendorPortalValues->EncodeNameLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);return 0;});
 		memset(gWTPs[selection].vendorPortalValues->EncodeName,0,gWTPs[selection].vendorPortalValues->EncodeNameLen+1);
 		memcpy(gWTPs[selection].vendorPortalValues->EncodeName,  portalValues->EncodeName,portalValues->EncodeNameLen);
 		CWLog("gWTPs[%d].vendorPortalValues->EncodeName, :%s", selection, gWTPs[selection].vendorPortalValues->EncodeName);
 		CWLog("gWTPs[%d].vendorPortalValues->EncodeName Len:%d", selection, gWTPs[selection].vendorPortalValues->EncodeNameLen);
 		//gWTPs[selection].vendorValues->vendorPayloadLen = strlen(gWTPs[selection].vendorValues->payload);
-
-		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeContent, gWTPs[selection].vendorPortalValues->EncodeContentLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);CWThreadMutexUnlock(&gWTPsMutex); return 0;});
+		gWTPs[selection].vendorPortalValues->EncodeContent = NULL;
+		CW_CREATE_STRING_ERR(gWTPs[selection].vendorPortalValues->EncodeContent, gWTPs[selection].vendorPortalValues->EncodeContentLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 		memset(gWTPs[selection].vendorPortalValues->EncodeContent,0,gWTPs[selection].vendorPortalValues->EncodeContentLen+1);
 		memcpy(gWTPs[selection].vendorPortalValues->EncodeContent,  portalValues->EncodeContent+sent,gWTPs[selection].vendorPortalValues->EncodeContentLen);
 		CWLog("fragment EncodeContentLen Len:%d", selection, gWTPs[selection].vendorPortalValues->EncodeContentLen);
@@ -915,7 +885,7 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 		//CWThreadMutexLock(&(gWTPs[selection].interfaceMutex));
 		gWTPs[selection].applicationIndex = socketIndex;
 		gWTPs[selection].interfaceCommand = PORTAL_MSG_CMD;
-		CWThreadMutexUnlock(&gWTPsMutex);
+		//CWThreadMutexUnlock(&gWTPsMutex);
 		
 		if(!CWErr(CWThreadMutexLock(&(gWTPs[selection].interfaceMutex)))) {
 			CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly");
@@ -968,11 +938,6 @@ int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 		return FALSE;
 	}
 	
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-		CWLog("Error locking the gWTPsMutex !");
-		return FALSE;
-	}
-	
 	if(sysCode == SYSTEM_RESET)
 	{
 		gWTPs[selection].interfaceCommand = CLEAR_CONFIG_MSG_CMD;
@@ -984,7 +949,6 @@ int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 	
 	gWTPs[selection].applicationIndex = socketIndex;
 
-	CWThreadMutexUnlock(&gWTPsMutex);
 	CWLog("[F:%s, L:%d] CWSysSetValues begin ...",__FILE__,__LINE__);	
 
 	if(!CWErr(CWThreadMutexLock(&(gWTPs[selection].interfaceMutex)))) {
