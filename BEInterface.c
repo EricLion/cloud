@@ -50,7 +50,7 @@ int FindApIndex(u_char* apMac)
 	
 	for(i=0; i<CW_MAX_WTP && k ; i++) 
 	{
-		if(gWTPs[i].isNotFree && gWTPs[i].currentState == CW_ENTER_RUN)  
+		if(gWTPs[i].wtpState == CW_RUN && gWTPs[i].currentState == CW_ENTER_RUN)  
 		{
 			k--;
 			for (j = 0; j < MAC_ADDR_LEN; j++) 
@@ -274,7 +274,7 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	CWLog("[F:%s, L:%d] :beHeader.timestamp = %d",__FILE__,__LINE__,timestamp);
 	beHeader.timestamp =Swap32(timestamp);
 	
-	if(gWTPs[apId].isNotFree && (gWTPs[apId].currentState == CW_ENTER_RUN))
+	if(gWTPs[apId].wtpState == CW_RUN && (gWTPs[apId].currentState == CW_ENTER_RUN))
 	{
 		for(i=0; i<MAC_ADDR_LEN; i++)
 		{
@@ -775,7 +775,7 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly !");
 		return FALSE;
 	}
-	if (	(gWTPs[selection].isNotFree == CW_TRUE) &&
+	if (	(gWTPs[selection].wtpState == CW_RUN) &&
 		(gWTPs[selection].isRequestClose == CW_FALSE))
 	{
 		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
@@ -891,7 +891,7 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 			CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly");
 			return FALSE;
 		}
-		if (	(gWTPs[selection].isNotFree == CW_TRUE) &&
+		if (	(gWTPs[selection].wtpState == CW_RUN) &&
 		(gWTPs[selection].isRequestClose == CW_FALSE))
 		{
 			CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
@@ -955,7 +955,7 @@ int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 		CWLog("Error locking the &(gWTPs[selection].interfaceMutex),maybe BE msg too quickly !");
 		return FALSE;
 	}
-	if (	(gWTPs[selection].isNotFree == CW_TRUE) &&
+	if (	(gWTPs[selection].wtpState == CW_RUN) &&
 		(gWTPs[selection].isRequestClose == CW_FALSE))
 	{
 		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
@@ -1016,7 +1016,7 @@ int CWWumSetValues(int selection, int socketIndex, CWProtocolVendorSpecificValue
 		return FALSE;
 	}
 	
-	if (	(gWTPs[selection].isNotFree == CW_TRUE) &&
+	if (	(gWTPs[selection].wtpState == CW_RUN) &&
 		(gWTPs[selection].isRequestClose == CW_FALSE))
 	{
 		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
@@ -1881,7 +1881,9 @@ Quit:
 
 int is_valid_wtp_index(int wtpIndex) 
 {
-	if (wtpIndex < CW_MAX_WTP && gWTPs[wtpIndex].isNotFree)
+	if (wtpIndex < CW_MAX_WTP && 
+		(gWTPs[wtpIndex].wtpState == CW_RUN) && 
+		(gWTPs[wtpIndex].isRequestClose == CW_FALSE))
 		return CW_TRUE;
 	return CW_FALSE;
 }

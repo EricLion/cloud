@@ -116,7 +116,8 @@ typedef struct {
 	CWNetworkLev4Address address;
 	CWThread thread;
 	CWSecuritySession session;
-	CWBool isNotFree;
+	//CWBool isNotFree;
+	CWWTPState wtpState;
 	CWBool isRequestClose;
 	CWStateTransition currentState;
 	int interfaceIndex;

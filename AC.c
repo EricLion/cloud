@@ -226,9 +226,15 @@ void CWACInit() {
 	CW_FREE_OBJECTS_ARRAY(gMulticastGroups, gMulticastGroupsCount);
 
 	for(i = 0; i < CW_MAX_WTP; i++) {
-		gWTPs[i].isNotFree = CW_FALSE;
+		gWTPs[i].wtpState= CW_IDLE;
 		//add not close
 		gWTPs[i].isRequestClose = CW_FALSE;
+		gWTPs[i].buf = NULL; 
+		gWTPs[i].qosValues = NULL;
+		gWTPs[i].ofdmValues = NULL;  
+		gWTPs[i].vendorValues = NULL;
+		gWTPs[i].vendorPortalValues = NULL;
+		gWTPs[i].fragmentsList = NULL;
 	}
 
 	/* store network interface's addresses */
@@ -296,7 +302,7 @@ void CWACDestroy() {
 void ShowApInfo(int apIndex)
 {
 	int i;
-	if(gWTPs[apIndex].isNotFree == CW_FALSE)
+	if(gWTPs[apIndex].wtpState != CW_RUN)
 	{
 		printf("ap don't exist !\n");
 		return;
@@ -377,7 +383,7 @@ void ShowRunApIndex()
 
 	for(apIndex = 0;apIndex < CW_MAX_WTP;apIndex++)
 	{
-		if(gWTPs[apIndex].isNotFree == CW_TRUE && gWTPs[apIndex].currentState == CW_ENTER_RUN)
+		if(gWTPs[apIndex].wtpState== CW_RUN && gWTPs[apIndex].currentState == CW_ENTER_RUN)
 		{
 			printf("%d , ",apIndex);
 		}

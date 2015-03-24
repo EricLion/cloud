@@ -73,6 +73,12 @@ typedef enum {
 } CWBool;
 
 typedef enum {
+	CW_IDLE  = 0,
+	CW_RUN   = 1,
+	CW_CLOSING = 2
+} CWWTPState;
+
+typedef enum {
 	CW_ENTER_SULKING,
 	CW_ENTER_DISCOVERY,
 	CW_ENTER_JOIN,

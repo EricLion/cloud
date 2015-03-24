@@ -133,7 +133,7 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 		//if( i == WTPIndex || gWTPs[i].isNotFree != CW_TRUE)
 			continue;
 		//if(gWTPs[i].currentState == CW_ENTER_RUN)
-		if(gWTPs[i].isNotFree == CW_TRUE && gWTPs[i].currentState == CW_ENTER_RUN)
+		if(gWTPs[i].wtpState== CW_RUN && gWTPs[i].currentState == CW_ENTER_RUN)
 		{
 			for (j = 0; j < MAC_ADDR_LEN; j++) 
 			{
