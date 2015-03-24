@@ -130,10 +130,10 @@ CWBool CWNetworkInitSocketServerMultiHomed(CWMultiHomedSocket *sockPtr,
 		/* reuse address */
 		setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 		// 接收缓冲区
-		int nRecvBuf=1024*1024;//设置为1024K
+		int nRecvBuf=120*1024;//设置为120K
 		setsockopt(sock,SOL_SOCKET,SO_RCVBUF,(const char*)&nRecvBuf,sizeof(int));
 		//发送缓冲区
-		int nSendBuf=1024*1024;//设置为1024K
+		int nSendBuf=120*1024;//设置为120K
 		setsockopt(sock,SOL_SOCKET,SO_SNDBUF,(const char*)&nSendBuf,sizeof(int));
 
 		int opt = 0; 

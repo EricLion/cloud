@@ -87,6 +87,7 @@ CWBool ACEnterConfigure(int WTPIndex, CWProtocolMessage *msgPtr) {
 		CWLog("%s %d [%d] CWTimerCancel Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 		//CWCloseThread();
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+		return CW_FALSE;
 	}
 	
 	
@@ -98,6 +99,7 @@ CWBool ACEnterConfigure(int WTPIndex, CWProtocolMessage *msgPtr) {
 		CWLog("%s %d [%d] CWTimerRequest Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 		//CWCloseThread();
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+		return CW_FALSE;
 	}
 	//CWLog("CWTimerRequest Success !!!");
 

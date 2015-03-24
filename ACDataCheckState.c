@@ -75,6 +75,7 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	if(!CWErr(CWTimerCancel(&(gWTPs[WTPIndex].currentTimer)))) {
 		CWLog("%s %d [%d] CWTimerCancel Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+		return CW_FALSE;
 	}
 	
 	/* Start NeighbourDeadInterval timer */
@@ -84,6 +85,7 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 				 CW_CRITICAL_TIMER_EXPIRED_SIGNAL))) {
 		CWLog("%s %d [%d] CWTimerRequest Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+		return CW_FALSE;
 	}
 
 	CWLog("Change State Event Response Sent");

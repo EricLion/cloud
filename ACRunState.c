@@ -300,12 +300,14 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 
@@ -344,12 +346,14 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 			if(!(CWSaveChangeStateEventRequestMessage(valuesPtr, &(gWTPs[WTPIndex].WTPProtocolManager))))
@@ -372,12 +376,14 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimerForEcho(WTPIndex)) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 			
@@ -401,12 +407,14 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 			//CWSaveStationConfigurationResponseMessage(resultCode, WTPIndex);  <-- Must be Implemented ????
@@ -425,12 +433,14 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 			
@@ -489,12 +499,14 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 
@@ -552,12 +564,14 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 			if(!(CWAssembleWTPDataTransferResponse(&messages, &messagesCount, gWTPs[WTPIndex].pathMTU, controlVal.seqNum))) 
@@ -576,12 +590,14 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 
@@ -629,12 +645,14 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
 					//CWCloseThread();
 					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 			if(!(CWAssembleUnrecognizedMessageResponse(&messages,

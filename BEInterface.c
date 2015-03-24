@@ -467,7 +467,7 @@ void SendBEResponse(char* buf,int len,int apId)
 
 }
 
-
+//Raydez say close every time
 void SendBERequest(char* buf,int len)
 {
 	int ret,n,sockfd;

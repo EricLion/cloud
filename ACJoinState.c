@@ -169,6 +169,7 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 	{
 		//_CWCloseThread(WTPIndex);
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+		return CW_FALSE;
 		//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
 		//CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceWait);
 		//CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
@@ -222,6 +223,7 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 	if(!CWErr(CWTimerCancel(&(gWTPs[WTPIndex].currentTimer)))) {
 		CWLog("%s %d [%d] CWTimerCancel Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+		return CW_FALSE;
 	}
 
 	if(!CWErr(CWTimerRequest(gCWConfigStatePendingTimer,
@@ -230,6 +232,7 @@ CWBool ACEnterJoin(int WTPIndex, CWProtocolMessage *msgPtr)
 				 CW_CRITICAL_TIMER_EXPIRED_SIGNAL))) {
 		CWLog("%s %d [%d] CWTimerRequest Fail, close thread!",__FILE__,__LINE__,WTPIndex);
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+		return CW_FALSE;
 	}
 	
 	gWTPs[WTPIndex].currentState = CW_ENTER_CONFIGURE;
