@@ -559,11 +559,11 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 	CW_CREATE_OBJECT_ERR(wumValues, CWVendorWumValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 	CW_CREATE_OBJECT_ERR(vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 
-	memset(wumValues,0,sizeof(CWVendorWumValues));
-	memset(vendorValues,0,sizeof(CWProtocolVendorSpecificValues));
-	vendorValues->payload = NULL;
-	CW_CREATE_OBJECT_ERR(vendorValues->payload, CWVendorWumValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
-	memset(vendorValues->payload,0,sizeof(CWVendorWumValues));
+	memset((char*)wumValues,0,sizeof(CWVendorWumValues));
+	memset((char*)vendorValues,0,sizeof(CWProtocolVendorSpecificValues));
+	
+	//CW_CREATE_OBJECT_ERR(vendorValues->payload, CWVendorWumValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+	//memset((char*)vendorValues->payload,0,sizeof(CWVendorWumValues));
 
 	 vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_WUM;
 
@@ -579,28 +579,34 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 	
 	//CWLog("[F:%s, L:%d] wumValues->_pack_size_ = %d ",__FILE__,__LINE__,wumValues->_pack_size_);
 	
-	//memcpy((char*)(vendorValues.payload),(char*)&wumValues,sizeof(CWVendorWumValues));
+	//memcpy((char*)(vendorValues->payload),(char*)wumValues,sizeof(CWVendorWumValues));
+	vendorValues->payload = NULL;
 	vendorValues->payload = wumValues;
 	ret = BESetWumValues(apMac, socketIndex, vendorValues);
 	if(!ret)
 	{
 		CWLog("[F:%s, L:%d] BESetWumValues fail ! ",__FILE__,__LINE__);
+		CW_FREE_OBJECT(wumValues);
+		CW_FREE_OBJECT(vendorValues);
 		return ret;
 	}
 	if(ret == CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE)
 	{
 		CWLog("[F:%s, L:%d] BESetWumValues  CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE, stop !! ",__FILE__,__LINE__);
+		CW_FREE_OBJECT(wumValues);
+		CW_FREE_OBJECT(vendorValues);
 		return ret;
 	}
 	 //WTP_CUP_FRAGMENT
 	CWLog("[F:%s, L:%d] WTP_CUP_FRAGMENT begin. ..... ",__FILE__,__LINE__);
 	wumValues->type = WTP_CUP_FRAGMENT;
-	int seqNum;
-	int fragSize;
+	int seqNum = 0;
+	int fragSize = 0;
 	
 	sent = 0;
 	left = update_v.size;
 	toSend = MIN(FRAGMENT_SIZE, left);
+	CWLog("[F:%s, L:%d] seqNum = %d,fragSize  = %d,sent = %d ",__FILE__,__LINE__,seqNum,fragSize,sent);
 	for (i = 0; left > 0; i++) {
 	//if (WUMSendFragment(acserver, wtpId, cup_buf + sent, toSend, i)) {
 	//	fprintf(stderr, "Error while sending fragment #%d\n", i);
@@ -611,18 +617,23 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 		seqNum = i;
 		fragSize = toSend;
 
-		CW_CREATE_OBJECT_SIZE_ERR(wumValues->_cup_, fragSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+		//CW_CREATE_OBJECT_SIZE_ERR(wumValues->_cup_, fragSize, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 		//CW_CREATE_OBJECT_SIZE_ERR(vendorValues.payload, sizeof(CWVendorWumValues), {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
-		memset(wumValues->_cup_,0,fragSize);
-		//memset(vendorValues.payload,0,sizeof(CWVendorWumValues));
-		
-		//wumValues->_cup_ = cup + sent;
-		memcpy(wumValues->_cup_, cup + sent, fragSize);
+		//memset(wumValues->args.cup.buf,0,fragSize);
+		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+		memset((char*)wumValues,0,sizeof(CWVendorWumValues));
+		CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
+		//memset((char*)vendorValues->payload,0,sizeof(CWVendorWumValues));
+		CWLog("[F:%s, L:%d] seqNum = %d,fragSize  = %d,sent = %d ",__FILE__,__LINE__,seqNum,fragSize,sent);
+
+		wumValues->_cup_ = NULL;
+		wumValues->_cup_ = (char*)cup + sent;
+		//memcpy((char*)(wumValues->args.cup.buf),(char*) (cup + sent), fragSize);
 		wumValues->_seq_num_ = seqNum;
 		wumValues->_cup_fragment_size_ = fragSize;
 		
-		
-		//memcpy((char*)(vendorValues.payload),(char*)&wumValues,sizeof(CWVendorWumValues));
+		vendorValues->payload = NULL;
+		//memcpy((char*)(vendorValues->payload),(char*)wumValues,sizeof(CWVendorWumValues));
 		vendorValues->payload = wumValues;
 
 		CWLog("[F:%s, L:%d] -------%d  fragment send----------",__FILE__,__LINE__,seqNum);
@@ -631,6 +642,9 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 		if(!ret)
 		{
 			CWLog("[F:%s, L:%d] BESetWumValues fail ! ",__FILE__,__LINE__);
+			//CW_FREE_OBJECT(wumValues->_cup_);
+			CW_FREE_OBJECT(wumValues);
+			CW_FREE_OBJECT(vendorValues);
 			return ret;
 		}
 		CWLog("[F:%s, L:%d] -------%d  fragment recv----------",__FILE__,__LINE__,seqNum);
@@ -641,17 +655,26 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 
 	//WTP_COMMIT_UPDATE
 	CWLog("[F:%s, L:%d] WTP_COMMIT_UPDATE begin. ..... ",__FILE__,__LINE__);
+	memset(wumValues,0,sizeof(CWVendorWumValues));
 	wumValues->type = WTP_COMMIT_UPDATE; 
 
 	//memset(vendorValues.payload,0,sizeof(CWVendorWumValues));
+	vendorValues->payload = NULL;
 	vendorValues->payload = wumValues;
-	//memcpy((char*)(vendorValues.payload),(char*)&wumValues,sizeof(CWVendorWumValues));
+	//memcpy((char*)(vendorValues->payload),(char*)&wumValues,sizeof(CWVendorWumValues));
 	ret = BESetWumValues(apMac, socketIndex, vendorValues);
 	if(!ret)
 	{
 		CWLog("[F:%s, L:%d] BESetWumValues fail ! ",__FILE__,__LINE__);
+		//CW_FREE_OBJECT(wumValues->_cup_);
+		CW_FREE_OBJECT(wumValues);
+		CW_FREE_OBJECT(vendorValues);
 		return ret;
 	}
+	//AC use
+	//CW_FREE_OBJECT(wumValues->_cup_);
+	//CW_FREE_OBJECT(wumValues);
+	//CW_FREE_OBJECT(vendorValues);
 	
 	return ret;
 }
@@ -1754,8 +1777,9 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 	memset(&servaddr, 0, sizeof(servaddr));
 	
 	servaddr.sin_family = AF_INET;
-	//servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); /* Not Extern: INADDR_ANY */
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY); /* Not Extern: INADDR_ANY */
+	//not same as AC
+	servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); /* Not Extern: INADDR_ANY */
+	//servaddr.sin_addr.s_addr = htonl(INADDR_ANY); /* Not Extern: INADDR_ANY */
 	servaddr.sin_port = htons(LISTEN_PORT); 
 
 	if (setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &optValue, sizeof(int)) == -1) {

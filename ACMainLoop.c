@@ -371,7 +371,7 @@ void CWACManageIncomingPacket(CWSocket sock,
 			gWTPs[i].isRequestClose = CW_FALSE;
 			CWLog("F:%s L:%d free gWTPs[%d].packetReceiveList begin",__FILE__,__LINE__,i);
 			CWCleanSafeList(gWTPs[i].packetReceiveList, free);
-			CW_FREE_OBJECT(gWTPs[i].packetReceiveList);
+			CWDestroySafeList(gWTPs[i].packetReceiveList);
 			CWLog("F:%s L:%d free gWTPs[%d].packetReceiveList end ",__FILE__,__LINE__,i);
 			//pointer NULL
 			gWTPs[i].packetReceiveList = NULL;
@@ -638,12 +638,7 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 	gWTPs[i].interfaceIndex = interfaceIndex;
 	gWTPs[i].socket = sock;
 	
-	//gWTPs[i].fragmentsList = NULL;
-	if(gWTPs[i].fragmentsList != NULL)
-	{
-		CWDeleteList(&(gWTPs[i].fragmentsList), CWProtocolDestroyFragment);
-		gWTPs[i].fragmentsList = NULL;
-	}
+	gWTPs[i].fragmentsList = NULL;
 	
 	/* we're in the join state for this session */
 	gWTPs[i].currentState = CW_ENTER_JOIN;
@@ -660,21 +655,7 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 	//CWCreateThreadCondition(&gWTPs[i].interfaceWait);
 	//CWDestroyThreadCondition(&gWTPs[i].interfaceComplete);	
 	//CWCreateThreadCondition(&gWTPs[i].interfaceComplete);
-	CW_FREE_OBJECT(gWTPs[i].qosValues);
-	CW_FREE_OBJECT(gWTPs[i].ofdmValues);
-	//add free
-	if(gWTPs[i].vendorValues != NULL)
-	{
-		CW_FREE_OBJECT(gWTPs[i].vendorValues->payload);
-		CW_FREE_OBJECT(gWTPs[i].vendorValues);
-	}
-	if(gWTPs[i].vendorPortalValues != NULL)
-	{
-		CW_FREE_OBJECT(gWTPs[i].vendorPortalValues->EncodeName);
-		CW_FREE_OBJECT(gWTPs[i].vendorPortalValues->EncodeContent);
-		CW_FREE_OBJECT(gWTPs[i].vendorPortalValues);
-	}
-	//gWTPs[i].qosValues = NULL;
+
 	/**** ACInterface ****/
 
 	gWTPs[i].messages = NULL;
@@ -688,15 +669,16 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 	//BE: connectEvent
 	gWTPs[i].isConnect = CW_FALSE;
 
-	//gWTPs[i].ofdmValues = NULL;  
-	//gWTPs[i].vendorValues = NULL;
-	//gWTPs[i].vendorPortalValues = NULL;
+	gWTPs[i].qosValues = NULL; 
+	gWTPs[i].ofdmValues = NULL;  
+	gWTPs[i].vendorValues = NULL;
+	gWTPs[i].vendorPortalValues = NULL;
 
 	CWResetWTPProtocolManager(&(gWTPs[i].WTPProtocolManager));
 
 	//buf 
-	//gWTPs[i].buf = NULL; 
-	CW_FREE_OBJECT(gWTPs[i].buf);
+	//CW_FREE_OBJECT(gWTPs[i].buf);
+	gWTPs[i].buf = NULL; 
 	CW_CREATE_OBJECT_SIZE_ERR(gWTPs[i].buf,CW_BUFFER_SIZE,{ CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);CWLog("Out Of Memory");CWCloseThread();});
 	memset(gWTPs[i].buf, 0, CW_BUFFER_SIZE);
 
@@ -1339,7 +1321,7 @@ void _CWCloseThread(int i) {
 	
 	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	//gWTPs[i].qosValues=NULL;
-	//memset(gWTPs[i].MAC, 0, MAC_ADDR_LEN);
+	memset(gWTPs[i].MAC, 0, MAC_ADDR_LEN);
 	//gWTPs[i].isConnect = CW_FALSE;
 
 	/**** ACInterface ****/
@@ -1376,12 +1358,29 @@ void _CWCloseThread(int i) {
 	//gWTPs[i].isConnect = CW_FALSE;
 	//gWTPs[i].interfaceCommand = NO_CMD;
 
-	//CW_FREE_OBJECT(gWTPs[i].buf);
-	//if(gWTPs[i].fragmentsList != NULL)
-	//{
-	//	CWDeleteList(&(gWTPs[i].fragmentsList), CWProtocolDestroyFragment);
-	//	gWTPs[i].fragmentsList = NULL;
-	//}
+	CW_FREE_OBJECT(gWTPs[i].buf);
+
+	CW_FREE_OBJECT(gWTPs[i].qosValues);
+	CW_FREE_OBJECT(gWTPs[i].ofdmValues);
+	
+	//add free
+	if(gWTPs[i].vendorValues != NULL)
+	{
+		CW_FREE_OBJECT(gWTPs[i].vendorValues->payload);
+		CW_FREE_OBJECT(gWTPs[i].vendorValues);
+	}
+	if(gWTPs[i].vendorPortalValues != NULL)
+	{
+		CW_FREE_OBJECT(gWTPs[i].vendorPortalValues->EncodeName);
+		CW_FREE_OBJECT(gWTPs[i].vendorPortalValues->EncodeContent);
+		CW_FREE_OBJECT(gWTPs[i].vendorPortalValues);
+	}
+	
+	if(gWTPs[i].fragmentsList != NULL)
+	{
+		CWDeleteList(&(gWTPs[i].fragmentsList), CWProtocolDestroyFragment);
+		gWTPs[i].fragmentsList = NULL;
+	}
 	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	/* CW_FREE_OBJECT(gWTPs[i].configureReqValuesPtr); */
 	//CWLog("F:%s,L:%d before gWTPs[%d].packetReceiveList->nCount = %d",__FILE__,__LINE__,i,gWTPs[i].packetReceiveList->nCount);
@@ -1390,20 +1389,14 @@ void _CWCloseThread(int i) {
 	//CWLog("F:%s,L:%d after gWTPs[%d].packetReceiveList->nCount = %d",__FILE__,__LINE__,i,gWTPs[i].packetReceiveList->nCount);
 	//CWDestroySafeList(gWTPs[i].packetReceiveList);
 	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
-	//CW_FREE_OBJECT(gWTPs[i].packetReceiveList);
-	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	
 	//CWResetWTPProtocolManager(&(gWTPs[i].WTPProtocolManager));
 	
 	//CWDestroyThreadMutex(&gWTPs[i].interfaceMutex);
 	//CWDestroyThreadCondition(&gWTPs[i].interfaceWait);
-	//gWTPs[i].iwvaule = 0;
-	//gWTPs[i].isNotFree = CW_FALSE;  /* chenchao test */
-	//gWTPs[i].isNotFree = CW_FALSE;
-	//gWTPs[i].isRequestClose = CW_FALSE;
 	//CWDestroyThreadCondition(&gWTPs[i].interfaceComplete);	
 	
-	CWLog("F:%s,L:%d ",__FILE__,__LINE__);
+	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 
 	CWThreadSetSignals(SIG_UNBLOCK, 2, 
 			   CW_SOFT_TIMER_EXPIRED_SIGNAL,
