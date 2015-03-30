@@ -18,6 +18,7 @@ typedef unsigned char u_char;
 //TYPE
 #define	BE_CAPWAP_HEADER     101
 #define	BE_CONNECT_EVENT		1
+#define	BE_CONNECT_EVENT_RSP		2
 #define	BE_MONITOR_EVENT_REQUSET 3
 #define	BE_MONITOR_EVENT_RESPONSE 4
 #define	BE_CONFIG_EVENT_REQUSET  5
@@ -66,10 +67,17 @@ typedef enum {
 //system code,1 BYTE
 typedef enum {
 	SYSTEM_RESET			= 1, //	¸´Î»
-	SYSTEM_REBOOT			= 2, // ÖØÆô
+	SYSTEM_REBOOT			= 2 // ÖØÆô
 
 } SystemCode;
 
+//regisit mac
+typedef enum {
+	active			= 0, // ×¢²á
+	disactive			= 1 // Î´×¢²á
+} ActiveCode;
+
+#define BE_ACTCODE_LEN       1
 //without type, length
 #define BE_TYPE_LEN        2
 #define BE_LENGTH_LEN    4

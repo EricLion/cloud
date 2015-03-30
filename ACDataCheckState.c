@@ -42,13 +42,6 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	
 	CWLog("\n");
 	CWDebugLog("######### Status Event #########");	
-
-	/* Destroy ChangeStatePending timer */
-	if(!CWErr(CWTimerCancel(&(gWTPs[WTPIndex].currentTimer)))) {
-
-		CWCloseThread();
-	}
-
 	
 	CW_CREATE_OBJECT_ERR(changeStateEvent, 
 			     CWProtocolChangeStateEventRequestValues,
@@ -78,14 +71,21 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 
 		return CW_FALSE;
 	}
+	/* Destroy ChangeStatePending timer */
+	if(!CWErr(CWTimerCancel(&(gWTPs[WTPIndex].currentTimer)))) {
+		CWLog("%s %d [%d] CWTimerCancel Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+		return CW_FALSE;
+	}
 	
 	/* Start NeighbourDeadInterval timer */
 	if(!CWErr(CWTimerRequest(gCWNeighborDeadInterval, 
 				 &(gWTPs[WTPIndex].thread),
 				 &(gWTPs[WTPIndex].currentTimer),
 				 CW_CRITICAL_TIMER_EXPIRED_SIGNAL))) {
-
-		CWCloseThread();
+		CWLog("%s %d [%d] CWTimerRequest Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+		return CW_FALSE;
 	}
 
 	CWLog("Change State Event Response Sent");
@@ -113,15 +113,11 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	//gWTPs[WTPIndex].currentState = CW_ENTER_RUN;
 	//gWTPs[WTPIndex].subState = CW_WAITING_REQUEST;
 	
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-		CWLog("Error locking the gWTPsMutex mutex");
-		return CW_FALSE;
-	}
+	
 	
 	gWTPs[WTPIndex].currentState = CW_ENTER_RUN;
 	gWTPs[WTPIndex].subState = CW_WAITING_REQUEST;
 
-	CWThreadMutexUnlock(&gWTPsMutex);
 
 	if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex)))
 	{
@@ -141,7 +137,8 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	}
 
 	//fix mutex bug
-	CW_CREATE_OBJECT_ERR(gWTPs[WTPIndex].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); CWThreadMutexUnlock(&gWTPsMutex); return 0;})
+	CW_CREATE_OBJECT_ERR(gWTPs[WTPIndex].vendorValues, CWProtocolVendorSpecificValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); CWThreadMutexUnlock(&gWTPsMutex); return 0;});
+	gWTPs[WTPIndex].vendorValues->payload = NULL;
 	gWTPs[WTPIndex].vendorValues->vendorPayloadLen = 0;
 	gWTPs[WTPIndex].vendorValues->vendorPayloadType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE;
 	
@@ -149,10 +146,15 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	CWThreadMutexUnlock(&gWTPsMutex);
 	
 #if 0
-	//BE: ap connect	
+	//BE: ap connect	for ap mac 
+	//max socket num 1024
+	BEconnectEvent beConEve;
+	int BESize;
+	char *beResp = NULL;
 	beConEve.type = htons(BE_CONNECT_EVENT);
 	beConEve.length = Swap32(BE_CONNECT_EVENT_LEN);
 	beConEve.state = BE_CONNECT_EVENT_CONNECT;
+	beConEve.xml = NULL;
 	BESize = BE_CONNECT_EVENT_LEN + BE_TYPELEN_LEN;
 	///*
 	beResp = AssembleBEheader((char*)&beConEve,&BESize,WTPIndex,NULL);
@@ -170,15 +172,7 @@ CWBool ACEnterDataCheck(int WTPIndex, CWProtocolMessage *msgPtr) {
 	//*/
 #endif
 
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex)))
-	{
-		CWLog("ACEnterDataCheck CWThreadMutexLock fail,exit !");
-		return CW_FALSE;
-	}
-
-	//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
 	gWTPs[WTPIndex].interfaceResult = UPGRADE_SUCCESS;
-	CWThreadMutexUnlock(&gWTPsMutex);
 
 	return CW_TRUE;
 }

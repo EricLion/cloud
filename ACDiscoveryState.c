@@ -123,8 +123,10 @@ CWBool CWParseDiscoveryRequestMessage(char *msg,
 		return CW_FALSE;
 	
 	/* different type */
-	if(controlVal.messageTypeValue != CW_MSG_TYPE_VALUE_DISCOVERY_REQUEST)
+	if(controlVal.messageTypeValue != CW_MSG_TYPE_VALUE_DISCOVERY_REQUEST){
+		CWLog("messageTypeValue=%d", controlVal.messageTypeValue);
 		return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Message is not Discovery Request as Expected");
+	}
 	
 	*seqNumPtr = controlVal.seqNum;
 	
@@ -136,7 +138,7 @@ CWBool CWParseDiscoveryRequestMessage(char *msg,
 	
 	/* parse message elements */
 	while((completeMsg.offset-offsetTillMessages) < controlVal.msgElemsLen) {
-		CWLog("CWParseDiscoveryRequestMessage while begin ...");
+		//CWLog("CWParseDiscoveryRequestMessage while begin ...");
 	
 		unsigned short int elemType = 0;/* = CWProtocolRetrieve32(&completeMsg); */
 		unsigned short int elemLen = 0;	/* = CWProtocolRetrieve16(&completeMsg); */
@@ -212,6 +214,129 @@ CWBool CWParseDiscoveryRequestMessage(char *msg,
 */
 	return CW_TRUE;
 }
+
+//Main thread
+CWBool CWParseJoinReqMsgNotValue(char *msg, 
+				      int len) {
+
+	CWControlHeaderValues controlVal;
+	CWProtocolTransportHeaderValues transportVal;
+	
+	//int offsetTillMessages;
+		
+	CWProtocolMessage completeMsg;
+	
+	if(msg == NULL) 
+		return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
+	
+	CWDebugLog("Parse Discovery Request");
+	
+	completeMsg.msg = msg;
+	completeMsg.offset = 0;
+	
+	CWBool dataFlag = CW_FALSE;
+	if(!(CWParseTransportHeader(&completeMsg, &transportVal, &dataFlag))) 
+		/* will be handled by the caller */
+		return CW_FALSE;
+	if(!(CWParseControlHeader(&completeMsg, &controlVal))) 
+		/* will be handled by the caller */
+		return CW_FALSE;
+	
+	/* different type */
+	if(controlVal.messageTypeValue != CW_MSG_TYPE_VALUE_JOIN_REQUEST){
+		CWLog("messageTypeValue=%d", controlVal.messageTypeValue);
+		return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Message is not Join Request as Expected");
+	}
+
+#if 0
+	*seqNumPtr = controlVal.seqNum;
+	
+	/* skip timestamp */
+	controlVal.msgElemsLen -= CW_CONTROL_HEADER_OFFSET_FOR_MSG_ELEMS;
+	offsetTillMessages = completeMsg.offset;
+	
+	/* (*valuesPtr).radios.radiosCount = 0; */
+	
+	/* parse message elements */
+	while((completeMsg.offset-offsetTillMessages) < controlVal.msgElemsLen) {
+		//CWLog("CWParseDiscoveryRequestMessage while begin ...");
+	
+		unsigned short int elemType = 0;/* = CWProtocolRetrieve32(&completeMsg); */
+		unsigned short int elemLen = 0;	/* = CWProtocolRetrieve16(&completeMsg); */
+		
+		CWParseFormatMsgElem(&completeMsg,&elemType,&elemLen);		
+
+		/* CWDebugLog("Parsing Message Element: %u, elemLen: %u", elemType, elemLen); */
+									
+		switch(elemType) {
+			case CW_MSG_ELEMENT_DISCOVERY_TYPE_CW_TYPE:
+				if(!(CWParseDiscoveryType(&completeMsg, elemLen, valuesPtr))) 
+					/* will be handled by the caller */
+					return CW_FALSE;
+				break;
+			case CW_MSG_ELEMENT_WTP_BOARD_DATA_CW_TYPE:
+				if(!(CWParseWTPBoardData(&completeMsg, elemLen, &(valuesPtr->WTPBoardData)))) 
+					/* will be handled by the caller */
+					return CW_FALSE;
+				break; 
+			case CW_MSG_ELEMENT_WTP_DESCRIPTOR_CW_TYPE:
+				if(!(CWParseWTPDescriptor(&completeMsg, elemLen, &(valuesPtr->WTPDescriptor))))
+					/* will be handled by the caller */
+					return CW_FALSE;
+				break;
+			case CW_MSG_ELEMENT_WTP_FRAME_TUNNEL_MODE_CW_TYPE:
+				if(!(CWParseWTPFrameTunnelMode(&completeMsg, elemLen, &(valuesPtr->frameTunnelMode)))) 
+					/* will be handled by the caller */
+					return CW_FALSE;
+				break;
+			case CW_MSG_ELEMENT_WTP_MAC_TYPE_CW_TYPE:
+				if(!(CWParseWTPMACType(&completeMsg, elemLen, &(valuesPtr->MACType))))
+					/* will be handled by the caller */
+					return CW_FALSE;
+				break;
+			/*case CW_MSG_ELEMENT_WTP_RADIO_INFO_CW_TYPE:
+				// just count how many radios we have, so we can allocate the array
+			  	(*valuesPtr).radios.radiosCount++;
+				completeMsg.offset += elemLen;
+				break;
+			*/
+			default:
+				return CWErrorRaise(CW_ERROR_INVALID_FORMAT,
+					"Unrecognized Message Element");
+		}
+		
+		/*CWDebugLog("bytes: %d/%d", (completeMsg.offset-offsetTillMessages), controlVal.msgElemsLen);*/
+	}
+	
+	if(completeMsg.offset != len) return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Garbage at the End of the Message");
+/*
+	// actually read each radio info
+	CW_CREATE_ARRAY_ERR((*valuesPtr).radios.radios, (*valuesPtr).radios.radiosCount, CWRadioInformationValues, 
+		return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+	i = 0;
+	
+	completeMsg.offset = offsetTillMessages;
+	while(i < (*valuesPtr).radios.radiosCount && (completeMsg.offset-offsetTillMessages) < controlVal.msgElemsLen) {
+		unsigned short int type=0;// = CWProtocolRetrieve32(&completeMsg);
+		unsigned short int len=0;// = CWProtocolRetrieve16(&completeMsg);
+		
+		CWParseFormatMsgElem(&completeMsg,&type,&len);		
+
+		switch(type) {
+			case CW_MSG_ELEMENT_WTP_RADIO_INFO_CW_TYPE:
+				if(!(CWParseWTPRadioInfo(&completeMsg, len, &(valuesPtr->radios), i))) return CW_FALSE; // will be handled by the caller
+				i++;
+				break;
+			default:
+				completeMsg.offset += len;
+				break;
+		}
+	}
+*/
+#endif
+	return CW_TRUE;
+}
+
 
 void CWDestroyDiscoveryRequestValues(CWDiscoveryRequestValues *valPtr) {
 

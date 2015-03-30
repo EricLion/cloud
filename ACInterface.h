@@ -50,4 +50,7 @@
 #define SYSTEM_REBOOT_MSG_CMD	8
 #define PORTAL_MSG_CMD	9
 
+#define ACTIVE_MSG_CMD 10
+#define UNACTIVE_MSG_CMD 11
+
 #endif

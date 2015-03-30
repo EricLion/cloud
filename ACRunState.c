@@ -116,8 +116,8 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 	msgPtr->offset = 0;
 	
 	// cancel NeighborDeadTimer timer
-	CWStopNeighborDeadTimer(WTPIndex);
-	timerSet = CW_FALSE;
+	//CWStopNeighborDeadTimer(WTPIndex);
+	timerSet = CW_TRUE;
 
 	if(dataFlag){
 		/* We have received a Data Message... now just log this event and do actions by the dataType */
@@ -297,29 +297,29 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			
 			if (timerSet) {
 				if(!CWRestartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 
 			CWSaveConfigurationUpdateResponseMessage(resultCode, WTPIndex, protocolValues);
 			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE) {
 
-				if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
-				{
-					CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex !",__FILE__,__LINE__);
-					return CW_FALSE;
-				}
 				//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
-				if(gWTPs[WTPIndex].interfaceResult != UPGRADE_FAILED)
+				if(gWTPs[WTPIndex].interfaceResult != UPGRADE_FAILED && gWTPs[WTPIndex].interfaceResult != CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE)
 				{
-					gWTPs[WTPIndex].interfaceResult = 1;
+					gWTPs[WTPIndex].interfaceResult = CW_TRUE;
 				}
 				gWTPs[WTPIndex].interfaceCommandProgress = CW_FALSE;
-				CWThreadMutexUnlock(&gWTPsMutex);
 				
 				CWLog("[F:%s L:%d] gWTPs[WTPIndex].interfaceResult =%d",__FILE__,__LINE__,gWTPs[WTPIndex].interfaceResult);
 				if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex)))
@@ -343,11 +343,17 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 				return CW_FALSE;
 			if (timerSet) {
 				if(!CWRestartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 			if(!(CWSaveChangeStateEventRequestMessage(valuesPtr, &(gWTPs[WTPIndex].WTPProtocolManager))))
@@ -367,11 +373,17 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 				return CW_FALSE;
 			if (timerSet) {
 				if(!CWRestartNeighborDeadTimerForEcho(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimerForEcho(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 			
@@ -392,11 +404,17 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			CWACStopRetransmission(WTPIndex);
 			if (timerSet) {
 				if(!CWRestartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 			//CWSaveStationConfigurationResponseMessage(resultCode, WTPIndex);  <-- Must be Implemented ????
@@ -412,11 +430,17 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			CWACStopRetransmission(WTPIndex);
 			if (timerSet) {
 				if(!CWRestartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 			
@@ -446,15 +470,9 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE)
 			{
 				//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
-				if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
-				{
-					CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex !",__FILE__,__LINE__);
-					return CW_FALSE;
-				}
 				
-				gWTPs[WTPIndex].interfaceResult = 1;
+				gWTPs[WTPIndex].interfaceResult = CW_TRUE;
 				gWTPs[WTPIndex].interfaceCommandProgress = CW_FALSE;
-				CWThreadMutexUnlock(&gWTPsMutex);
 				
 				if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) 
 				{
@@ -478,11 +496,17 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			CWACStopRetransmission(WTPIndex);
 			if (timerSet) {
 				if(!CWRestartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 
@@ -511,14 +535,9 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			if (gWTPs[WTPIndex].interfaceCommandProgress == CW_TRUE)
 			{
 				//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
-				if(!CWErr(CWThreadMutexLock(&gWTPsMutex)) )
-				{
-					CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex !",__FILE__,__LINE__);
-					return CW_FALSE;
-				}
-				gWTPs[WTPIndex].interfaceResult = 1;
+
+				gWTPs[WTPIndex].interfaceResult = CW_TRUE;
 				gWTPs[WTPIndex].interfaceCommandProgress = CW_FALSE;
-				CWThreadMutexUnlock(&gWTPsMutex);
 				
 				if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) 
 				{
@@ -542,11 +561,17 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 				return CW_FALSE;
 			if (timerSet) {
 				if(!CWRestartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 			if(!(CWAssembleWTPDataTransferResponse(&messages, &messagesCount, gWTPs[WTPIndex].pathMTU, controlVal.seqNum))) 
@@ -562,11 +587,17 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 				return CW_FALSE;
 			if (timerSet) {
 				if(!CWRestartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 
@@ -611,11 +642,17 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			CWLog("--> Not valid Request in Run State... we send a failure Response");
 			if (timerSet) {
 				if(!CWRestartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			} else {
 				if(!CWStartNeighborDeadTimer(WTPIndex)) {
-					CWCloseThread();
+					//CWCloseThread();
+					CWLog("%s %d [%d] CWRestartNeighborDeadTimer Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+					gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+					return CW_FALSE;
 				}
 			}
 			if(!(CWAssembleUnrecognizedMessageResponse(&messages,
@@ -652,17 +689,12 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 		CWFreeMessageFragments(messages, messagesCount);
 		CW_FREE_OBJECT(messages);
 	}
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
-	{
-		CWLog("Error locking the gWTPsMutex mutex");
-		return CW_FALSE;
-	}
+
 	gWTPs[WTPIndex].currentState = CW_ENTER_RUN;
 	gWTPs[WTPIndex].subState = CW_WAITING_REQUEST;
 
-	CWThreadMutexUnlock(&gWTPsMutex);
-
 	return CW_TRUE;
+
 }
 
 CWBool CWACParseGenericRunMessage(int WTPIndex,
@@ -982,12 +1014,8 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 					CWLog("Recive CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE ");
 
 					//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
-					if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex !",__FILE__,__LINE__);
-						return CW_FALSE;
-					}
+
 					gWTPs[WTPIndex].interfaceResult = CW_FAILURE_WTP_UPGRADING_REJECT_NWEUPGRADE;
-					CWThreadMutexUnlock(&gWTPsMutex);
 
 					BEupgradeEventResponse beUpgradeEventResp;
 					beUpgradeEventResp.type = htons(BE_UPGRADE_EVENT_RESPONSE) ;
@@ -1010,12 +1038,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 				
 				if( resultCode != CW_PROTOCOL_SUCCESS)
 				{
-					if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex !",__FILE__,__LINE__);
-						return CW_FALSE;
-					}
 					gWTPs[WTPIndex].interfaceResult = UPGRADE_FAILED;
-					CWThreadMutexUnlock(&gWTPsMutex);
 					CWLog("Recive WTP_UPDATE_RESPONSE resultCode = %d,fail !",resultCode);
 				}
 	
@@ -1026,13 +1049,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 				CWLog("Recive WTP_CUP_ACK ");
 				if( resultCode != CW_PROTOCOL_SUCCESS)
 				{
-					//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
-					if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex!",__FILE__,__LINE__);
-						return CW_FALSE;
-					}
 					gWTPs[WTPIndex].interfaceResult = UPGRADE_FAILED;
-					CWThreadMutexUnlock(&gWTPsMutex);
 					CWLog("Recive WTP_CUP_ACK resultCode = %d,fail !",resultCode);
 				}
 				//CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
@@ -1057,20 +1074,13 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 				
 				if(resultCode != CW_PROTOCOL_SUCCESS)
 				{
-					if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-						CWLog("F:%s L:%d [ACrunState]:Error locking gWTPsMutex!",__FILE__,__LINE__);
-						return CW_FALSE;
-					}
 					gWTPs[WTPIndex].interfaceResult = UPGRADE_FAILED;
-					CWThreadMutexUnlock(&gWTPsMutex);
 					CWLog("Recive WTP_COMMIT_ACK resultCode = %d,fail !",resultCode);
 					//CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceComplete);
 				}
 				else
 				{
-					CWThreadMutexLock(&gWTPsMutex);
 					gWTPs[WTPIndex].interfaceResult = UPGRADE_SUCCESS;
-					CWThreadMutexUnlock(&gWTPsMutex);
 				}
 			}
 			break;
@@ -1188,12 +1198,7 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 			   	{
 					SendBERequest(beResp,BESize);
 					CWLog("SendBERequest BE_CONNECT_EVENT");
-					if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-							CWLog("Error locking the gWTPsMutex mutex");
-							return CW_FALSE;
-						}
 					gWTPs[WTPIndex].isConnect = CW_FALSE;
-					CWThreadMutexUnlock(&gWTPsMutex);
 				}
 				else
 				{
@@ -1283,14 +1288,16 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 		}
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
 		CWThreadMutexUnlock(&gWTPsMutex);
-
+#if 0
 		if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) 
 		{
 			CWLog("F:%s L:%d [ACrunState]:Error locking gWTPs[WTPIndex].interfaceMutex !",__FILE__,__LINE__);
 			return CW_FALSE;
 		}
 		CWSignalThreadCondition(&gWTPs[WTPIndex].interfaceWait);
+		//gWTPs[WTPIndex].iwvaule = 1;
 		CWThreadMutexUnlock(&gWTPs[WTPIndex].interfaceMutex);
+#endif
 		
 	}
 
@@ -1913,6 +1920,22 @@ CWBool CWAssembleConfigurationUpdateRequest(CWProtocolMessage **messagesPtr,
 	 {
                 CWLog("Assembling PORTAL Conf Update Request");
                 if(!CWProtocolAssembleConfigurationUpdateRequest(&msgElems, &msgElemCount, CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_PORTAL)) {
+                  return CW_FALSE;
+                }
+                break;
+         }
+	case CONFIG_UPDATE_REQ_VENDOR_ACTIVE_ELEMENT_TYPE:
+	 {
+                CWLog("Assembling ACTIVE Conf Update Request");
+                if(!CWProtocolAssembleConfigurationUpdateRequest(&msgElems, &msgElemCount, CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_ACTIVE)) {
+                  return CW_FALSE;
+                }
+                break;
+         }
+	case CONFIG_UPDATE_REQ_VENDOR_UNACTIVE_ELEMENT_TYPE:
+	 {
+                CWLog("Assembling UNACTIVE Conf Update Request");
+                if(!CWProtocolAssembleConfigurationUpdateRequest(&msgElems, &msgElemCount, CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_UNACTIVE)) {
                   return CW_FALSE;
                 }
                 break;

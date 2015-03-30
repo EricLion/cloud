@@ -13,6 +13,7 @@
 #define BE_SOCKET_ENABLE 1
 #define BE_SOCKET_DISABLE 0
 #define BE_SOCKET_INDEX 0
+#define BE_SOCKET_PORT_MIN 10000
 
 #define SA const struct sockaddr
 //#define BE_SERVER_ADDRESS "10.131.160.37"
@@ -26,6 +27,7 @@ char BESetWumValues(u_char* apMac, int socketIndex, CWProtocolVendorSpecificValu
 char BESetApValues(u_char* apMac, int socketIndex, CWVendorXMLValues* Values);
 char BESetSysValues(u_char* apMac, int socketIndex, SystemCode sysCode);
 char BESetPortalValues(u_char* apMac, int socketIndex, CWVendorPortalValues* portalValues);
+char BESetActValues(u_char* apMac, int socketIndex, ActiveCode actCode);
 
 char* AssembleBEheader(char* buf,int *len,int apId,char *xml);
 void SendBEResponseDirectly(int type,u_char *apMac,int socketIndex,CWResultCode resultCode);
@@ -36,6 +38,7 @@ void SendBERequest(char* buf,int len);
 int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues) ;
 int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* portalValues);
 int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode );
+int CWActSetValues(int selection, int socketIndex,ActiveCode actCode ) ;
 
 #define Swap16(s) ((((s) & 0xff) << 8) | (((s) >> 8) & 0xff))
 #define Swap32(l) (((l) >> 24) |  (((l)&0x00ff0000) >> 8)  |  (((l) & 0x0000ff00) << 8)  | ((l) << 24))

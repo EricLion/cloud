@@ -48,7 +48,7 @@
 //�ݲ�����
 #define CW_NO_DTLS
 
-#define CW_MAX_WTP				2000
+#define CW_MAX_WTP				3000
 #define CW_CRITICAL_TIMER_EXPIRED_SIGNAL	SIGUSR2
 #define CW_SOFT_TIMER_EXPIRED_SIGNAL		SIGUSR1
 #define AC_LOG_FILE_NAME				"./ac.log"
@@ -74,6 +74,8 @@
 #define CONFIG_UPDATE_REQ_VENDOR_CONFIG_ELEMENT_TYPE 10
 #define CONFIG_UPDATE_REQ_VENDOR_STATE_ELEMENT_TYPE 11
 #define CONFIG_UPDATE_REQ_VENDOR_PORTAL_ELEMENT_TYPE 12
+#define CONFIG_UPDATE_REQ_VENDOR_ACTIVE_ELEMENT_TYPE  21
+#define CONFIG_UPDATE_REQ_VENDOR_UNACTIVE_ELEMENT_TYPE 22
 
 /********************************************************
  * 2009 Updates:                                        *
@@ -116,7 +118,8 @@ typedef struct {
 	CWNetworkLev4Address address;
 	CWThread thread;
 	CWSecuritySession session;
-	CWBool isNotFree;
+	//CWBool isNotFree;
+	CWWTPState wtpState;
 	CWBool isRequestClose;
 	CWStateTransition currentState;
 	int interfaceIndex;
@@ -141,9 +144,11 @@ typedef struct {
 	int interfaceResult;
 	CWBool interfaceCommandProgress;
 	int interfaceCommand;
-	CWThreadMutex interfaceSingleton;
+	//CWThreadMutex interfaceSingleton;
+	CWThreadMutex wtpMutex;
+	CWThreadCondition wtpWait;
 	CWThreadMutex interfaceMutex;
-	CWThreadCondition interfaceWait;
+	//CWThreadCondition interfaceWait;
 	CWThreadCondition interfaceComplete;
 	WTPQosValues* qosValues;
 	/********************************************************
@@ -281,6 +286,8 @@ CWBool CWParseDiscoveryRequestMessage(char *msg,
 				      int len,
 				      int *seqNumPtr,
 				      CWDiscoveryRequestValues *valuesPtr);
+CWBool CWParseJoinReqMsgNotValue(char *msg, 
+				      int len);
 
 /* in ACRetransmission.c */
 CWBool CWACSendFragments(int WTPIndex);

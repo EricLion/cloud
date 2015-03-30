@@ -73,6 +73,12 @@ typedef enum {
 } CWBool;
 
 typedef enum {
+	CW_IDLE  = 0,
+	CW_RUN   = 1,
+	CW_CLOSING = 2
+} CWWTPState;
+
+typedef enum {
 	CW_ENTER_SULKING,
 	CW_ENTER_DISCOVERY,
 	CW_ENTER_JOIN,
@@ -91,16 +97,16 @@ extern int gCWMaxRetransmit;
 extern int gMaxLogFileSize;
 extern int gEnabledLog;
 
-#define	CW_FREE_OBJECT(obj_name)		{if(obj_name){free((obj_name)); (obj_name) = NULL;}}
+#define	CW_FREE_OBJECT(obj_name)		{if((obj_name) != NULL){free((obj_name)); (obj_name) = NULL;}}
 #define	CW_FREE_OBJECTS_ARRAY(ar_name, ar_size)	{int _i = 0; for(_i = ((ar_size)-1); _i >= 0; _i--) {if(((ar_name)[_i]) != NULL){ free((ar_name)[_i]);}} free(ar_name); (ar_name) = NULL; }
 #define	CW_PRINT_STRING_ARRAY(ar_name, ar_size)	{int i = 0; for(i = 0; i < (ar_size); i++) printf("[%d]: **%s**\n", i, ar_name[i]);}
 
 // custom error
-#define	CW_CREATE_OBJECT_ERR(obj_name, obj_type, on_err)	{obj_name = (obj_type*) (malloc(sizeof(obj_type))); if(!(obj_name)) {on_err}}
-#define	CW_CREATE_OBJECT_SIZE_ERR(obj_name, obj_size,on_err)	{obj_name = (malloc(obj_size)); if(!(obj_name)) {on_err}}
-#define	CW_CREATE_ARRAY_ERR(ar_name, ar_size, ar_type, on_err)	{ar_name = (ar_type*) (malloc(sizeof(ar_type) * (ar_size))); if(!(ar_name)) {on_err}}
-#define	CW_CREATE_STRING_ERR(str_name, str_length, on_err)	{str_name = (char*) (malloc(sizeof(char) * ((str_length)) ) ); if(!(str_name)) {on_err}}
-#define	CW_CREATE_STRING_FROM_STRING_ERR(str_name, str, on_err)	{CW_CREATE_STRING_ERR(str_name, strlen(str), on_err); strcpy((str_name), str);}
+#define	CW_CREATE_OBJECT_ERR(obj_name, obj_type, on_err)	{(obj_name) = (obj_type*) (malloc(sizeof(obj_type))); if(!(obj_name)) {on_err}}
+#define	CW_CREATE_OBJECT_SIZE_ERR(obj_name, obj_size,on_err)	{(obj_name) = (malloc(obj_size)); if(!(obj_name)) {on_err}}
+#define	CW_CREATE_ARRAY_ERR(ar_name, ar_size, ar_type, on_err)	{(ar_name) = (ar_type*) (malloc(sizeof(ar_type) * (ar_size))); if(!(ar_name)) {on_err}}
+#define	CW_CREATE_STRING_ERR(str_name, str_length, on_err)	{(str_name) = (char*) (malloc(sizeof(char) * ((str_length)) ) ); if(!(str_name)) {on_err}}
+#define	CW_CREATE_STRING_FROM_STRING_ERR(str_name, str, on_err)	{CW_CREATE_STRING_ERR((str_name), strlen(str), on_err); strcpy((str_name), str);}
 
 #ifdef CW_DEBUGGING
 

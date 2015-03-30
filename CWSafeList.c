@@ -31,14 +31,19 @@
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
 
-CWBool CWCreateSafeList(CWSafeList* pSafeList)
+CWSafeList CWCreateSafeList()
 {
-	CWPrivateSafeList* pNewList = NULL;
-
+	//CWPrivateSafeList* pNewList = NULL;
+	CWSafeList pNewList = NULL;
+#if 0
 	if (pSafeList == NULL)
+	{
+		CWLog("CWCreateSafeList pSafeList == NULL, Fail!");
 		return CW_FALSE;
+	}
+#endif
 
-	CW_CREATE_OBJECT_ERR(pNewList, CWPrivateSafeList, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "Can't CWCreateSafeList");return CW_FALSE;});
+	CW_CREATE_OBJECT_ERR(pNewList, CWPrivateSafeList, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "Can't CWCreateSafeList");return NULL;});
 
 	//
 	pNewList->pThreadMutex = NULL;
@@ -50,19 +55,21 @@ CWBool CWCreateSafeList(CWSafeList* pSafeList)
 	pNewList->pLastElement = NULL;
 	
 	//
-	(*pSafeList) = (CWSafeList)pNewList;
-	return CW_TRUE;
+	//(*pSafeList) = (CWSafeList)pNewList;
+	return pNewList;
 }
 
 void CWDestroySafeList(CWSafeList safeList)
 {
+
 	CWPrivateSafeList* pList = NULL;
 	pList = (CWPrivateSafeList*)safeList;
 
 	if (pList == NULL)
 		return;
-
-	CW_FREE_OBJECT(pList);
+//coredump
+	//CW_FREE_OBJECT(pList);
+	CW_FREE_OBJECT(safeList);
 }
 
 void CWSetMutexSafeList(CWSafeList safeList, CWThreadMutex* pThreadMutex)
@@ -206,7 +213,10 @@ void* CWRemoveHeadElementFromSafeList(CWSafeList safeList, int* pSize)
 	void* pData = NULL;
 
 	if ((pList == NULL) || (pList->pFirstElement == NULL))
+	{
+		pList->nCount = 0;
 		return NULL;
+	}
 
 	pElement = pList->pFirstElement;
 	pList->pFirstElement = pList->pFirstElement->pNext;
@@ -246,18 +256,18 @@ CWBool CWAddElementToSafeListTail(CWSafeList safeList, void* pData, int nSize)
 	pNewElement->nSize = nSize;
 	pNewElement->pNext = NULL;
 	pNewElement->pPrev = pList->pLastElement;
-	if (pList->pLastElement != NULL)
-	{
-		pList->pLastElement->pNext = pNewElement;
-	}
-	else
-	{
-		pList->pLastElement = pNewElement;
-	}
+
 	if (pList->pFirstElement == NULL)
 	{
 		pList->pFirstElement = pNewElement;
 	}
+	
+	 if (pList->pLastElement != NULL)
+	{
+		pList->pLastElement->pNext = pNewElement;
+	}
+
+	pList->pLastElement = pNewElement;
 
 	pList->nCount++;
 	//core
@@ -299,14 +309,21 @@ void* CWRemoveTailElementFromSafeList(CWSafeList safeList, int* pSize)
 void CWCleanSafeList(CWSafeList safeList, void (*deleteFunc)(void *))
 {
 	void* pData = NULL;
-
+	if(safeList == NULL)
+		return;
+	CWLog("CWCleanSafeList begin ...");
 	CW_REPEAT_FOREVER
 	{
 		pData = CWRemoveHeadElementFromSafeList(safeList, NULL);
-		if (pData == NULL)
+		if (pData == NULL && safeList->nCount == 0)
 			break;
 
 		if (deleteFunc != NULL)
+		{
+		CWLog("CWCleanSafeList deleteFunc ");
 			deleteFunc(pData);
+			pData = NULL;
+		}
 	}
+	CWLog("CWCleanSafeList end ...");
 }

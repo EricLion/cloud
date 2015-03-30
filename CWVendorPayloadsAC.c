@@ -39,6 +39,35 @@
 #endif
 
 
+
+CWBool CWAssembleWTPVendorPayloadACT(CWProtocolMessage *msgPtr,char type) {
+	unsigned short  msgType;
+
+	CWLog("Assembling Protocol Configuration Update Request [VENDOR CASE]...");
+
+	switch (type){
+			case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_ACTIVE:
+				msgType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_ACTIVE;
+				CW_CREATE_PROTOCOL_MESSAGE(*msgPtr, sizeof(short), return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+				CWProtocolStore16(msgPtr, (unsigned short) msgType);
+			break;
+			case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_UNACTIVE:
+				msgType = CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_UNACTIVE;
+				CW_CREATE_PROTOCOL_MESSAGE(*msgPtr, sizeof(short), return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+				CWProtocolStore16(msgPtr, (unsigned short) msgType);
+			break;
+			default:
+				return CW_FALSE;
+			break;
+	}
+	CWLog("Assembling Protocol Configuration Update Request [VENDOR CASE]: Message Assembled.");
+	
+	return CWAssembleMsgElem(msgPtr, CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CW_TYPE);
+}
+
+
+
+
 CWBool CWAssembleWTPVendorPayloadUCI(CWProtocolMessage *msgPtr) {
 	int* iPtr;
 	unsigned short  msgType;
@@ -78,15 +107,17 @@ CWBool CWAssembleWTPVendorPayloadUCI(CWProtocolMessage *msgPtr) {
 			break;
 	}
 	CWLog("Assembling Protocol Configuration Update Request [VENDOR CASE]: Message Assembled.");
-
+	CW_FREE_OBJECT(gWTPs[*iPtr].vendorValues->payload);
+	CW_FREE_OBJECT(gWTPs[*iPtr].vendorValues);
+	
 	return CWAssembleMsgElem(msgPtr, CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CW_TYPE);
 }
 
 CWBool CWAssembleWTPVendorPayloadWUM(CWProtocolMessage *msgPtr) {
 	int* iPtr;
 	unsigned short  msgType;
-	CWProtocolVendorSpecificValues* valuesPtr;
-	CWVendorWumValues* wumPtr;
+	CWProtocolVendorSpecificValues* valuesPtr = NULL;
+	CWVendorWumValues* wumPtr = NULL;
 
 	CWLog("Assembling Protocol Configuration Update Request [VENDOR CASE]...");
 
@@ -143,7 +174,7 @@ CWBool CWAssembleWTPVendorPayloadWUM(CWProtocolMessage *msgPtr) {
 					//CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 					CWProtocolStoreRawBytes(msgPtr, wumPtr->_cup_, wumPtr->_cup_fragment_size_);
 					//CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
-					CW_FREE_OBJECT(wumPtr->_cup_);
+					//CW_FREE_OBJECT(wumPtr->_cup_);
 					//CWLog("[F:%s, L:%d]",__FILE__,__LINE__);
 				}
 			break;
@@ -152,6 +183,8 @@ CWBool CWAssembleWTPVendorPayloadWUM(CWProtocolMessage *msgPtr) {
 			break;
 	}
 	CWLog("Assembling Protocol Configuration Update Request [VENDOR CASE]: Message Assembled.");
+	CW_FREE_OBJECT(gWTPs[*iPtr].vendorValues->payload);
+	CW_FREE_OBJECT(gWTPs[*iPtr].vendorValues);
 
 	return CWAssembleMsgElem(msgPtr, CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CW_TYPE);
 }
@@ -162,12 +195,12 @@ CWBool CWAssembleWTPVendorPayloadWUM(CWProtocolMessage *msgPtr) {
 CWBool CWAssembleWTPVendorPayloadXML(CWProtocolMessage *msgPtr) {
 	int* iPtr;
 	unsigned short  msgType;
-	CWProtocolVendorSpecificValues* valuesPtr;
-	CWVendorXMLValues* xmlPtr;
+	CWProtocolVendorSpecificValues* valuesPtr = NULL;
+//	CWVendorXMLValues* xmlPtr = NULL;
 //	char *xmlTemp;
 	short xmlLen;
 
-	CW_CREATE_OBJECT_ERR(xmlPtr, CWVendorXMLValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+	//CW_CREATE_OBJECT_ERR(xmlPtr, CWVendorXMLValues, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 	CWLog("Assembling Protocol Configuration Update Request [VENDOR CASE]...");
 
 	if(msgPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
@@ -211,18 +244,16 @@ CWBool CWAssembleWTPVendorPayloadXML(CWProtocolMessage *msgPtr) {
 				xmlLen = valuesPtr->vendorPayloadLen;
 				if(xmlLen > 0)
 				{
-					CW_CREATE_STRING_ERR(xmlPtr->payload, valuesPtr->vendorPayloadLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
-					memset(xmlPtr->payload,0,valuesPtr->vendorPayloadLen+1);
-					memcpy(xmlPtr->payload, (CWVendorXMLValues *) valuesPtr->payload, valuesPtr->vendorPayloadLen);
+					//CW_CREATE_STRING_ERR(xmlPtr->payload, valuesPtr->vendorPayloadLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
+					//memset(xmlPtr->payload,0,valuesPtr->vendorPayloadLen+1);
+					//memcpy(xmlPtr->payload, (CWVendorXMLValues *) valuesPtr->payload, valuesPtr->vendorPayloadLen);
 					//CW_CREATE_PROTOCOL_MESSAGE(*msgPtr, sizeof(int)+sizeof(short)+sizeof(short)+xmlLen, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
 					CW_CREATE_PROTOCOL_MESSAGE(*msgPtr, sizeof(int)+sizeof(short)+xmlLen, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
 //					CWProtocolStore32(msgPtr, CW_MSG_ELEMENT_VENDOR_IDENTIFIER);
 					CWProtocolStore16(msgPtr, (unsigned short) msgType);
 //					CWProtocolStore16(msgPtr, (unsigned short) xmlLen);
 					CWProtocolStore32(msgPtr, (unsigned int) xmlLen);
-					CWProtocolStoreStr(msgPtr, xmlPtr->payload);
-					CW_FREE_OBJECT(gWTPs[*iPtr].vendorValues->payload);
-					CW_FREE_OBJECT(xmlPtr->payload);
+					CWProtocolStoreStr(msgPtr, (char *) valuesPtr->payload);
 				}
 				else 
 				{
@@ -245,10 +276,8 @@ CWBool CWAssembleWTPVendorPayloadXML(CWProtocolMessage *msgPtr) {
 	}
 	CWLog("Assembling Protocol Configuration Update Request [VENDOR CASE]: Message Assembled.");
 	//add free
-	
+	CW_FREE_OBJECT(gWTPs[*iPtr].vendorValues->payload);
 	CW_FREE_OBJECT(gWTPs[*iPtr].vendorValues);
-	
-	CW_FREE_OBJECT(xmlPtr);
 
 	return CWAssembleMsgElem(msgPtr, CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CW_TYPE);
 }

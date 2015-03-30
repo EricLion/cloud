@@ -98,6 +98,28 @@ CWBool CWProtocolAssembleConfigurationUpdateRequest(CWProtocolMessage **msgElems
 					return CW_FALSE; // error will be handled by the caller
 				}
 		break;
+		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_ACTIVE:
+
+				// Assemble Message Elements
+				if (!(CWAssembleWTPVendorPayloadACT(&(*msgElems[++k]),CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_ACTIVE)))
+				{
+					int i;
+					for(i = 0; i <= k; i++) {CW_FREE_PROTOCOL_MESSAGE(*msgElems[i]);}
+					CW_FREE_OBJECT(*msgElems);
+					return CW_FALSE; // error will be handled by the caller
+				}
+		break;
+		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_UNACTIVE:
+
+				// Assemble Message Elements
+				if (!(CWAssembleWTPVendorPayloadACT(&(*msgElems[++k]),CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_UNACTIVE)))
+				{
+					int i;
+					for(i = 0; i <= k; i++) {CW_FREE_PROTOCOL_MESSAGE(*msgElems[i]);}
+					CW_FREE_OBJECT(*msgElems);
+					return CW_FALSE; // error will be handled by the caller
+				}
+		break;
 		case CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_WUM:
 
                                 // Assemble Message Elements
@@ -120,6 +142,7 @@ CWBool CWProtocolAssembleConfigurationUpdateRequest(CWProtocolMessage **msgElems
 	return CW_TRUE;
 }
 
+//add ap mac is active
 CWBool CWAssembleMsgElemACDescriptor(CWProtocolMessage *msgPtr) {
 	CWACVendorInfos infos;
 	int i=0, size=0;
@@ -145,7 +168,9 @@ CWBool CWAssembleMsgElemACDescriptor(CWProtocolMessage *msgPtr) {
 	CWProtocolStore16(msgPtr, CWACGetMaxWTPs()); // Maximum number of WTPs supported	
 	CWProtocolStore8(msgPtr, CWACGetSecurity());
 	CWProtocolStore8(msgPtr, CWACGetRMACField());
-	CWProtocolStore8(msgPtr, 0);			//Reserved
+
+	CWProtocolStore8(msgPtr, 0);//Reserved
+
 	CWProtocolStore8(msgPtr, CWACGetDTLSPolicy()); 	// DTLS Policy
 	
 //	CWDebugLog("Vendor Count: %d", infos.vendorInfosCount);
@@ -341,8 +366,9 @@ CWBool CWAssembleMsgElemDecryptErrorReportPeriod (CWProtocolMessage *msgPtr)
 	if(msgPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
 	
 	if((iPtr = ((int*)CWThreadGetSpecific(&gIndexSpecific))) == NULL) {
-		CWLog("Critical Error... closing thread");
-		CWCloseThread();
+		CWLog("Critical Error... closing process !");
+		//CWCloseThread();
+		exit(0);
 	}
 	
 	radiosInfoPtr=gWTPs[*iPtr].WTPProtocolManager.radioAdminInfo.radios;

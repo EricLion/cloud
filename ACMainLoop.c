@@ -38,6 +38,9 @@
 /* index of the current thread in the global array */
 CWThreadSpecific gIndexSpecific;
 
+/*max WTP thread, not exit*/
+//unsigned int gWTPsThreadNum = 0;
+
 int gCWWaitJoin = CW_WAIT_JOIN_DEFAULT;
 
 CW_THREAD_RETURN_TYPE CWManageWTP(void *arg);
@@ -53,7 +56,7 @@ void CWACManageIncomingPacket(CWSocket sock,
 //void _CWCloseThread(int i);
 void CWResetWTPProtocolManager(CWWTPProtocolManager *WTPProtocolManager);
 __inline__ CWWTPManager *CWWTPByName(const char *addr);
-__inline__ CWWTPManager *CWWTPByAddress(CWNetworkLev4Address *addressPtr,
+__inline__ int CWWTPByAddress(CWNetworkLev4Address *addressPtr,
 					CWSocket sock);
 
 
@@ -112,14 +115,15 @@ void CWACEnterMainLoop() {
 				CWLog("Error CWNetworkUnsafeMultiHomed !!!");
 				exit(1);
 			}
-
+		
+		//CWLog("main thread echo ...");
 	}
 	CWLog("CWACEnterMainLoop Finish !!!");
 }
 
 /* argument passed to the thread func */
 typedef struct {
-	int index;
+	unsigned int index;
 	CWSocket sock;
 	int interfaceIndex;
 } CWACThreadArg;
@@ -139,13 +143,16 @@ typedef struct {
  *	   			    packet was sent to a broadcast/multicast address,
  *	   			    incomingInterfaceIndex is -1.
  */
+ //main thread  must signal child thread when live and wait,
+ //if child do something,unknown will happen
 void CWACManageIncomingPacket(CWSocket sock,
 			      char *buf,
 			      int readBytes,
 			      int incomingInterfaceIndex,
 			      CWNetworkLev4Address *addrPtr) {
 
-	CWWTPManager *wtpPtr = NULL;
+	//CWWTPManager *wtpPtr = NULL;
+	int index = -1;
 	char* pData = NULL;
 
 	if(buf == NULL || addrPtr == NULL )
@@ -154,44 +161,96 @@ void CWACManageIncomingPacket(CWSocket sock,
 		return;
 	}
 	/* check if sender address is known */
-	wtpPtr = CWWTPByAddress(addrPtr, sock);
+	index = CWWTPByAddress(addrPtr, sock);
 	
-	if(wtpPtr != NULL) {
+	if(index >= 0 ) {
 		/* known WTP */
 		/* Clone data packet */
-		CWLog("F:%s,L:%d  coming known WTP",__FILE__,__LINE__);
+		CWLog("F:%s,L:%d  coming known WTP[%d], thread: %x,readBytes=%d",__FILE__,__LINE__,index, (unsigned int)gWTPs[index].thread,readBytes);
+		//timer experied ,main thread just wait
+		if( gWTPs[index].isRequestClose == CW_TRUE)
+		{
+			CWLog("%s %d Main thread find WTP[%d] time expired, req close thread: %x,main donothing!", __FILE__,__LINE__,index,  (unsigned int)gWTPs[index].thread);
+			//CWThreadMutexLock(&(gWTPs[index].interfaceMutex));
+			//CWSignalThreadCondition(&(gWTPs[index].interfaceWait));
+			//CWThreadMutexUnlock(&(gWTPs[index].interfaceMutex));
+			//CWThreadSendSignal(gWTPs[index].thread, SIGKILL);
+			return;
+		}
+		if(gWTPs[index].wtpState != CW_RUN)
+		{
+			CWLog("%s %d Main thread find WTP[%d] not run!", __FILE__,__LINE__,index);
+			return;
+		}
+		
 		CW_CREATE_OBJECT_SIZE_ERR(pData, readBytes, { CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, "Can't CWACManageIncomingPacket");CWLog("Out Of Memory"); return; });
 		memcpy(pData, buf, readBytes);
 		CWLog("F:%s,L:%d",__FILE__,__LINE__);
-		if(wtpPtr->packetReceiveList == NULL)
+		if(gWTPs[index].packetReceiveList == NULL)
 		{
-			CWLog("F:%s,L:%d packetReceiveList is NULL, Fail !",__FILE__,__LINE__);
-			return;
-		}
-		if(wtpPtr->packetReceiveList->pThreadMutex == NULL)
-		{
-			CWLog("F:%s,L:%d packetReceiveList->pThreadMutex is NULL, Fail !",__FILE__,__LINE__);
+			CWLog("F:%s,L:%d [%d]packetReceiveList is NULL, Fail !",__FILE__,__LINE__,index);
+			//gWTPs[index].isRequestClose = CW_TRUE;
 			return;
 		}
 		//core
 		//pthread_cond_wait must lock
-		if(!CWErr(CWThreadMutexLock(&(wtpPtr->interfaceMutex)))) 
+		CWLog("F:%s,L:%d ",__FILE__,__LINE__);
+		if(gWTPs[index].wtpState != CW_RUN )
 		{
-			CWLog("F:%s,L:%d Error Lock interfaceMutex, Fail!",__FILE__,__LINE__);
+			CWLog("%s %d Main thread find WTP[%d] not run !", __FILE__,__LINE__,index);
 			return;
 		}
-		CWLog("F:%s,L:%d CWLockSafeList",__FILE__,__LINE__);
-		
-		if(CW_FALSE == CWAddElementToSafeListTail(wtpPtr->packetReceiveList, pData, readBytes))
+		CWLog("F:%s,L:%d ",__FILE__,__LINE__);
+		if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
+		{
+			CWLog("F:%s L:%d Error locking  mutex!",__FILE__,__LINE__);
+			exit(1);
+		}
+		if(CW_FALSE == CWAddElementToSafeListTail(gWTPs[index].packetReceiveList, pData, readBytes))
 		{
 			CWLog("F:%s,L:%d CWAddElementToSafeListTail Fail !",__FILE__,__LINE__);
-			CWThreadMutexUnlock(&(wtpPtr->interfaceMutex));
-			CWLog("F:%s,L:%d CWUnlockSafeList",__FILE__,__LINE__);
+			CWThreadMutexUnlock(&gWTPsMutex);
 			return;
 		}
-		CWSignalThreadCondition(&(wtpPtr->interfaceWait));
+		CWThreadMutexUnlock(&gWTPsMutex);
+		CWLog("F:%s,L:%d ",__FILE__,__LINE__);
+
+		if(!CWErr(CWThreadMutexLock(&(gWTPs[index].wtpMutex)))) 
+		{
+			CWLog("F:%s,L:%d [%d] Error Lock wtpMutex, Fail!",__FILE__,__LINE__,index);
+			return;
+		}
+		CWLog("F:%s,L:%d ",__FILE__,__LINE__);
+		//main signal,if child not exit
+		if( gWTPs[index].isRequestClose == CW_TRUE)
+		{
+			CWLog("%s %d Main thread find WTP[%d] time expired, req close thread: %x,main donothing!", __FILE__,__LINE__,index,  (unsigned int)gWTPs[index].thread);
+			//CWThreadMutexLock(&(gWTPs[index].interfaceMutex));
+			//CWSignalThreadCondition(&(gWTPs[index].interfaceWait));
+			//CWThreadMutexUnlock(&(gWTPs[index].interfaceMutex));
+			//return;
+		}
+		if(gWTPs[index].wtpState != CW_RUN )
+		{
+			CWLog("%s %d Main thread find WTP[%d] not run !", __FILE__,__LINE__,index);
+			//return;;
+		}
+		if (	(gWTPs[index].wtpState == CW_RUN) &&
+			(gWTPs[index].isRequestClose == CW_FALSE) &&
+		       //(CWGetCountElementFromSafeList(gWTPs[index].packetReceiveList) == 0) &&
+		       (gWTPs[index].interfaceCommand == NO_CMD)) 
+		{
+			CWLog("F:%s,L:%d [%d] Main signal  thread: %x",__FILE__,__LINE__,index, (unsigned int)gWTPs[index].thread);
+			CWSignalThreadCondition(&(gWTPs[index].wtpWait));
+		}
+		else
+		{
+			CWLog("F:%s,L:%d [%d] not wait, don't signal !",__FILE__,__LINE__,index);
+		}
+		//wtpPtr->iwvaule = 1;
+		//then main thread block,because thread exit,singal api can't find
 		CWLog("F:%s,L:%d",__FILE__,__LINE__);
-		CWThreadMutexUnlock(&(wtpPtr->interfaceMutex));
+		CWThreadMutexUnlock(&(gWTPs[index].wtpMutex));
 		CWLog("F:%s,L:%d CWUnlockSafeList",__FILE__,__LINE__);
 
 	} else { 
@@ -216,8 +275,10 @@ void CWACManageIncomingPacket(CWSocket sock,
 			return;
 		}
 		CWThreadMutexUnlock(&gActiveWTPsMutex);
-		CWLog("\n");	
-		
+		CWLog("Online WTP : gActiveWTPs = %d\n",gActiveWTPs);	
+
+		//CWLog("buf =%s",buf);
+		CWLog("readBytes =%d",readBytes);
 		if(CWErr(CWParseDiscoveryRequestMessage(buf, readBytes, &seqNum, &values))) {
 		
 			CWProtocolMessage *msgPtr;
@@ -260,69 +321,173 @@ void CWACManageIncomingPacket(CWSocket sock,
 			
 			CW_FREE_PROTOCOL_MESSAGE(*msgPtr);
 			CW_FREE_OBJECT(msgPtr);
-		} else { 
+			return;
+		}
+		if(!CWParseJoinReqMsgNotValue(buf, readBytes))
+		{
+			CWLog("Message is not Discovery Request or Join Resquest, refuse access");
+			return;
+		}
+		else {
 			/* this isn't a Discovery Request */
-			int i;
+			//but must be joinRequest
+			unsigned int i;
 			CWACThreadArg *argPtr;
 			
 			CWUseSockNtop(addrPtr, CWDebugLog("Possible Client Hello from %s", str););
+
+			//CWLog("i=%d", i);
+			/* look for the first free slot */
+			for(i = 0; i < CW_MAX_WTP ; i++)
+			{
+				if(gWTPs[i].wtpState == CW_IDLE)
+				{
+					break;
+				}
+			}
+
+			if(i < 0){
+				CWLog("WTP  [%d], i < 0, refuse !",i);
+				return;	
+			}
 			
+			if(i >= CW_MAX_WTP){
+				CWLog("WTP  [%d], more than Max %d, refuse!",i, CW_MAX_WTP);
+				return;	
+			}
+			//thread not exit, i can not be used,big error !
+			if(gWTPs[i].isRequestClose == CW_TRUE)
+			{
+				CWLog("%s %d Main thread find WTP[%d] time expired, req close thread: %x fail once,signal it run !", __FILE__,__LINE__,i, (unsigned int)gWTPs[i].thread);
+				//CWThreadSendSignal(gWTPs[i].thread, SIGKILL);
+				CWThreadMutexLock(&(gWTPs[i].wtpMutex));
+				CWSignalThreadCondition(&(gWTPs[i].wtpWait));
+				CWThreadMutexUnlock(&(gWTPs[i].wtpMutex));
+				return;
+			}
+			
+			CWLog("new WTP ID is %d",i);
 			if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
 			{
 				CWLog("F:%s L:%d Error locking  mutex",__FILE__,__LINE__);
 				exit(1);
 			}
-			/* look for the first free slot */
-			for(i = 0; i < CW_MAX_WTP && gWTPs[i].isNotFree; i++);
-	
+
 			CW_COPY_NET_ADDR_PTR(&(gWTPs[i].address), addrPtr);
-			gWTPs[i].isNotFree = CW_TRUE;
+			gWTPs[i].wtpState= CW_RUN;
 			gWTPs[i].isRequestClose = CW_FALSE;
+			CWLog("F:%s L:%d free gWTPs[%d].packetReceiveList begin",__FILE__,__LINE__,i);
+			CWCleanSafeList(gWTPs[i].packetReceiveList, free);
+			CWDestroySafeList(gWTPs[i].packetReceiveList);
+			CWLog("F:%s L:%d free gWTPs[%d].packetReceiveList end ",__FILE__,__LINE__,i);
 			//pointer NULL
 			gWTPs[i].packetReceiveList = NULL;
 			CWThreadMutexUnlock(&gWTPsMutex);
 
 			/* Capwap receive packets list */
-			if (!CWErr(CWCreateSafeList(&gWTPs[i].packetReceiveList))) {
+			//if (!CWErr(CWCreateSafeList(&gWTPs[i].packetReceiveList))) {
+			if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
+			{
+				CWLog("F:%s L:%d Error locking  mutex!",__FILE__,__LINE__);
+				exit(1);
+			}
+			if (!(gWTPs[i].packetReceiveList = CWCreateSafeList()) ){
 
-				if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
-				{
-					CWLog("F:%s L:%d Error locking  mutex!",__FILE__,__LINE__);
-					exit(1);
-				}
-				gWTPs[i].isNotFree = CW_FALSE;
+				gWTPs[i].wtpState = CW_IDLE;
 				CWThreadMutexUnlock(&gWTPsMutex);
+				CWLog("F:%s L:%d CWCreateSafeList error !", __FILE__,__LINE__);
 				return;
 			}
+			CWThreadMutexUnlock(&gWTPsMutex);
 			//main thread must have the mutex
-			CWLog("F:%s,L:%d",__FILE__,__LINE__);
-			//CWDestroyThreadMutex(&gWTPs[i].interfaceMutex);
+			CWLog("F:%s,L:%d  CWCreateSafeList gWTPs[%d].packetReceiveList success ",__FILE__,__LINE__,i);
+			//avoid child close faster than main thread find it to add packet
+			if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
+			{
+				CWLog("F:%s L:%d Error locking  mutex!",__FILE__,__LINE__);
+				exit(1);
+			}
+			CWDestroyThreadMutex(&gWTPs[i].wtpMutex);
+			CWDestroyThreadMutex(&gWTPs[i].interfaceMutex);
+			CWDestroyThreadCondition(&gWTPs[i].wtpWait);
+			CWDestroyThreadCondition(&gWTPs[i].interfaceComplete);	
+			
+			if (!CWErr(CWCreateThreadMutex(&gWTPs[i].wtpMutex)))
+			{
+				CWLog("F:%s L:%d CWCreateThreadMutex Fail!",__FILE__,__LINE__);
+				CWThreadMutexUnlock(&gWTPsMutex);
+				return;
+			}		
 			if (!CWErr(CWCreateThreadMutex(&gWTPs[i].interfaceMutex)))
 			{
 				CWLog("F:%s L:%d CWCreateThreadMutex Fail!",__FILE__,__LINE__);
+				CWThreadMutexUnlock(&gWTPsMutex);
 				return;
 			}
 
-			//CWDestroyThreadCondition(&gWTPs[i].interfaceWait);	
-			//CWCreateThreadCondition(&gWTPs[i].interfaceWait);
-			if (!CWErr(CWCreateThreadCondition(&gWTPs[i].interfaceWait)))
+			if (!CWErr(CWCreateThreadCondition(&gWTPs[i].wtpWait)))
 			{
 				CWLog("F:%s L:%d CWCreateThreadMutex Fail!",__FILE__,__LINE__);
+				CWThreadMutexUnlock(&gWTPsMutex);
 				return;
 			}
+
 			//CWDestroyThreadCondition(&gWTPs[i].interfaceComplete);	
 			if (!CWErr(CWCreateThreadCondition(&gWTPs[i].interfaceComplete)))
 			{
 				CWLog("F:%s L:%d CWCreateThreadMutex Fail!",__FILE__,__LINE__);
+				CWThreadMutexUnlock(&gWTPsMutex);
 				return;
 			}
+			CWThreadMutexUnlock(&gWTPsMutex);
 			
 			CWLog("F:%s,L:%d",__FILE__,__LINE__);
 			
-			CWSetMutexSafeList(gWTPs[i].packetReceiveList, 
-					   &gWTPs[i].interfaceMutex);
-			CWSetConditionSafeList(gWTPs[i].packetReceiveList,
-					       &gWTPs[i].interfaceWait);
+			//CWSetMutexSafeList(gWTPs[i].packetReceiveList, 
+					  // &gWTPs[i].interfaceMutex);
+			//CWSetConditionSafeList(gWTPs[i].packetReceiveList,
+					     //  &gWTPs[i].interfaceWait);
+
+			/* Clone data packet */
+			CW_CREATE_OBJECT_SIZE_ERR(pData, readBytes, { CWLog("Out Of Memory"); return; });
+			memcpy(pData, buf, readBytes);
+			CWLog("F:%s,L:%d",__FILE__,__LINE__);
+			/*
+			CWLockSafeList(gWTPs[i].packetReceiveList);
+			CWAddElementToSafeListTail(gWTPs[i].packetReceiveList,
+						   pData,
+						   readBytes);
+			CWUnlockSafeList(gWTPs[i].packetReceiveList);
+			*/
+
+			if(!gWTPs[i].packetReceiveList)
+			{
+				CWLog("F:%s,L:%d gWTPs[%d].packetReceiveList is NULL, Fail !",__FILE__,__LINE__,i);
+				return;
+			}
+			
+			CWLog("F:%s,L:%d CWLockSafeList",__FILE__,__LINE__);
+
+			if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
+			{
+				CWLog("F:%s L:%d Error locking  mutex!",__FILE__,__LINE__);
+				exit(1);
+			}
+			if(CW_FALSE == CWAddElementToSafeListTail(gWTPs[i].packetReceiveList, pData, readBytes))
+			{
+				CWLog("F:%s,L:%d CWAddElementToSafeListTail Fail !",__FILE__,__LINE__);
+				CWThreadMutexUnlock(&gWTPsMutex);
+				return;
+			}
+			CWThreadMutexUnlock(&gWTPsMutex);
+			
+#if 0
+			if(i < gWTPsThreadNum)
+			{
+				CWLog("F:%s,L:%d WTPsThread AP is working ...,no create new thread",__FILE__,__LINE__);
+				return;
+			}
+#endif
 
 			CW_CREATE_OBJECT_ERR(argPtr, CWACThreadArg, { CWLog("Out Of Memory"); return; });
 
@@ -349,6 +514,8 @@ void CWACManageIncomingPacket(CWSocket sock,
 			if (argPtr->interfaceIndex < 0) argPtr->interfaceIndex = 0; 
 			
 			/* create the thread that will manage this WTP */
+			CWLog("F:%s,L:%d CWCreateThread WTP [%d]",__FILE__,__LINE__, i);
+
 			if(!CWErr(CWCreateThread(&(gWTPs[i].thread), CWManageWTP, argPtr))) {
 
 				CW_FREE_OBJECT(argPtr);
@@ -358,74 +525,79 @@ void CWACManageIncomingPacket(CWSocket sock,
 					exit(1);
 				}
 				
-				//CWDestroySafeList(&gWTPs[i].packetReceiveList);
+				CWCleanSafeList(gWTPs[i].packetReceiveList, free);
 				CWDestroySafeList(gWTPs[i].packetReceiveList);
-				gWTPs[i].isNotFree = CW_FALSE;
+				gWTPs[i].wtpState = CW_IDLE;
 				CWThreadMutexUnlock(&gWTPsMutex);
 				CWDebugLog("CWCreateThread CWManageWTP Fail! ");
 				return;
 			}
-	
-			/* Clone data packet */
-			CW_CREATE_OBJECT_SIZE_ERR(pData, readBytes, { CWLog("Out Of Memory"); return; });
-			memcpy(pData, buf, readBytes);
-			CWLog("F:%s,L:%d",__FILE__,__LINE__);
-			/*
-			CWLockSafeList(gWTPs[i].packetReceiveList);
-			CWAddElementToSafeListTail(gWTPs[i].packetReceiveList,
-						   pData,
-						   readBytes);
-			CWUnlockSafeList(gWTPs[i].packetReceiveList);
-			*/
 
-			if(!gWTPs[i].packetReceiveList)
-			{
-				CWLog("F:%s,L:%d gWTPs[i].packetReceiveList is NULL, Fail !",__FILE__,__LINE__);
-				return;
-			}
+// operation useless
+#if 0
 			if(!CWErr(CWThreadMutexLock(&gWTPs[i].interfaceMutex))) 
 			{
-				CWLog("F:%s,L:%d Error Lock gWTPs[i].interfaceMutex, Fail!",__FILE__,__LINE__);
+				CWLog("F:%s,L:%d Error Lock gWTPs[%d].interfaceMutex, Fail!",__FILE__,__LINE__,i);
 				return;
 			}
-			CWLog("F:%s,L:%d CWLockSafeList",__FILE__,__LINE__);
-			
-			if(CW_FALSE == CWAddElementToSafeListTail(gWTPs[i].packetReceiveList, pData, readBytes))
+			if(gWTPs[i].isRequestClose == CW_TRUE)
 			{
-				CWLog("F:%s,L:%d CWAddElementToSafeListTail Fail !",__FILE__,__LINE__);
-				CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
-				CWLog("F:%s,L:%d CWUnlockSafeList",__FILE__,__LINE__);
-				return;
+				CWLog("%s %d Main thread find WTP[%d] time expired, req close thread: %x fail once,so close again !", __FILE__,__LINE__,index,  (unsigned int)gWTPs[i].thread);
+				CWThreadMutexLock(&(gWTPs[i].interfaceMutex));
+				CWSignalThreadCondition(&(gWTPs[i].interfaceWait));
+				CWThreadMutexUnlock(&(gWTPs[i].interfaceMutex));
 			}
-			CWSignalThreadCondition(&gWTPs[i].interfaceWait);
+			if ((gWTPs[i].isNotFree == CW_TRUE) &&
+			(gWTPs[i].isRequestClose == CW_FALSE) &&
+		       //(CWGetCountElementFromSafeList(gWTPs[index].packetReceiveList) == 0) &&
+		       (gWTPs[i].interfaceCommand == NO_CMD)) 
+			{
+				CWLog("F:%s,L:%d [%d] Main signal  thread: %x",__FILE__,__LINE__,i, (unsigned int)gWTPs[i].thread);
+				CWSignalThreadCondition(&(gWTPs[i].interfaceWait));
+			}
+			else
+			{
+				CWLog("F:%s,L:%d [%d] not wait, don't signal !",__FILE__,__LINE__,i);
+			}
 			CWLog("F:%s,L:%d",__FILE__,__LINE__);
 			CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
 			CWLog("F:%s,L:%d CWUnlockSafeList",__FILE__,__LINE__);
-			
+#endif
+#if 0
+			 if(gWTPsThreadNum > CW_MAX_WTP)
+			{
+				CWLog("F:%s,L:%d gWTPsThreadNum > CW_MAX_WTP , Fail!",__FILE__,__LINE__);
+				return;
+			}
+			 gWTPsThreadNum++;
+			 CWLog("F:%s,L:%d gWTPsThreadNum = %d",__FILE__,__LINE__,gWTPsThreadNum);
+#endif
 		}
 	}
+	//CWLog("F:%s,L:%d %s end",__FILE__,__LINE__,__func__);
 }
 
 /*
  * Simple job: see if we have a thread that is serving address *addressPtr
  */
-__inline__ CWWTPManager *CWWTPByAddress(CWNetworkLev4Address *addressPtr, CWSocket sock) {
+__inline__ int CWWTPByAddress(CWNetworkLev4Address *addressPtr, CWSocket sock) {
 
 	int i;
 
 	CWLog("CWWTPByAddress  sock = %d",sock);
-	if(addressPtr == NULL) return NULL;
+	//if(addressPtr == NULL) return NULL;
+	if(addressPtr == NULL) return -1;
 	//CWLog("addr = %s",inet_ntoa(((struct sockaddr_in *) addressPtr)->sin_addr));
 	//CWLog("port = %d",((struct sockaddr_in *) addressPtr)->sin_port);
 	//CWThreadMutexLock(&gWTPsMutex);
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-		CWLog("Error CWWTPByAddress locking the gWTPsMutex mutex");
-		return NULL;
-	}
+	//if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+		//CWLog("Error CWWTPByAddress locking the gWTPsMutex mutex");
+		//return NULL;
+	//}
 	for(i = 0; i < CW_MAX_WTP; i++) {
 		//CWLog("gWTPs[i].isNotFree = %d",gWTPs[i].isNotFree);
 		//CWLog("gWTPs[i].socket = %d",gWTPs[i].socket);
-		if(gWTPs[i].isNotFree && 
+		if((gWTPs[i].wtpState == CW_RUN )&& 
 		   &(gWTPs[i].address) != NULL &&
 		   !sock_cmp_addr((struct sockaddr*)addressPtr, 
 			   	  (struct sockaddr*)&(gWTPs[i].address), 
@@ -438,13 +610,17 @@ __inline__ CWWTPManager *CWWTPByAddress(CWNetworkLev4Address *addressPtr, CWSock
 			/* we treat a WTP that sends packet to a different 
 			 * AC's interface as a new WTP
 			 */
-			CWThreadMutexUnlock(&gWTPsMutex);
-			return &(gWTPs[i]);
+			//CWThreadMutexUnlock(&gWTPsMutex);
+			//return &(gWTPs[i]);
+			return i;
+			
 		}
 	}
-	CWThreadMutexUnlock(&gWTPsMutex);
+	//CWThreadMutexUnlock(&gWTPsMutex);
 	
-	return NULL;
+	//return NULL;
+	return -1;
+	
 }
 
 /* 
@@ -453,11 +629,12 @@ __inline__ CWWTPManager *CWWTPByAddress(CWNetworkLev4Address *addressPtr, CWSock
  */
 CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 
-	int 		i = ((CWACThreadArg*)arg)->index;
+	unsigned int 		i = ((CWACThreadArg*)arg)->index;
 	CWSocket 	sock = ((CWACThreadArg*)arg)->sock;
 	int 		interfaceIndex = ((CWACThreadArg*)arg)->interfaceIndex;
 	
 	CW_FREE_OBJECT(arg);
+	CWLog("F:%s,L:%d CWManageWTP AP index = %d",__FILE__,__LINE__, i);
 	
 	if(!(CWThreadSetSpecific(&gIndexSpecific, &i))) {
 
@@ -465,28 +642,18 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 		_CWCloseThread(i);
 	}
 
-	//if(!CWErr(CWThreadMutexLock(&gActiveWTPsMutex))) 
-		//exit(1);
-//ap in run state as active
-//	gActiveWTPs++;
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
-	{
-		CWLog("F:%s L:%d Error locking  mutex",__FILE__,__LINE__);
-		_CWCloseThread(i);
-	}
 	gInterfaces[interfaceIndex].WTPCount++;
 	CWUseSockNtop(((struct sockaddr*) &(gInterfaces[interfaceIndex].addr)),
 				  CWDebugLog("One more WTP on %s (%d)", str, interfaceIndex);
 				  );
-	
-	//CWThreadMutexUnlock(&gActiveWTPsMutex);
-//������ȡ���ú��?
+
 	CWACInitBinding(i);
 	
 	gWTPs[i].interfaceIndex = interfaceIndex;
 	gWTPs[i].socket = sock;
 	
 	gWTPs[i].fragmentsList = NULL;
+	
 	/* we're in the join state for this session */
 	gWTPs[i].currentState = CW_ENTER_JOIN;
 	gWTPs[i].subState = CW_DTLS_HANDSHAKE_IN_PROGRESS;
@@ -502,7 +669,7 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 	//CWCreateThreadCondition(&gWTPs[i].interfaceWait);
 	//CWDestroyThreadCondition(&gWTPs[i].interfaceComplete);	
 	//CWCreateThreadCondition(&gWTPs[i].interfaceComplete);
-	gWTPs[i].qosValues = NULL;
+
 	/**** ACInterface ****/
 
 	gWTPs[i].messages = NULL;
@@ -516,6 +683,7 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 	//BE: connectEvent
 	gWTPs[i].isConnect = CW_FALSE;
 
+	gWTPs[i].qosValues = NULL; 
 	gWTPs[i].ofdmValues = NULL;  
 	gWTPs[i].vendorValues = NULL;
 	gWTPs[i].vendorPortalValues = NULL;
@@ -523,8 +691,9 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 	CWResetWTPProtocolManager(&(gWTPs[i].WTPProtocolManager));
 
 	//buf 
+	//CW_FREE_OBJECT(gWTPs[i].buf);
 	gWTPs[i].buf = NULL; 
-	CW_CREATE_OBJECT_SIZE_ERR(gWTPs[i].buf,CW_BUFFER_SIZE,{ CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);CWLog("Out Of Memory");CWThreadMutexUnlock(&gWTPsMutex);CWCloseThread();});
+	CW_CREATE_OBJECT_SIZE_ERR(gWTPs[i].buf,CW_BUFFER_SIZE,{ CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL);CWLog("Out Of Memory");CWCloseThread();});
 	memset(gWTPs[i].buf, 0, CW_BUFFER_SIZE);
 
 	gWTPs[i].session = NULL;
@@ -534,11 +703,11 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 	if(!CWErr(CWTimerRequest(gCWWaitJoin,
 				 &(gWTPs[i].thread),
 				 &(gWTPs[i].currentTimer),
-				 CW_CRITICAL_TIMER_EXPIRED_SIGNAL))) {
-		CWThreadMutexUnlock(&gWTPsMutex);
-		CWCloseThread();
+				 CW_CRITICAL_TIMER_EXPIRED_SIGNAL))) {	 
+		CWLog("%s %d [%d] CWTimerRequest Fail, close thread!",__FILE__,__LINE__,i);
+		gWTPs[i].isRequestClose = CW_TRUE;
 	}
-//��Ҫ������ʱ������
+
 #ifndef CW_NO_DTLS
 	CWDebugLog("Init DTLS Session");
 
@@ -548,15 +717,14 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 					      &((gWTPs[i]).session),
 					      &(gWTPs[i].pathMTU)))) {
 					      
-		CWThreadMutexUnlock(&gWTPsMutex);
 		CWTimerCancel(&(gWTPs[i].currentTimer));
-		CWCloseThread();
+		CWLog("%s %d [%d] CWSecurityInitSessionServer Fail, close thread!",__FILE__,__LINE__,i);
+		gWTPs[i].isRequestClose = CW_TRUE;
 	}
 #endif
 	(gWTPs[i]).subState = CW_WAITING_REQUEST;
 
 	if(gCWForceMTU > 0) gWTPs[i].pathMTU = gCWForceMTU;
-	CWThreadMutexUnlock(&gWTPsMutex);
 
 	CWDebugLog("Path MTU for this Session: %d",  gWTPs[i].pathMTU);
 	
@@ -568,62 +736,82 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 
 		msg.msg = NULL;
 		msg.offset = 0;
-
 		/* Wait WTP action */
 		//if pthread not come here,the packet will wait,so packet list grow
-	if(!CWErr(CWThreadMutexLock(&gWTPs[i].interfaceMutex))) {
-		CWLog("Error gWTPs[i].interfaceMutex !");
-		CWCloseThread();
-	}
-		//CWThreadMutexLock(&gWTPs[i].interfaceMutex);
-
+		if(!CWErr(CWThreadMutexLock(&gWTPs[i].wtpMutex))) 
+		{
+			CWLog("Error gWTPs[%d] wtpMutex!",i);
+			gWTPs[i].isRequestClose = CW_TRUE;
+		}	
 		while ((gWTPs[i].isRequestClose == CW_FALSE) &&
 		       (CWGetCountElementFromSafeList(gWTPs[i].packetReceiveList) == 0) &&
-		       (gWTPs[i].interfaceCommand == NO_CMD)) {
-
+		       (gWTPs[i].interfaceCommand == NO_CMD) &&
+		       (gWTPs[i].wtpState == CW_RUN)) {
+			
+			CWLog("[%d]CWWaitThreadCondition start",i);
 			 /*TODO: Check system */
-			CWWaitThreadCondition(&gWTPs[i].interfaceWait, 
-					      &gWTPs[i].interfaceMutex);
+			 /*
+			 when parent talk, child should be here;
+			 so child do sth quick as soon as possiblie.
+			 */
+			CWWaitThreadCondition(&gWTPs[i].wtpWait, 
+					      &gWTPs[i].wtpMutex);
+					      //gWTPs[i].iwvaule = 0;
+			CWLog("[%d]CWWaitThreadCondition end",i);
 		}
-
-		CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
-
+		CWThreadMutexUnlock(&gWTPs[i].wtpMutex);
+		//CWLog("%s %d ",__FILE__,__LINE__);
+		//last this index thread not close finish,but this run here
+		if(gWTPs[i].wtpState != CW_RUN)
+		{
+			CWLog("[%d]not run,perhaps other thread index = %d not exit complete!",i,i);
+			continue;
+		}
+		
 		if (gWTPs[i].isRequestClose) {
 
 			CWLog("Request close thread");
+			//can't exit?
 			_CWCloseThread(i);
+			//continue;
+			//exit...
+			return NULL;
 		}
-
+		//CWLog("%s %d",__FILE__,__LINE__);
 		CWThreadSetSignals(SIG_BLOCK, 
 				   2,
 				   CW_SOFT_TIMER_EXPIRED_SIGNAL,
 				   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
 
-		if (CWGetCountElementFromSafeList(gWTPs[i].packetReceiveList) > 0) {
+		CWLog("WTP[%d] has %d packet to analysis ...",i,CWGetCountElementFromSafeList(gWTPs[i].packetReceiveList));
 
+		if (CWGetCountElementFromSafeList(gWTPs[i].packetReceiveList) > 0) {
 			CWBool 	bCrypt = CW_FALSE;
 			char	*pBuffer = NULL;
 
 			//CWThreadMutexLock(&gWTPs[i].interfaceMutex);
+			/*
 			if(!CWErr(CWThreadMutexLock(&gWTPs[i].interfaceMutex))) {
 				CWLog("Error gWTPs[i].interfaceMutex !");
 				CWCloseThread();
 			}
+			*/
 
 			pBuffer = (char *)CWGetHeadElementFromSafeList(gWTPs[i].packetReceiveList, NULL);
 			//why
+			//if(pBuffer == NULL || strlen(pBuffer) < 1)
 			if(pBuffer == NULL)
 			{
-				CWLog("Error CWGetHeadElementFromSafeList pBuffer == NULL !");
-				CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
-				CWCloseThread();
-				//continue;
+				CWLog("%s %d  [%d] packet len not right ,exit thread !",__FILE__,__LINE__,i);
+				//CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
+				gWTPs[i].isRequestClose = CW_TRUE;
+				continue;
 			}
-			CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
+			//CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
 			
 			if ((pBuffer[0] & 0x0f) == CW_PACKET_CRYPT)
 			  bCrypt = CW_TRUE;
-
+//			CWLog("%s %d ",__FILE__,__LINE__);
 			if (bCrypt) {
 				CWDebugLog("Receive a security packet");
 				CWLog("Don't parse security packet,drop it");
@@ -637,16 +825,29 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 				
 #else
 				//CWSecurityReceive core ????
-			 if(!CWErr(CWThreadMutexLock(&gWTPs[i].interfaceMutex))) {
-					CWLog("Error gWTPs[i].interfaceMutex !");
-					CWCloseThread();
+			 if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+				CWLog("%s %d [%d] CWThreadMutexLock Fail, close thread!",__FILE__,__LINE__,i);
+				gWTPs[i].isRequestClose = CW_TRUE;
+				continue;
 			  }
 			  CWLog("%s %d apindex = %d, CWRemoveHeadElementFromSafeList",__FILE__,__LINE__,i);
 			  pBuffer = (char*)CWRemoveHeadElementFromSafeList(gWTPs[i].packetReceiveList, &readBytes);
-			  CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
-
-			  memcpy(gWTPs[i].buf, pBuffer, readBytes);
-			  CW_FREE_OBJECT(pBuffer);
+			  CWLog("%s %d  [%d] packet len readBytes=%d",__FILE__,__LINE__,i,readBytes);
+			  if(pBuffer == NULL)
+			  {
+				CWLog("%s %d  [%d] packet len not right ,exit thread !",__FILE__,__LINE__,i);
+				//CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
+				gWTPs[i].isRequestClose = CW_TRUE;
+				CWThreadMutexUnlock(&gWTPsMutex);
+				continue;
+			  }
+			  else
+			  {
+			   	  CWThreadMutexUnlock(&gWTPsMutex);
+				  memset(gWTPs[i].buf, 0, CW_BUFFER_SIZE);
+				  memcpy(gWTPs[i].buf, pBuffer, readBytes);
+				  CW_FREE_OBJECT(pBuffer);
+			  }
 			  if(!CWErr(CWSecurityReceive(gWTPs[i].session,
 										  gWTPs[i].buf,
 										  CW_BUFFER_SIZE - 1,
@@ -655,28 +856,40 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 				CWDebugLog("Error during security receive");
 				CWLog("Error during security receive");
 				CWThreadSetSignals(SIG_UNBLOCK, 1, CW_SOFT_TIMER_EXPIRED_SIGNAL);
+				gWTPs[i].isRequestClose = CW_TRUE;
 				continue;
 			  }
 #endif
 			}
 			else {
 			  //CWThreadMutexLock(&gWTPs[i].interfaceMutex);
-			  if(!CWErr(CWThreadMutexLock(&gWTPs[i].interfaceMutex))) {
-					CWLog("Error gWTPs[i].interfaceMutex !");
-					CWCloseThread();
-				}
+		  	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
+		  	{
+				CWLog("%s %d [%d] CWThreadMutexLock Fail, close thread!",__FILE__,__LINE__,i);
+				gWTPs[i].isRequestClose = CW_TRUE;
+				continue;
+			}
+			  //coredump
 			  CWLog("%s %d apindex = %d, CWRemoveHeadElementFromSafeList",__FILE__,__LINE__,i);
 			  pBuffer = (char*)CWRemoveHeadElementFromSafeList(gWTPs[i].packetReceiveList, &readBytes);
-			  CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
-			  if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) 
-			{
-				CWLog("F:%s L:%d Error locking  mutex",__FILE__,__LINE__);
-				_CWCloseThread(i);
-			}
-			  memcpy(gWTPs[i].buf, pBuffer, readBytes);
-			  CWThreadMutexUnlock(&gWTPsMutex);
-			  CW_FREE_OBJECT(pBuffer);
-			}
+			  CWLog("%s %d  [%d] packet len readBytes=%d",__FILE__,__LINE__,i,readBytes);
+			  if(pBuffer == NULL)
+			  {
+				CWLog("%s %d  [%d] packet len not right ,exit thread !",__FILE__,__LINE__,i);
+				//CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
+				gWTPs[i].isRequestClose = CW_TRUE;
+				CWThreadMutexUnlock(&gWTPsMutex);
+				continue;
+			  }
+			  else
+			  {
+			  	  CWThreadMutexUnlock(&gWTPsMutex);
+				  memset(gWTPs[i].buf, 0, CW_BUFFER_SIZE);
+				  memcpy(gWTPs[i].buf, pBuffer, readBytes);
+				  CW_FREE_OBJECT(pBuffer);
+			  }
+			  
+		}
 
 			if(!CWProtocolParseFragment(gWTPs[i].buf,
 						    readBytes,
@@ -686,12 +899,13 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 
 				if(CWErrorGetLastErrorCode() == CW_ERROR_NEED_RESOURCE) {
 
-					CWDebugLog("Need At Least One More Fragment");
+					CWLog("Need At Least One More Fragment");
 				} 
 				else {
 					CWErrorHandleLast();
 				}
 				CWThreadSetSignals(SIG_UNBLOCK, 1, CW_SOFT_TIMER_EXPIRED_SIGNAL);
+				CWLog("%s %d [%d] CWProtocolParseFragment continue ...",__FILE__,__LINE__,i);
 				continue;
 			}
 			CWLog("F:%s L:%d",__FILE__,__LINE__);
@@ -713,7 +927,10 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 							/* critical error, close session */
 							CWErrorHandleLast();
 							CWThreadSetSignals(SIG_UNBLOCK, 1, CW_SOFT_TIMER_EXPIRED_SIGNAL);
-							CWCloseThread();
+							CWLog("ACEnterJoin critical error !!!");
+							CWLog("%s %d [%d] close thread!",__FILE__,__LINE__,i);
+							gWTPs[i].isRequestClose = CW_TRUE;
+							continue;
 						}
 					}
 					break;
@@ -735,7 +952,9 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 							CWErrorHandleLast();
 							CWThreadSetSignals(SIG_UNBLOCK, 1, CW_SOFT_TIMER_EXPIRED_SIGNAL);
 							CWLog("ACEnterConfigure critical error !!!");
-							CWCloseThread();
+							CWLog("%s %d [%d] close thread!",__FILE__,__LINE__,i);
+							gWTPs[i].isRequestClose = CW_TRUE;
+							continue;
 						}
 					}
 					break;
@@ -755,7 +974,9 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 							/* critical error, close session */
 							CWErrorHandleLast();
 							CWThreadSetSignals(SIG_UNBLOCK, 1, CW_SOFT_TIMER_EXPIRED_SIGNAL);
-							CWCloseThread();
+							CWLog("%s %d [%d] close thread!",__FILE__,__LINE__,i);
+							gWTPs[i].isRequestClose = CW_TRUE;
+							continue;
 						}
 					}
 					if(gWTPs[i].isConnect == CW_TRUE)
@@ -795,7 +1016,9 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 							CWLog("--> Critical Error... closing thread");
 							CWErrorHandleLast();
 							CWThreadSetSignals(SIG_UNBLOCK, 1, CW_SOFT_TIMER_EXPIRED_SIGNAL);
-							CWCloseThread();
+							CWLog("%s %d [%d] close thread!",__FILE__,__LINE__,i);
+							gWTPs[i].isRequestClose = CW_TRUE;
+							continue;
 						}
 					}
 					break;
@@ -809,6 +1032,7 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 			CW_FREE_PROTOCOL_MESSAGE(msg);
 		}
 		else {
+			CWLog("packetReceiveList no content");
 		  //CWThreadMutexLock(&gWTPs[i].interfaceMutex);
 		  //no lock
 		/*
@@ -987,21 +1211,63 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 			                                  break;
 
 							}
+			case ACTIVE_MSG_CMD:
+							{
+								CWLog("[F:%s, L:%d]ACTIVE_MSG_CMD",__FILE__,__LINE__);
+								 int seqNum = CWGetSeqNum();
+
+			                                         if (CWAssembleConfigurationUpdateRequest(&(gWTPs[i].messages),
+			                                                                                                                 &(gWTPs[i].messagesCount),
+			                                                                                                                 gWTPs[i].pathMTU,
+			                                                                                                                 seqNum, CONFIG_UPDATE_REQ_VENDOR_ACTIVE_ELEMENT_TYPE)) {
+
+			                                          if(CWACSendAcknowledgedPacket(i, CW_MSG_TYPE_VALUE_CONFIGURE_UPDATE_RESPONSE, seqNum))
+			                                                bResult = CW_TRUE;
+			                                          else
+			                                                CWACStopRetransmission(i);
+			                                        }
+			                                  break;
+
+							}
+			case UNACTIVE_MSG_CMD:
+							{
+								CWLog("[F:%s, L:%d]UNACTIVE_MSG_CMD",__FILE__,__LINE__);
+								 int seqNum = CWGetSeqNum();
+
+			                                         if (CWAssembleConfigurationUpdateRequest(&(gWTPs[i].messages),
+			                                                                                                                 &(gWTPs[i].messagesCount),
+			                                                                                                                 gWTPs[i].pathMTU,
+			                                                                                                                 seqNum, CONFIG_UPDATE_REQ_VENDOR_UNACTIVE_ELEMENT_TYPE)) {
+
+			                                          if(CWACSendAcknowledgedPacket(i, CW_MSG_TYPE_VALUE_CONFIGURE_UPDATE_RESPONSE, seqNum))
+			                                                bResult = CW_TRUE;
+			                                          else
+			                                                CWACStopRetransmission(i);
+			                                        }
+			                                  break;
+
+							}
 			}
 
 				gWTPs[i].interfaceCommand = NO_CMD;
 
 				if (bResult)
+				{
 					gWTPs[i].interfaceCommandProgress = CW_TRUE;
+					CWLog("%s %d [%d] BE send ok ",__FILE__,__LINE__,i);
+				}
 				else {
-					gWTPs[i].interfaceResult = 0;
+					gWTPs[i].interfaceResult = CW_FALSE;
 					 if(!CWErr(CWThreadMutexLock(&gWTPs[i].interfaceMutex))) {
-							CWLog("Error Lock gWTPs[i].interfaceMutex !");
-							CWCloseThread();
+						CWLog("%s %d [%d] Error Lock interfaceMutex, close thread!",__FILE__,__LINE__,i);
+						gWTPs[i].isRequestClose = CW_TRUE;
+						continue;
 					  }
+					 //parent child one step
+					 CWLog("%s %d [%d] BE send fail ! ",__FILE__,__LINE__,i);
 					CWSignalThreadCondition(&gWTPs[i].interfaceComplete);
 					CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
-					CWDebugLog("Error sending command");
+					CWLog("Error sending command");
 				}
 			}
 			//CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
@@ -1031,22 +1297,42 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 		}
 	}
 	*********/
+	CWLog("CWMangeWtp over !!!");
 	CWDebugLog("CWMangeWtp over !!!");
 }
 
+//only close WTP by one way
+//Q:if main create i thread finish just now,this thread is closing(run after "isNotFree");
+//add wtpState (isClosing)
 void _CWCloseThread(int i) {
 //BE: ap disconnect
+	CWLog("_CWCloseThread WTP[%d], thead id:%x",i,(unsigned int)gWTPs[i].thread);
+
+	if(gWTPs[i].wtpState == CW_IDLE)
+	{
+		CWLog("_CWCloseThread gWTPs[%d], thead id:%x has been closed, close again !",i,(unsigned int)gWTPs[i].thread);
+		CWExitThread();
+		return;
+	}
+	//add closing...
+	if(!CWErr(CWThreadMutexLock(&gWTPsMutex)))
+	{
+		CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
+		exit(1);
+	}
+	gWTPs[i].wtpState = CW_CLOSING;
+	CWThreadMutexUnlock(&gWTPsMutex);
+
  	CWThreadSetSignals(SIG_BLOCK, 2, 
 			   CW_SOFT_TIMER_EXPIRED_SIGNAL, 
 			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
-
-	CWLog("_CWCloseThread apid =%d",i);
+	
 	char *beResp = NULL;
 	int BESize;
 	
 	BEconnectEvent beConEve;
-
-
+	
+	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 
 		//num can't < 0
 	if(gActiveWTPs && gWTPs[i].currentState == CW_ENTER_RUN)
@@ -1076,25 +1362,19 @@ void _CWCloseThread(int i) {
 		{
 			CWLog("Error AssembleBEheader !");
 		}
+		CWLog("[%d]_CWCloseThread Send BE success",i,gActiveWTPs);
 	}
-	
+	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	CWDebugLog("Close Thread: %08x", (unsigned int)CWThreadSelf());
 
 	CWACStopRetransmission(i);
 	
 	/**** ACInterface ****/
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex)))
-	{
-		CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
-		exit(1);
-	}
-	//CWThreadMutexLock(&gWTPsMutex);
-	CW_FREE_OBJECT(gWTPs[i].qosValues);
-	CW_FREE_OBJECT(gWTPs[i].ofdmValues);
 	
+	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	//gWTPs[i].qosValues=NULL;
 	memset(gWTPs[i].MAC, 0, MAC_ADDR_LEN);
-	gWTPs[i].isConnect = CW_FALSE;
+	//gWTPs[i].isConnect = CW_FALSE;
 
 	/**** ACInterface ****/
 
@@ -1111,9 +1391,9 @@ void _CWCloseThread(int i) {
 	/* this will do nothing if the timer isn't active */
 	CWTimerCancel(&(gWTPs[i].currentTimer));
 
-	if (gWTPs[i].interfaceCommandProgress == CW_TRUE) {
-
-		gWTPs[i].interfaceResult = 1;
+	if (gWTPs[i].interfaceCommandProgress == CW_TRUE || gWTPs[i].interfaceCommand != NO_CMD) 
+	{
+		gWTPs[i].interfaceResult = CW_FALSE;
 		gWTPs[i].interfaceCommandProgress = CW_FALSE;
 		CWThreadMutexLock(&gWTPs[i].interfaceMutex);
 		//BE
@@ -1124,37 +1404,72 @@ void _CWCloseThread(int i) {
 		CWThreadMutexUnlock(&gWTPs[i].interfaceMutex);
 	}
 	//child thread last core 
-	gWTPs[i].session = NULL;
+	//gWTPs[i].session = NULL;
 	gWTPs[i].currentState = CW_QUIT;
-	gWTPs[i].subState = CW_DTLS_HANDSHAKE_IN_PROGRESS;
+	//gWTPs[i].subState = CW_DTLS_HANDSHAKE_IN_PROGRESS;
+	//gWTPs[i].isConnect = CW_FALSE;
+	//gWTPs[i].interfaceCommand = NO_CMD;
 
 	CW_FREE_OBJECT(gWTPs[i].buf);
+
+	CW_FREE_OBJECT(gWTPs[i].qosValues);
+	CW_FREE_OBJECT(gWTPs[i].ofdmValues);
+	
+	//add free
+	if(gWTPs[i].vendorValues != NULL)
+	{
+		if(gWTPs[i].vendorValues->payload != NULL)
+		{
+			CW_FREE_OBJECT(gWTPs[i].vendorValues->payload);
+		}
+		CW_FREE_OBJECT(gWTPs[i].vendorValues);
+	}
+	if(gWTPs[i].vendorPortalValues != NULL)
+	{
+		CW_FREE_OBJECT(gWTPs[i].vendorPortalValues->EncodeName);
+		CW_FREE_OBJECT(gWTPs[i].vendorPortalValues->EncodeContent);
+		CW_FREE_OBJECT(gWTPs[i].vendorPortalValues);
+	}
+	
 	if(gWTPs[i].fragmentsList != NULL)
 	{
 		CWDeleteList(&(gWTPs[i].fragmentsList), CWProtocolDestroyFragment);
 		gWTPs[i].fragmentsList = NULL;
 	}
-	
+	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	/* CW_FREE_OBJECT(gWTPs[i].configureReqValuesPtr); */
-	CWCleanSafeList(gWTPs[i].packetReceiveList, free);
-	CWDestroySafeList(gWTPs[i].packetReceiveList);	
+	//CWLog("F:%s,L:%d before gWTPs[%d].packetReceiveList->nCount = %d",__FILE__,__LINE__,i,gWTPs[i].packetReceiveList->nCount);
+
+	//CWCleanSafeList(gWTPs[i].packetReceiveList, free);
+	//CWLog("F:%s,L:%d after gWTPs[%d].packetReceiveList->nCount = %d",__FILE__,__LINE__,i,gWTPs[i].packetReceiveList->nCount);
+	//CWDestroySafeList(gWTPs[i].packetReceiveList);
+	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
 	
-	gWTPs[i].isNotFree = CW_FALSE;
-	CWResetWTPProtocolManager(&(gWTPs[i].WTPProtocolManager));
+	//CWResetWTPProtocolManager(&(gWTPs[i].WTPProtocolManager));
 	
-	CWDestroyThreadMutex(&gWTPs[i].interfaceMutex);
-	CWDestroyThreadCondition(&gWTPs[i].interfaceWait);
-	CWDestroyThreadCondition(&gWTPs[i].interfaceComplete);	
+	//CWDestroyThreadMutex(&gWTPs[i].interfaceMutex);
+	//CWDestroyThreadCondition(&gWTPs[i].interfaceWait);
+	//CWDestroyThreadCondition(&gWTPs[i].interfaceComplete);	
 	
+	//CWLog("F:%s,L:%d ",__FILE__,__LINE__);
+	
+	if(!CWErr(CWThreadMutexLock(&gWTPsMutex)))
+	{
+		CWLog("_CWCloseThread CWThreadMutexLock fail,exit !");
+		exit(1);
+	}
+	gWTPs[i].wtpState = CW_IDLE;
+	gWTPs[i].isRequestClose = CW_FALSE;
+
 	CWThreadMutexUnlock(&gWTPsMutex);
 	
 	CWExitThread();
 
 	CWThreadSetSignals(SIG_UNBLOCK, 2, 
-			   CW_SOFT_TIMER_EXPIRED_SIGNAL,
-			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
+		   CW_SOFT_TIMER_EXPIRED_SIGNAL,
+		   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
 }
-
+//not complete safe
 void CWCloseThread() {
 
 	int *iPtr;
@@ -1167,7 +1482,8 @@ void CWCloseThread() {
 	
 	_CWCloseThread(*iPtr);
 }
-
+//Interrupt function must run complete,can't exit pthread when it waitsignal
+//pthread_cond_signal only signal other thread, not myself,but some time ok...
 void CWCriticalTimerExpiredHandler(int arg) {
 
 	int *iPtr;
@@ -1176,8 +1492,8 @@ void CWCriticalTimerExpiredHandler(int arg) {
 			   CW_SOFT_TIMER_EXPIRED_SIGNAL,
 			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
  	
-	CWDebugLog("Critical Timer Expired for Thread: %08x", (unsigned int)CWThreadSelf());
-	CWDebugLog("Abort Session");
+	CWLog("Critical Timer Expired for Thread: %08x", (unsigned int)CWThreadSelf());
+	CWLog("Abort Session");
 //	CWCloseThread();
 
 	if((iPtr = ((int*)CWThreadGetSpecific(&gIndexSpecific))) == NULL) {
@@ -1188,14 +1504,27 @@ void CWCriticalTimerExpiredHandler(int arg) {
 				   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
 		return;
 	}
-
+	CWLog("WTPs[%d] is  req close ...",*iPtr);
+	
+	CWTimerCancel(&(gWTPs[*iPtr].currentTimer));
+	
+	//_CWCloseThread(*iPtr);
+	//return;
 	/* Request close thread */
 	gWTPs[*iPtr].isRequestClose = CW_TRUE;
-	CWThreadMutexLock(&gWTPs[*iPtr].interfaceMutex);
-	CWSignalThreadCondition(&gWTPs[*iPtr].interfaceWait);
-	CWThreadMutexUnlock(&gWTPs[*iPtr].interfaceMutex);
+	CWThreadMutexLock(&gWTPs[*iPtr].wtpMutex);
+	CWLog("WTPs[%d] CWSignalThreadCondition begin ",*iPtr);
+	CWSignalThreadCondition(&gWTPs[*iPtr].wtpWait);
+	CWLog("WTPs[%d] CWSignalThreadCondition end ",*iPtr);
+	CWThreadMutexUnlock(&gWTPs[*iPtr].wtpMutex);
+	CWLog("WTPs[%d] CriticalTimerExpired end",*iPtr);
+	
+	CWThreadSetSignals(SIG_UNBLOCK, 2, 
+				   CW_SOFT_TIMER_EXPIRED_SIGNAL,
+				   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
 }
 
+//Retransmit Send Msg
 void CWSoftTimerExpiredHandler(int arg) {
 
 	int *iPtr;
@@ -1204,7 +1533,7 @@ void CWSoftTimerExpiredHandler(int arg) {
 			   CW_SOFT_TIMER_EXPIRED_SIGNAL,
 			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
 
-	CWDebugLog("Soft Timer Expired for Thread: %08x", 
+	CWLog("Soft Timer Expired for Thread: %08x", 
 		   (unsigned int)CWThreadSelf());
 	
 	if((iPtr = ((int*)CWThreadGetSpecific(&gIndexSpecific))) == NULL) {
@@ -1215,38 +1544,81 @@ void CWSoftTimerExpiredHandler(int arg) {
 				   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
 		return;
 	}
-
-	CWLog("Handling Soft timer,apid =%d,gWTPs[%d].isRetransmitting=%d ",*iPtr,*iPtr,gWTPs[*iPtr].isRetransmitting);
+	CWTimerCancel(&(gWTPs[*iPtr].currentTimer));
+	CWLog("WTPs[%d] is req close ...",*iPtr);
+	//CWLog("Handling Soft timer,apid =%d,gWTPs[%d].isRetransmitting=%d ",*iPtr,*iPtr,gWTPs[*iPtr].isRetransmitting);
 	if((!gWTPs[*iPtr].isRetransmitting) || (gWTPs[*iPtr].messages == NULL)) {
 
-		CWDebugLog("Soft timer expired but we are not retransmitting");
+		CWLog("Soft timer expired but we are not retransmitting");
+		CWLog("WTPs[%d] is req close ...",*iPtr);
+		
+		gWTPs[*iPtr].isRequestClose = CW_TRUE;
+		CWThreadMutexLock(&gWTPs[*iPtr].wtpMutex);
+		CWLog("WTPs[%d] CWSignalThreadCondition begin ",*iPtr);
+		CWSignalThreadCondition(&gWTPs[*iPtr].wtpWait);
+		CWLog("WTPs[%d] CWSignalThreadCondition end ",*iPtr);
+		CWThreadMutexUnlock(&gWTPs[*iPtr].wtpMutex);
+		CWLog("WTPs[%d] CriticalTimerExpired end",*iPtr);
+
 		CWThreadSetSignals(SIG_UNBLOCK, 2, 
-				   CW_SOFT_TIMER_EXPIRED_SIGNAL,
-				   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
-//		_CWCloseThread(*iPtr);
+					   CW_SOFT_TIMER_EXPIRED_SIGNAL,
+					   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
 		return;
+		//return;
 	}
 
 	(gWTPs[*iPtr].retransmissionCount)++;
 	
-	CWDebugLog("Retransmission Count increases to %d", gWTPs[*iPtr].retransmissionCount);
+	CWLog("Retransmission Count increases to %d", gWTPs[*iPtr].retransmissionCount);
 	
 	if(gWTPs[*iPtr].retransmissionCount >= gCWMaxRetransmit) 
 	{
-		CWDebugLog("Peer is Dead");
+		CWLog("Peer is Dead");
 //		 _CWCloseThread(*iPtr);
 		 /* Request close thread
 		 */
+		//gWTPs[*iPtr].isRequestClose = CW_TRUE;
+		//CWThreadMutexLock(&gWTPs[*iPtr].interfaceMutex);
+		//CWSignalThreadCondition(&gWTPs[*iPtr].interfaceWait);
+		//CWThreadMutexUnlock(&gWTPs[*iPtr].interfaceMutex);
+		//return;
+		CWLog("WTPs[%d] is  req close ...",*iPtr);
+
 		gWTPs[*iPtr].isRequestClose = CW_TRUE;
-		CWThreadMutexLock(&gWTPs[*iPtr].interfaceMutex);
-		CWSignalThreadCondition(&gWTPs[*iPtr].interfaceWait);
-		CWThreadMutexUnlock(&gWTPs[*iPtr].interfaceMutex);
+		CWThreadMutexLock(&gWTPs[*iPtr].wtpMutex);
+		CWLog("WTPs[%d] CWSignalThreadCondition begin ",*iPtr);
+		CWSignalThreadCondition(&gWTPs[*iPtr].wtpWait);
+		CWLog("WTPs[%d] CWSignalThreadCondition end ",*iPtr);
+		CWThreadMutexUnlock(&gWTPs[*iPtr].wtpMutex);
+		CWLog("WTPs[%d] CriticalTimerExpired end",*iPtr);
+
+		CWThreadSetSignals(SIG_UNBLOCK, 2, 
+			   CW_SOFT_TIMER_EXPIRED_SIGNAL,
+			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
 		return;
 	}
 
 	if(!CWErr(CWACResendAcknowledgedPacket(*iPtr))) {
 		CWLog("Handling Soft timer Retransmitting ,message sent  ");
-		_CWCloseThread(*iPtr);
+		//_CWCloseThread(*iPtr);
+		//gWTPs[*iPtr].isRequestClose = CW_TRUE;
+		//CWThreadMutexLock(&gWTPs[*iPtr].interfaceMutex);
+		//CWSignalThreadCondition(&gWTPs[*iPtr].interfaceWait);
+		//CWThreadMutexUnlock(&gWTPs[*iPtr].interfaceMutex);
+		CWLog("WTPs[%d] is  req close ...",*iPtr);
+
+		gWTPs[*iPtr].isRequestClose = CW_TRUE;
+		CWThreadMutexLock(&gWTPs[*iPtr].wtpMutex);
+		CWLog("WTPs[%d] CWSignalThreadCondition begin ",*iPtr);
+		CWSignalThreadCondition(&gWTPs[*iPtr].wtpWait);
+		CWLog("WTPs[%d] CWSignalThreadCondition end ",*iPtr);
+		CWThreadMutexUnlock(&gWTPs[*iPtr].wtpMutex);
+		CWLog("WTPs[%d] CriticalTimerExpired end",*iPtr);
+
+		CWThreadSetSignals(SIG_UNBLOCK, 2, 
+			   CW_SOFT_TIMER_EXPIRED_SIGNAL,
+			   CW_CRITICAL_TIMER_EXPIRED_SIGNAL);
+		return;
 	}
 	
 	/* CWDebugLog("~~~~~~fine ritrasmissione ~~~~~"); */

@@ -199,13 +199,8 @@ CWBool CWBindingAssembleConfigureResponse(CWProtocolMessage **msgElems, int *msg
 	//Reserve memory for msg Elements
 	CW_CREATE_PROTOCOL_MSG_ARRAY_ERR(*msgElems, *msgElemCountPtr, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
 
-	if(!CWThreadMutexLock(&gWTPsMutex))
-	{
-		CWLog("Error locking a mutex");
-		CWCloseThread();
-	}
-		//Fill gWTPs[*iPtr].qosValues with default settings 
-		gWTPs[*iPtr].qosValues=gDefaultQosValues;
+	//Fill gWTPs[*iPtr].qosValues with default settings 
+	gWTPs[*iPtr].qosValues=gDefaultQosValues;
 
 		for (j=0; j<radioCount; j++)
 		{
@@ -216,13 +211,11 @@ CWBool CWBindingAssembleConfigureResponse(CWProtocolMessage **msgElems, int *msg
 				int i;
 				for(i = 0; i <= k; i++) {CW_FREE_PROTOCOL_MESSAGE(*msgElems[i]);}
 				CW_FREE_OBJECT(*msgElems);
-				CWThreadMutexUnlock(&gWTPsMutex);
 				return CW_FALSE; // error will be handled by the caller
 			}
 		}
 
 	gWTPs[*iPtr].qosValues=NULL;
-	CWThreadMutexUnlock(&gWTPsMutex);	
 
 	CWLog("Binding Configuration Response Assembled");
 

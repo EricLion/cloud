@@ -35,6 +35,8 @@
 #define		CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_CONFIG		10
 #define		CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_STATE		11
 #define		CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_PORTAL		12
+#define		CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_ACTIVE		21
+#define		CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_UNACTIVE		22
 #define		CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_UCI		1
 #define 	CW_MSG_ELEMENT_VENDOR_SPEC_PAYLOAD_WUM		2
 
@@ -53,6 +55,7 @@ CWBool CWParseVendorPayload(CWProtocolMessage *msg, int len, CWProtocolVendorSpe
 CWBool CWParseUCIPayload(CWProtocolMessage *msg, CWVendorUciValues **payloadPtr);
 CWBool CWWTPSaveUCIValues(CWVendorUciValues *uciPayload, CWProtocolResultCode *resultCode);
 CWBool CWAssembleWTPVendorPayloadUCI(CWProtocolMessage *msgPtr);
+CWBool CWAssembleWTPVendorPayloadACT(CWProtocolMessage *msgPtr,char type) ;
 
 /*************************************************************************
  *  WTP Update Messages 

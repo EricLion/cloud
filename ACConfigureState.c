@@ -81,22 +81,29 @@ CWBool ACEnterConfigure(int WTPIndex, CWProtocolMessage *msgPtr) {
 	}
 	
 	CWLog("Configure Response Sent");
+
+	/* Destroy ConfigStatePending timer */
+	if(!CWErr(CWTimerCancel(&(gWTPs[WTPIndex].currentTimer)))) {
+		CWLog("%s %d [%d] CWTimerCancel Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+		//CWCloseThread();
+		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+		return CW_FALSE;
+	}
+	
 	
 	/* start Change State Pending timer */
 	if(!CWErr(CWTimerRequest(gCWChangeStatePendingTimer,
 				 &(gWTPs[WTPIndex].thread),
 				 &(gWTPs[WTPIndex].currentTimer),
 				 CW_CRITICAL_TIMER_EXPIRED_SIGNAL))) {
-		CWLog("CWTimerRequest Fail !!!");
-		CWCloseThread();
+		CWLog("%s %d [%d] CWTimerRequest Fail, close thread!",__FILE__,__LINE__,WTPIndex);
+		//CWCloseThread();
+		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
+		return CW_FALSE;
 	}
 	//CWLog("CWTimerRequest Success !!!");
-	if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
-							CWLog("Error locking the gWTPsMutex mutex");
-							return CW_FALSE;
-		}
+
 	gWTPs[WTPIndex].currentState = CW_ENTER_DATA_CHECK;
-	CWThreadMutexUnlock(&gWTPsMutex);
 	
 	return CW_TRUE;
 }
@@ -126,9 +133,11 @@ CWBool CWParseConfigureRequestMessage(char *msg,
 		return CW_FALSE;
 
 	/* different type */
-	if(controlVal.messageTypeValue != CW_MSG_TYPE_VALUE_CONFIGURE_REQUEST)
+	if(controlVal.messageTypeValue != CW_MSG_TYPE_VALUE_CONFIGURE_REQUEST){
+		CWLog("messageTypeValue=%o", controlVal.messageTypeValue);
 		return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Message is not Configure Request (maybe it is Image Data Request)");
-	
+	}
+
 	*seqNumPtr = controlVal.seqNum;
 	/* skip timestamp */
 	controlVal.msgElemsLen -= CW_CONTROL_HEADER_OFFSET_FOR_MSG_ELEMS;
