@@ -148,7 +148,12 @@ typedef struct {
 	CWThreadMutex wtpMutex;
 	CWThreadCondition wtpWait;
 	CWThreadMutex interfaceMutex;
+<<<<<<< HEAD
 	//CWThreadCondition interfaceWait;
+=======
+	CWThreadCondition interfaceWait;
+	//char iwvaule;
+>>>>>>> origin/master
 	CWThreadCondition interfaceComplete;
 	WTPQosValues* qosValues;
 	/********************************************************

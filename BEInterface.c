@@ -51,7 +51,11 @@ int FindApIndex(u_char* apMac)
 	
 	for(i=0; i<CW_MAX_WTP && k ; i++) 
 	{
+<<<<<<< HEAD
 		if(gWTPs[i].currentState == CW_ENTER_RUN)  
+=======
+		if(gWTPs[i].wtpState == CW_RUN && gWTPs[i].currentState == CW_ENTER_RUN)  
+>>>>>>> origin/master
 		{
 			k--;
 			for (j = 0; j < MAC_ADDR_LEN; j++) 
@@ -61,7 +65,11 @@ int FindApIndex(u_char* apMac)
 					if (j == (MAC_ADDR_LEN - 1))
 					{	
 						finded = i;
+<<<<<<< HEAD
 						CWLog("[F:%s, L:%d] finded = %d,thread:%x",__FILE__,__LINE__,finded,(unsigned int)gWTPs[i].thread);
+=======
+						CWLog("[F:%s, L:%d] finded = %d",__FILE__,__LINE__,finded);
+>>>>>>> origin/master
 						//if(!CWXMLSetValues(i, socketIndex, xmlValues))
 							//return FALSE;
 						break;
@@ -334,7 +342,11 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	CWLog("[F:%s, L:%d] :beHeader.timestamp = %d",__FILE__,__LINE__,timestamp);
 	beHeader.timestamp =Swap32(timestamp);
 	
+<<<<<<< HEAD
 	if((gWTPs[apId].currentState == CW_ENTER_RUN))
+=======
+	if(gWTPs[apId].wtpState == CW_RUN && (gWTPs[apId].currentState == CW_ENTER_RUN))
+>>>>>>> origin/master
 	{
 		for(i=0; i<MAC_ADDR_LEN; i++)
 		{
@@ -528,7 +540,10 @@ void SendBEResponse(char* buf,int len,int apId)
 }
 
 //Raydez say close every time
+<<<<<<< HEAD
 //add Resp
+=======
+>>>>>>> origin/master
 void SendBERequest(char* buf,int len)
 {
 	int ret,n,sock,optValue = 1;
@@ -920,7 +935,10 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 	CWLog("[F:%s, L:%d] WTP_CUP_FRAGMENT begin. ..... ",__FILE__,__LINE__);
 	memset((char*)wumValues,0,sizeof(CWVendorWumValues));
 	wumValues->type = WTP_CUP_FRAGMENT;
+<<<<<<< HEAD
 	
+=======
+>>>>>>> origin/master
 	int seqNum = 0;
 	int fragSize = 0;
 	
@@ -942,12 +960,19 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 		//CW_CREATE_OBJECT_SIZE_ERR(vendorValues.payload, sizeof(CWVendorWumValues), {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});
 		//memset(wumValues->args.cup.buf,0,fragSize);
 		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
+<<<<<<< HEAD
 		//memset((char*)wumValues,0,sizeof(CWVendorWumValues));
+=======
+		memset((char*)wumValues,0,sizeof(CWVendorWumValues));
+>>>>>>> origin/master
 		CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
 		//memset((char*)vendorValues->payload,0,sizeof(CWVendorWumValues));
 		CWLog("[F:%s, L:%d] seqNum = %d,fragSize  = %d,sent = %d ",__FILE__,__LINE__,seqNum,fragSize,sent);
 
+<<<<<<< HEAD
 		//CW_FREE_OBJECT(wumValues->_cup_);
+=======
+>>>>>>> origin/master
 		wumValues->_cup_ = NULL;
 		wumValues->_cup_ = (char*)cup + sent;
 		//memcpy((char*)(wumValues->args.cup.buf),(char*) (cup + sent), fragSize);
@@ -965,7 +990,10 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 		{
 			CWLog("[F:%s, L:%d] BESetWumValues fail ! ",__FILE__,__LINE__);
 			//CW_FREE_OBJECT(wumValues->_cup_);
+<<<<<<< HEAD
 			wumValues->_cup_ = NULL;
+=======
+>>>>>>> origin/master
 			CW_FREE_OBJECT(wumValues);
 			CW_FREE_OBJECT(vendorValues);
 			return ret;
@@ -978,7 +1006,10 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 
 	//WTP_COMMIT_UPDATE
 	CWLog("[F:%s, L:%d] WTP_COMMIT_UPDATE begin. ..... ",__FILE__,__LINE__);
+<<<<<<< HEAD
 	//CW_FREE_OBJECT(wumValues->_cup_);
+=======
+>>>>>>> origin/master
 	memset(wumValues,0,sizeof(CWVendorWumValues));
 	wumValues->type = WTP_COMMIT_UPDATE; 
 
@@ -990,7 +1021,11 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 	if(!ret)
 	{
 		CWLog("[F:%s, L:%d] BESetWumValues fail ! ",__FILE__,__LINE__);
+<<<<<<< HEAD
 		wumValues->_cup_ = NULL;
+=======
+		//CW_FREE_OBJECT(wumValues->_cup_);
+>>>>>>> origin/master
 		CW_FREE_OBJECT(wumValues);
 		CW_FREE_OBJECT(vendorValues);
 		return ret;
@@ -1142,7 +1177,24 @@ int CWXMLSetValues(int selection, int socketIndex, CWVendorXMLValues* xmlValues)
 		gWTPs[selection].interfaceCommand = NO_CMD;
 		return FALSE;
 	}
+<<<<<<< HEAD
 	
+=======
+	if (	(gWTPs[selection].wtpState == CW_RUN) &&
+		(gWTPs[selection].isRequestClose == CW_FALSE))
+	{
+		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+	}
+	else
+	{
+		CWLog("%s  %d WTP[%d] not online, BE request cannel !",__FILE__,__LINE__,selection);
+		gWTPs[selection].interfaceCommand = NO_CMD;
+		CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+		return FALSE;
+	}
+	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+>>>>>>> origin/master
 	return TRUE;
 }
 
@@ -1264,7 +1316,24 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 			gWTPs[selection].interfaceCommand = NO_CMD;
 			return FALSE;
 		}
+<<<<<<< HEAD
 	
+=======
+		if (	(gWTPs[selection].wtpState == CW_RUN) &&
+		(gWTPs[selection].isRequestClose == CW_FALSE))
+		{
+			CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+			CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+		}
+		else
+		{
+			CWLog("%s  %d WTP[%d] not online, BE request cannel !",__FILE__,__LINE__,selection);
+			gWTPs[selection].interfaceCommand = NO_CMD;
+			CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+			return FALSE;
+		}
+		
+>>>>>>> origin/master
 		CWLog("[F:%s, L:%d] -------%d  portal fragment recv----------",__FILE__,__LINE__,seqNum);
 		left -= toSend;
 		sent += toSend;
@@ -1299,6 +1368,7 @@ int CWActSetValues(int selection, int socketIndex,ActiveCode actCode ) {
 		return FALSE;
 	}
 	
+<<<<<<< HEAD
 	if(actCode == active)
 	{
 		gWTPs[selection].interfaceCommand = ACTIVE_MSG_CMD;
@@ -1352,6 +1422,8 @@ int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 		return FALSE;
 	}
 	
+=======
+>>>>>>> origin/master
 	if(sysCode == SYSTEM_RESET)
 	{
 		gWTPs[selection].interfaceCommand = CLEAR_CONFIG_MSG_CMD;
@@ -1388,7 +1460,24 @@ int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 		gWTPs[selection].interfaceCommand = NO_CMD;
 		return FALSE;
 	}
+<<<<<<< HEAD
 	
+=======
+	if (	(gWTPs[selection].wtpState == CW_RUN) &&
+		(gWTPs[selection].isRequestClose == CW_FALSE))
+	{
+		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+	}
+	else
+	{
+		CWLog("%s  %d WTP[%d] not online, BE request cannel !",__FILE__,__LINE__,selection);
+		gWTPs[selection].interfaceCommand = NO_CMD;
+		CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+		return FALSE;
+	}
+	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+>>>>>>> origin/master
 	CWLog("[F:%s, L:%d] CWSysSetValues end ...",__FILE__,__LINE__);	
 	
 	return TRUE;
@@ -1455,6 +1544,23 @@ int CWWumSetValues(int selection, int socketIndex, CWProtocolVendorSpecificValue
 		return FALSE;
 	}
 	
+<<<<<<< HEAD
+=======
+	if (	(gWTPs[selection].wtpState == CW_RUN) &&
+		(gWTPs[selection].isRequestClose == CW_FALSE))
+	{
+		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
+		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
+	}
+	else
+	{
+		CWLog("%s  %d WTP[%d] not online, BE request cannel !",__FILE__,__LINE__,selection);
+		gWTPs[selection].interfaceCommand = NO_CMD;
+		CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+		return FALSE;
+	}
+	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
+>>>>>>> origin/master
 	CWLog("[F:%s, L:%d] CWWumSetValues end ...",__FILE__,__LINE__);	
 	
 	return TRUE;
@@ -2180,8 +2286,13 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 	
 	servaddr.sin_family = AF_INET;
 	//not same as AC
+<<<<<<< HEAD
 //servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); /* Not Extern: INADDR_ANY */
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY); /* Not Extern: INADDR_ANY */
+=======
+	servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); /* Not Extern: INADDR_ANY */
+	//servaddr.sin_addr.s_addr = htonl(INADDR_ANY); /* Not Extern: INADDR_ANY */
+>>>>>>> origin/master
 	servaddr.sin_port = htons(LISTEN_PORT); 
 
 	if (setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &optValue, sizeof(int)) == -1) {
