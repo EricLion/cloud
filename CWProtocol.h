@@ -259,11 +259,8 @@
 #ifdef CW_DEBUGGING
 	#define		CW_CONFIG_STATE_INTERVAL_DEFAULT 10
 #else
-<<<<<<< HEAD
 	#define		CW_CONFIG_STATE_INTERVAL_DEFAULT 10
-=======
-	#define		CW_CONFIG_STATE_INTERVAL_DEFAULT 30
->>>>>>> origin/master
+
 #endif
 
 #ifdef CW_DEBUGGING

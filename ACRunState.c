@@ -536,11 +536,9 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 			{
 				//CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex);
 
-<<<<<<< HEAD
+
 				gWTPs[WTPIndex].interfaceResult = CW_TRUE;
-=======
-				gWTPs[WTPIndex].interfaceResult = 1;
->>>>>>> origin/master
+
 				gWTPs[WTPIndex].interfaceCommandProgress = CW_FALSE;
 				
 				if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) 

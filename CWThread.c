@@ -824,11 +824,8 @@ void CWHandleTimer(CWTimerArg arg) {
  	int signalToRaise = a->signalToRaise;
 
 	CWThreadSendSignal(requestedThreadPtr, signalToRaise);
-<<<<<<< HEAD
+
  	CWLog("Timer Expired, Sent Signal(%d) to Thread: %x", signalToRaise, (unsigned int)requestedThreadPtr);
-=======
- 	CWLog("Timer Expired, Sent Signal(%d) to Thread: %d", signalToRaise, requestedThreadPtr);
->>>>>>> origin/master
 
 	CW_FREE_OBJECT(a->requestedThreadPtr);
 	CW_FREE_OBJECT(a);
