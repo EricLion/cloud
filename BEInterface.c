@@ -51,9 +51,7 @@ int FindApIndex(u_char* apMac)
 	
 	for(i=0; i<CW_MAX_WTP && k ; i++) 
 	{
-
 		if(gWTPs[i].currentState == CW_ENTER_RUN)  
-
 		{
 			k--;
 			for (j = 0; j < MAC_ADDR_LEN; j++) 
@@ -64,7 +62,6 @@ int FindApIndex(u_char* apMac)
 					{	
 						finded = i;
 						CWLog("[F:%s, L:%d] finded = %d,thread:%x",__FILE__,__LINE__,finded,(unsigned int)gWTPs[i].thread);
-
 						//if(!CWXMLSetValues(i, socketIndex, xmlValues))
 							//return FALSE;
 						break;
@@ -338,7 +335,6 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	beHeader.timestamp =Swap32(timestamp);
 	
 	if((gWTPs[apId].currentState == CW_ENTER_RUN))
-
 	{
 		for(i=0; i<MAC_ADDR_LEN; i++)
 		{
@@ -347,8 +343,6 @@ char* AssembleBEheader(char* buf,int *len,int apId,char *xml)
 	}
 	
 	CWLog("[F:%s, L:%d] :beHeader.mac = %x:%x:%x:%x:%x:%x",__FILE__,__LINE__,beHeader.apMac[0],beHeader.apMac[1],beHeader.apMac[2],beHeader.apMac[3],beHeader.apMac[4],beHeader.apMac[5]);
-
-
 
 	CW_CREATE_STRING_ERR(rsp, packetLen+1, {CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL); return 0;});				
 	memset(rsp, 0, packetLen+1);
@@ -533,7 +527,6 @@ void SendBEResponse(char* buf,int len,int apId)
 
 //Raydez say close every time
 //add Resp
-
 void SendBERequest(char* buf,int len)
 {
 	int ret,n,sock,optValue = 1;
@@ -549,7 +542,7 @@ void SendBERequest(char* buf,int len)
 		return;
 	}
 	struct sockaddr_in servaddr;
-	struct sockaddr_in clientaddr;
+	//struct sockaddr_in clientaddr;
 
 	char *address = gACBEServerAddr;
 	int port = gACBEServerPort;
@@ -568,6 +561,8 @@ void SendBERequest(char* buf,int len)
 		close(sock);
 		return ;
 	}
+
+#if 0
 	bzero(&clientaddr, sizeof (struct sockaddr_in));
 	clientaddr.sin_family = AF_INET;
 	clientaddr.sin_port = htons((BE_SOCKET_PORT_MIN+*iPtr));
@@ -578,6 +573,7 @@ void SendBERequest(char* buf,int len)
 		close(sock);
 		return;
 	}
+#endif
 
 	bzero(&servaddr, sizeof (struct sockaddr_in));
 	servaddr.sin_family = AF_INET;
@@ -603,7 +599,7 @@ void SendBERequest(char* buf,int len)
 	CWLog("[F:%s, L:%d] SendBERequset len:%d",__FILE__,__LINE__,len);
 	if(len > BE_MAX_PACKET_LEN)
 	{
-		CWLog("SendBEResponse Error len > 80000");
+		CWLog("SendBERequset Error len > 80000");
 		return;
 	}
 	
@@ -629,7 +625,7 @@ void SendBERequest(char* buf,int len)
 	CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 	
 
-	if(gWTPs[*iPtr].wtpState != CW_RUN)
+	if(is_valid_wtp_index(*iPtr) != CW_TRUE)
 	{
 		CWLog("AP not run ,no need response ...");
 		goto quit_manage;
@@ -926,7 +922,6 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 	memset((char*)wumValues,0,sizeof(CWVendorWumValues));
 	wumValues->type = WTP_CUP_FRAGMENT;
 	
-
 	int seqNum = 0;
 	int fragSize = 0;
 	
@@ -949,13 +944,11 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 		//memset(wumValues->args.cup.buf,0,fragSize);
 		CWLog("[F:%s, L:%d] ",__FILE__,__LINE__);
 		//memset((char*)wumValues,0,sizeof(CWVendorWumValues));
-
 		CWLog("[F:%s, L:%d]  ",__FILE__,__LINE__);
 		//memset((char*)vendorValues->payload,0,sizeof(CWVendorWumValues));
 		CWLog("[F:%s, L:%d] seqNum = %d,fragSize  = %d,sent = %d ",__FILE__,__LINE__,seqNum,fragSize,sent);
 
 		//CW_FREE_OBJECT(wumValues->_cup_);
-
 		wumValues->_cup_ = NULL;
 		wumValues->_cup_ = (char*)cup + sent;
 		//memcpy((char*)(wumValues->args.cup.buf),(char*) (cup + sent), fragSize);
@@ -974,7 +967,6 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 			CWLog("[F:%s, L:%d] BESetWumValues fail ! ",__FILE__,__LINE__);
 			//CW_FREE_OBJECT(wumValues->_cup_);
 			wumValues->_cup_ = NULL;
-
 			CW_FREE_OBJECT(wumValues);
 			CW_FREE_OBJECT(vendorValues);
 			return ret;
@@ -988,7 +980,6 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 	//WTP_COMMIT_UPDATE
 	CWLog("[F:%s, L:%d] WTP_COMMIT_UPDATE begin. ..... ",__FILE__,__LINE__);
 	//CW_FREE_OBJECT(wumValues->_cup_);
-
 	memset(wumValues,0,sizeof(CWVendorWumValues));
 	wumValues->type = WTP_COMMIT_UPDATE; 
 
@@ -1001,9 +992,6 @@ char UpgradeVersion(u_char* apMac, int socketIndex,void *cup, struct version_inf
 	{
 		CWLog("[F:%s, L:%d] BESetWumValues fail ! ",__FILE__,__LINE__);
 		wumValues->_cup_ = NULL;
-
-		//CW_FREE_OBJECT(wumValues->_cup_);
-
 		CW_FREE_OBJECT(wumValues);
 		CW_FREE_OBJECT(vendorValues);
 		return ret;
@@ -1278,7 +1266,6 @@ int CWPortalSetValues(int selection, int socketIndex, CWVendorPortalValues* port
 			return FALSE;
 		}
 	
-
 		CWLog("[F:%s, L:%d] -------%d  portal fragment recv----------",__FILE__,__LINE__,seqNum);
 		left -= toSend;
 		sent += toSend;
@@ -1402,24 +1389,7 @@ int CWSysSetValues(int selection, int socketIndex,SystemCode sysCode ) {
 		gWTPs[selection].interfaceCommand = NO_CMD;
 		return FALSE;
 	}
-<<<<<<< HEAD
 	
-=======
-	if (	(gWTPs[selection].wtpState == CW_RUN) &&
-		(gWTPs[selection].isRequestClose == CW_FALSE))
-	{
-		CWSignalThreadCondition(&gWTPs[selection].interfaceWait);
-		CWWaitThreadCondition(&gWTPs[selection].interfaceComplete, &gWTPs[selection].interfaceMutex);
-	}
-	else
-	{
-		CWLog("%s  %d WTP[%d] not online, BE request cannel !",__FILE__,__LINE__,selection);
-		gWTPs[selection].interfaceCommand = NO_CMD;
-		CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
-		return FALSE;
-	}
-	CWThreadMutexUnlock(&(gWTPs[selection].interfaceMutex));
->>>>>>> origin/master
 	CWLog("[F:%s, L:%d] CWSysSetValues end ...",__FILE__,__LINE__);	
 	
 	return TRUE;
@@ -2213,7 +2183,6 @@ CW_THREAD_RETURN_TYPE CWInterface(void* arg)
 	//not same as AC
 //servaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); /* Not Extern: INADDR_ANY */
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY); /* Not Extern: INADDR_ANY */
-
 	servaddr.sin_port = htons(LISTEN_PORT); 
 
 	if (setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &optValue, sizeof(int)) == -1) {
@@ -2341,8 +2310,7 @@ Quit:
 int is_valid_wtp_index(int wtpIndex) 
 {
 	if (wtpIndex < CW_MAX_WTP && 
-		(gWTPs[wtpIndex].wtpState == CW_RUN) && 
-		(gWTPs[wtpIndex].isRequestClose == CW_FALSE))
+	    wtpIndex >= 0)
 		return CW_TRUE;
 	return CW_FALSE;
 }

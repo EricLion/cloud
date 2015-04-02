@@ -62,28 +62,36 @@ CWBool CWNetworkSendUnsafeUnconnected(CWSocket sock,
 				      CWNetworkLev4Address *addrPtr,
 				      const char *buf,
 				      int len) {
-
+	int sendlen = -1;
 	if(buf == NULL || addrPtr == NULL) 
 		return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
 	
 	CWUseSockNtop(addrPtr, CWDebugLog(str););
 	CWUseSockNtop(addrPtr, CWLog(str););
+	CWLog("CWNetworkSendUnsafeUnconnected send len = %d",len);
 	//no need gSocketMutex
-#if 0
-
+#if 1
 	if(!CWThreadMutexLock(&gSocketMutex)) {
 		
 		CWLog("Error Locking gSocketSendMutex, Fail !");
 		return CW_FALSE;
 	}
 #endif
-	while(sendto(sock, buf, len, 0, (struct sockaddr*)addrPtr, CWNetworkGetAddressSize(addrPtr)) < 0) {
-		CWLog("CWNetworkSendUnsafeUnconnected <0 while, Fail !");
+	while((sendlen = sendto(sock, buf, len, 0, (struct sockaddr*)addrPtr, CWNetworkGetAddressSize(addrPtr))) <= 0) {
+		CWLog("CWNetworkSendUnsafeUnconnected <= 0 while, Fail !");
 		if(errno == EINTR) continue;
 		CWNetworkRaiseSystemError(CW_ERROR_SENDING);
+		return CW_FALSE;
 	}
 
-#if 0
+	if(sendlen != len)
+	{
+		CWLog("CWNetworkSendUnsafeUnconnected sendlen:%d, != len:%d, Fail !",sendlen,len);
+		CWNetworkRaiseSystemError(CW_ERROR_SENDING);
+		return CW_FALSE;
+	}
+
+#if 1
 	CWThreadMutexUnlock(&gSocketMutex);
 #endif
 

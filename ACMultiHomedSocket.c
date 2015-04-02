@@ -499,6 +499,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 	int flags = ((peekRead != CW_FALSE) ? MSG_PEEK : 0);
 	//buf malloc
 	char buf[CW_BUFFER_SIZE];
+	int selected = -1;
 	//char *buf = NULL;
 	
 	CWLog("%s %d CWNetworkUnsafeMultiHomed begin",__FILE__,__LINE__);
@@ -516,12 +517,14 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 	for(i = 0; i < sockPtr->count; i++) {
 	
 		FD_SET(sockPtr->interfaces[i].sock, &fset);
-
+		CWLog("%s %d FD_SET socket = %d",__FILE__,__LINE__,sockPtr->interfaces[i].sock);
+		
 		if (sockPtr->interfaces[i].sock > max)
 			max = sockPtr->interfaces[i].sock;
 	}
+	CWLog("%s %d max socket = %d",__FILE__,__LINE__,max);
 	
-	while(select(max+1, &fset, NULL, NULL, NULL) < 0) {
+	while((selected = select(max+1, &fset, NULL, NULL, NULL) )<= 0) {
 		
 		CWLog("%s %d select Fail!",__FILE__,__LINE__);
 		if (errno != EINTR) {
@@ -529,7 +532,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 			CWNetworkRaiseSystemError(CW_ERROR_GENERAL);
 		}
 	}
-	CWLog("%s %d CWNetworkUnsafeMultiHomed middle",__FILE__,__LINE__);
+	CWLog("%s %d CWNetworkUnsafeMultiHomed selectd = %d, finish",__FILE__,__LINE__,selected);
 	/* calls CWManageIncomingPacket() for each interface 
 	 * that has an incoming packet 
 	 */
