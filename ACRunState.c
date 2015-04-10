@@ -1284,12 +1284,12 @@ CWBool CWSaveConfigurationUpdateResponseMessage(CWProtocolResultCode resultCode,
 	 * On a positive WTP_COMMIT_ACK, we need to close the WTP Manager.
 	 */
 	if (closeWTPManager) {
-		if(!CWErr(CWThreadMutexLock(&gWTPsMutex))) {
+		if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].wtpMutex))) {
 			CWLog("Error locking the gWTPsMutex mutex !");
 			return CW_FALSE;
 		}
 		gWTPs[WTPIndex].isRequestClose = CW_TRUE;
-		CWThreadMutexUnlock(&gWTPsMutex);
+		CWThreadMutexUnlock(&gWTPs[WTPIndex].wtpMutex);
 #if 0
 		if(!CWErr(CWThreadMutexLock(&gWTPs[WTPIndex].interfaceMutex))) 
 		{
